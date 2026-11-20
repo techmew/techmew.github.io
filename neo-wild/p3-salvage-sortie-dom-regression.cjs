@@ -48,7 +48,7 @@ const make=new Function("env","with(env){"+code+
 let seed=1;while(A.derive({id:"scrap:p3-sortie:1",seed}).owner==="cat")seed++;
 const notifications=[],saves=[];
 const env={
- window:win,document,ctx,dpr:1,vw:320,vh:260,elapsed:240,day:4,mode:"play",
+ window:win,document,ctx,dpr:1,vw:320,vh:260,elapsed:240,day:4,mode:"play",totalScore:0,worldEventJournal:[],
  TWO:Math.PI*2,P:{type:"cat",base:{name:"猫"},squadIndividualId:"living-cat",hp:150,maxHp:150,x:10740,y:2590,r:18},
  WORLD:{w:13600,h:6000},MOUNTAIN:M,weaponScraps:[
   {id:"scrap:p3-sortie:1",seed,x:10740,y:2590,foundAt:2,pulse:0,guardianAwake:false,guardState:"pending"}
@@ -162,4 +162,40 @@ ok(html.includes("game.js?rev=")&&html.includes("webgl3d.js?rev="),"production b
 eq(E.stops.length,8,"all eastern destinations retained");
 eq(A.owners.length,35,"all equipment species retained");
 eq(A.MAX,240,"shared weapon capacity unchanged");
+
+/* Northern snow/cave pack: unassisted real combat must defeat ALL tagged mobs
+ * before physical reward and score/food payout. Preserves legacy vault and IDs. */
+env.mode="play";env.inDen=false;env.P.type="cat";env.P.base={name:"猫"};
+env.P.level=12;env.P.x=13100;env.P.y=3810;env.P.sp=45;
+env.P.hp=110;env.P.maxHp=160;env.P.maxSp=100;
+env.totalScore=100;env.worldEventJournal=[];
+env.weaponScraps=[{id:"scrap:p3-siege:pack",x:13100,y:3810,seed:5581,
+ foundAt:6,pulse:0,guardianAwake:false,guardState:"pending"}];
+env.mobs=[];env.collides=()=>false;env.waterDepth=()=>0;
+api.tickWeaponScraps(1.6);
+eq(env.weaponScraps[0].guardState,"engaged","mountain pack is physically engaged");
+ok(env.mobs.length>=2,"highland contested cache has multiple live guardians");
+eq(env.weaponScraps[0].siegeTotal,env.mobs.length,"world scrap records actual live pack size");
+const initialPack=env.mobs.filter(m=>m.salvageCacheId==="scrap:p3-siege:pack");
+eq(initialPack.length,env.mobs.length,"each enemy belongs to this named cache");
+api.contextAction(false);
+ok(!A.alreadyClaimed("scrap:p3-siege:pack"),"no loot while pack alive");
+for(let i=0;i<initialPack.length;i++){
+ const m=initialPack[i];m.hp=0;
+ ok(api.recordWeaponScrapGuardianDefeat(m),"real kill saves wave progress");
+ if(i<initialPack.length-1){
+  eq(env.weaponScraps[0].guardState,"engaged","survivors retain the lock");
+  api.contextAction(false);
+  ok(!A.alreadyClaimed("scrap:p3-siege:pack"),"first kill cannot claim defended cache");
+ }
+}
+eq(env.weaponScraps[0].guardState,"cleared","last actual kill unlocks cache");
+const foodBefore=env.carcasses.length,scoreBefore=env.totalScore;
+api.contextAction(false);
+ok(A.alreadyClaimed("scrap:p3-siege:pack"),"last kill allows authoritative vault claim");
+ok(env.totalScore>scoreBefore,"regional siege grants actual score");
+ok(env.carcasses.length>foodBefore,"regional siege drops edible food into world");
+ok(env.worldEventJournal.some(q=>q.kind==="east-salvage-siege"),"siege tracked in persisted world journal");
+const scoreAfter=env.totalScore;api.contextAction(false);
+eq(env.totalScore,scoreAfter,"weapon extraction cannot grant repeated reward");
 console.log("P3 SALVAGE SORTIE DOM/CANVAS PASS: "+checks+" assertions, combat -> cache -> vault -> species DOM equip -> boss HP -> Continue -> JSON import (V8 mock; not browser/GPU/Android)");

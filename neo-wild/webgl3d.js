@@ -2786,6 +2786,13 @@ function render(o){
    box(scrap.x-13+cs*2,scrap.y-10+sn*2,3.2,25,20,11,"#786f5e");
    box(scrap.x-9,scrap.y-7,14.3,17,14,2.2,"#b6b29a");
    for(let i=0;i<3;i++)box(scrap.x-11+i*9,scrap.y+6,6.5,3,4,3.3,"#4b524d");
+   if(scrap.guardState==="engaged"&&scrap.siegeTotal>1){
+    const left=Math.max(0,Math.min(3,scrap.siegeTotal-(scrap.siegeDefeated||0)));
+    for(let i=0;i<Math.min(3,scrap.siegeTotal);i++){
+     ellipsoid(scrap.x-15+i*15,scrap.y-25,11,5.5,5.5,5.5,
+      i<left?"#ff776e":"#50685b",0,7,3);
+    }
+   }
   }
   // The combat loop sets flash only on a real hit; missed attacks have no flare.
   // Capped low-poly shapes preserve mobile GPU budgets.

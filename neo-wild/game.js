@@ -2239,7 +2239,9 @@ function restoreSnapshot(snapshot){
   // cannot be claimed until their named guardian is actually defeated.
   guardState:["pending","engaged","cleared"].includes(d.guardState)?
    (d.guardState==="cleared"&&!d.guardianAwake?"pending":d.guardState):
-   d.guardianAwake===true?"legacy":"pending"}});
+   d.guardianAwake===true?"legacy":"pending",
+  siegeTotal:Math.max(0,Math.min(3,Math.floor(Number(d.siegeTotal)||0))),
+  siegeDefeated:Math.max(0,Math.min(3,Math.floor(Number(d.siegeDefeated)||0)))}});
  // Old checkpoints may predate the optional serial field; never reuse a
  // claimed vault id from this or an older checkpoint lineage.
  // Durable endgame victory wins over older checkpoints, including older
@@ -5098,6 +5100,19 @@ function spawnWeaponScrap(nearPlayer=false,preferredStop=-1){
 }
 // A contested cache generates actual hostile encounters on APPROACH, not
 // only after claiming the prize. Existing ecological restrictions and caps apply.
+// Eastern siege: a real pack of physical wildlife defends higher-risk caches.
+// One guardian at the eastern gate, two near the ravine/headwater and up to
+// three in the snow/cave, capped for newly started low-level survivors.
+function salvageWaveSize(drop){
+ const x=Number(drop?.x)||0,level=Math.max(1,Number(P?.level)||1);
+ return x>=12800?(level>=8?3:2):x>=11500?2:1;
+}
+function markSalvageGuardian(drop,guard){
+ guard.salvageCacheId=drop.id;
+ guard.alert=Math.max(Number(guard.alert)||0,7);
+ guard.search=Math.max(Number(guard.search)||0,7);
+ guard.lastX=P.x;guard.lastY=P.y;guard.wander=0;
+}
 function wakeWeaponScrapGuardian(drop){
  const armory=window.WildArsenal;
  if(!drop||drop.guardianAwake||drop.guardState==="cleared"||!P||P.hp<=0||mode!=="play"||
@@ -5108,23 +5123,24 @@ function wakeWeaponScrapGuardian(drop){
   !species[m.type]?.prey&&!m.releasedIndividualId&&!m.salvageCacheId&&
   Math.hypot(m.x-drop.x,m.y-drop.y)<480);
  if(predators.length){
-  // Only the actual territorial animal can unlock the cache on defeat.
-  // Other nearby predators stay dangerous, but cannot forge kill credit.
-  const guard=predators.sort((a,b)=>dist(a,drop)-dist(b,drop))[0];
-  guard.salvageCacheId=drop.id;
-  for(const m of predators){
-   m.alert=Math.max(Number(m.alert)||0,7);m.search=Math.max(Number(m.search)||0,7);
-   m.lastX=P.x;m.lastY=P.y;m.wander=0;
-  }
+  const wave=predators.sort((a,b)=>dist(a,drop)-dist(b,drop))
+   .slice(0,salvageWaveSize(drop));
+  for(const m of wave)markSalvageGuardian(drop,m);
+  drop.siegeTotal=wave.length;drop.siegeDefeated=0;
   drop.guardianAwake=true;drop.guardState="engaged";
-  notify("ガラクタの番人がこちらに気づいた。倒すまで回収できない",3);
+  notify("東部の番人"+wave.length+"体がこちらに気づいた。全員倒すまで回収不可",3);
   saveAuto();return true;
  }
  if(atDen()||mobs.filter(m=>m.hp>0&&Math.hypot(m.x-P.x,m.y-P.y)<650).length>=5){
   drop.guardRetryAt=elapsed+10;return false;
  }
- const hostileTypes=["wolf","fox","boar","wildDog","blackBear","hyena","lion","tibetanFox"];
- for(let k=0;k<12;k++){
+ const zone=Number(drop.x)||0;
+ const hostileTypes=zone<10100?["dog","fox","boar","wolf","wildDog"]:
+  zone<11500?["wolf","boar","fox","tibetanFox","blackBear"]:
+  zone<12800?["wolf","hyena","blackBear","wildDog","boar"]:
+  ["wolf","hyena","lion","blackBear","tibetanFox"];
+ const wanted=salvageWaveSize(drop),pack=[];
+ for(let k=0;k<Math.max(12,wanted*13);k++){
   const angle=(k*.61803398875+(Number(drop.seed)||0)/4294967296)*TWO;
   const radius=270+k%3*42;
   const spot={x:Math.round(drop.x+Math.cos(angle)*radius),y:Math.round(drop.y+Math.sin(angle)*radius)};
@@ -5139,13 +5155,17 @@ function wakeWeaponScrapGuardian(drop){
   const before=mobs.length;
   if(!spawnMob(false,false,false,spot,type)||mobs.length<=before)continue;
   const guard=mobs[mobs.length-1];
-  if(species[guard.type]?.prey){drop.guardRetryAt=elapsed+22;return false;}
-  guard.alert=Math.max(Number(guard.alert)||0,7);
-  guard.search=Math.max(Number(guard.search)||0,7);
-  guard.lastX=P.x;guard.lastY=P.y;guard.wander=0;
-  guard.salvageCacheId=drop.id;
+  // Starter sanctuary can turn a forced predator into prey; never count it
+  // as a combat kill or hold the cache hostage to an unkillable target.
+  if(species[guard.type]?.prey)continue;
+  markSalvageGuardian(drop,guard);
+  pack.push(guard);
+  if(pack.length>=wanted)break;
+ }
+ if(pack.length){
+  drop.siegeTotal=pack.length;drop.siegeDefeated=0;
   drop.guardianAwake=true;drop.guardState="engaged";
-  notify("ガラクタの番人が出現。討伐してから回収",3);
+  notify("東部掃討：番人"+pack.length+"体を全員討伐してガラクタを回収",3);
   saveAuto();return true;
  }
  drop.guardRetryAt=elapsed+14;return false;
@@ -5158,6 +5178,7 @@ function tickWeaponScraps(dt){
   if(drop.guardState!=="engaged")continue;
   if(mobs.some(m=>m.hp>0&&m.salvageCacheId===drop.id))continue;
   drop.guardState="pending";drop.guardianAwake=false;
+  drop.siegeTotal=0;drop.siegeDefeated=0;
   drop.guardRetryAt=elapsed+2;
  }
  weaponScrapClock+=dt;
@@ -5242,11 +5263,35 @@ function pickWeaponScrap(){
  const grade=armory.gradeOf(outcome.item),owned=outcome.item.owner===P.type;
  // A failed world autosave never rolls back the independently verified vault:
  // old snapshots filter claimed scrap IDs when reloaded.
+ let bonus=null;
+ if(!outcome.duplicate){
+  const tier=Math.max(1,Number(armory.dangerTier(drop.x))||1);
+  const foodType=tier>=2?"meat":"berries",amount=12+8*tier;
+  const points=70+65*tier+Math.max(0,(Number(drop.siegeTotal)||1)-1)*90;
+  bonus={hp:P.hp,sp:P.sp,score:totalScore,carcasses:carcasses.length,
+   journal:worldEventJournal.slice(),points,amount,foodType};
+  totalScore+=points;
+  P.hp=Math.min(P.maxHp,P.hp+7+tier*3);
+  P.sp=Math.min(P.maxSp||100,P.sp+10+tier*5);
+  if(carcasses.length<270)carcasses.push({x:drop.x,y:drop.y,r:9,
+   amount,type:foodType,animalType:foodType==="meat"?"boar":null,ttl:420,phase:0});
+  const nearest=window.WildEastExpedition?.stops?.slice()
+   .sort((a,b)=>Math.hypot(a.x-drop.x,a.y-drop.y)-Math.hypot(b.x-drop.x,b.y-drop.y))[0];
+  worldEventJournal.push({year:Math.floor(elapsed/120),at:Date.now(),
+   kind:"east-salvage-siege",label:"東部掃討・武器発掘："+(nearest?.name||"東部")+
+    "｜番人"+Math.max(1,Number(drop.siegeTotal)||1)+"体｜得点"+points});
+  worldEventJournal=worldEventJournal.slice(-40);
+ }
  const worldSaved=saveAuto();
+ if(!worldSaved&&bonus){
+  P.hp=bonus.hp;P.sp=bonus.sp;totalScore=bonus.score;
+  carcasses.length=bonus.carcasses;worldEventJournal=bonus.journal;
+ }
  if(!outcome.duplicate){
   label(drop.x,drop.y-37,grade.name+" "+outcome.item.name,"#ffe2a7");
   notify("ガラクタ鑑定："+outcome.item.name+"｜"+grade.name+"｜ボス攻撃 "+Math.round((grade.boss-1)*100)+
-   "%強化。"+(owned?"巣の武器保管庫で装備可能":"別の動物専用。全巣共通の保管庫へ格納"),5);
+   "%強化。"+(owned?"巣の武器保管庫で装備可能":"別の動物専用。全巣共通の保管庫へ格納")+
+   (worldSaved&&bonus?"｜掃討得点+"+bonus.points+"・現地食料"+bonus.amount:""),5);
  }else notify("このガラクタは鑑定済みです。武器保管庫に保存されています",3);
  if(!worldSaved)notify("武器は保管庫に保存済み。ワールド保存に失敗したため、再開時は重複を除去します",4);
  syncHUD();return true;
@@ -5299,7 +5344,8 @@ function drawWeaponScrapLabels(){
   ctx.strokeStyle="#d9c6a0";ctx.lineWidth=1.3;ctx.strokeRect(pos.x-46,pos.y-24,92,27);
   const guarded=drop.guardState==="engaged",locked=drop.guardState==="pending";
   ctx.fillStyle=guarded?"#ffaaa0":locked?"#ffcf9c":"#bde9be";
-  ctx.fillText(guarded?"！番人と戦闘":locked?"！番人未討伐":"？ ガラクタ",pos.x,pos.y-11);
+  const remaining=guarded?mobs.filter(m=>m.hp>0&&m.salvageCacheId===drop.id).length:0;
+  ctx.fillText(guarded?"！番人 残り"+remaining+"体":locked?"！番人未討伐":"？ ガラクタ",pos.x,pos.y-11);
   if(++count>=5)break;
  }
  // A living guardian, not an arbitrary nearby predator, carries the combat
@@ -5332,7 +5378,15 @@ function drawWeaponScrap2D(scrap){
  ctx.rotate(.18);ctx.fillStyle="#67665c";ctx.fillRect(-14,-8,28*pulse,17);
  ctx.strokeStyle="#d0bd9a";ctx.lineWidth=3;ctx.strokeRect(-14,-8,28*pulse,17);
  ctx.strokeStyle="#9cbba6";ctx.beginPath();ctx.moveTo(-7,-8);ctx.lineTo(7,9);ctx.stroke();
- ctx.fillStyle="#e7d8aa";ctx.fillRect(-4,-5,8,8);ctx.restore();
+ ctx.fillStyle="#e7d8aa";ctx.fillRect(-4,-5,8,8);
+ if(scrap.guardState==="engaged"&&scrap.siegeTotal>1){
+  const left=Math.max(0,Math.min(3,scrap.siegeTotal-(scrap.siegeDefeated||0)));
+  for(let i=0;i<Math.min(3,scrap.siegeTotal);i++){
+   ctx.fillStyle=i<left?"#ff776e":"#50685b";
+   ctx.fillRect(-10+i*9,-34,6,12);
+  }
+ }
+ ctx.restore();
 }
 function drawEquippedWeapon2D(actor){
  const item=equippedWeapon(),color=window.WildArsenal?.gradeOf?.(item)?.color;
@@ -5678,12 +5732,26 @@ function recordWeaponScrapGuardianDefeat(m){
  if(!m?.salvageCacheId||m.hp>0)return false;
  const cache=weaponScraps.find(q=>q.id===m.salvageCacheId&&q.guardState==="engaged");
  if(!cache)return false;
+ const before=Number(cache.siegeDefeated)||0,total=Math.max(1,Number(cache.siegeTotal)||1);
+ const others=mobs.filter(q=>q&&q!==m&&q.hp>0&&q.salvageCacheId===cache.id);
+ cache.siegeDefeated=Math.min(total,before+1);
+ if(others.length){
+  // Only an actual recorded kill counts. Other living guards still defend
+  // the exact same physical drop, even after moving away or reloading.
+  if(saveAuto()){
+   notify("番人撃破！ 残り"+others.length+"体を倒すとガラクタ解放",3);
+   return true;
+  }
+  cache.siegeDefeated=before;
+  notify("番人撃破の保存に失敗。討伐記録は保留",3);
+  return false;
+ }
  cache.guardState="cleared";cache.guardianAwake=true;
  if(saveAuto()){
-  notify("ガラクタの番人を討伐！ ガラクタを回収できる",3);
+  notify("番人を全員撃破！ ガラクタを回収できる",3);
   return true;
  }
- cache.guardState="engaged";
+ cache.guardState="engaged";cache.siegeDefeated=before;
  notify("番人討伐の保存に失敗。ガラクタは保護し、再挑戦可能にします",3);
  return false;
 }
@@ -6519,7 +6587,8 @@ function eastSalvageObjective(){
   .map(q=>({drop:q,guard:mobs.find(m=>m.hp>0&&m.salvageCacheId===q.id)}))
   .find(q=>q.guard&&dist(q.guard,P)<950);
  if(fighting)return makeGoal(fighting.guard,
-  "ガラクタの番人を倒す："+(species[fighting.guard.type]?.name||fighting.guard.type),
+  "ガラクタ番人 残り"+mobs.filter(m=>m.hp>0&&m.salvageCacheId===fighting.drop.id).length+
+  "体："+(species[fighting.guard.type]?.name||fighting.guard.type),
   "fight",fighting.drop.id);
  const record=armory.read?.();
  if(record?.ok){
@@ -6540,7 +6609,8 @@ function eastSalvageObjective(){
  if(!live)return null;
  const guardian=mobs.find(m=>m.hp>0&&m.salvageCacheId===live.id);
  if(live.guardState==="engaged"&&guardian)return makeGoal(guardian,
-  "ガラクタの番人を倒す："+(species[guardian.type]?.name||guardian.type),"fight",live.id);
+  "ガラクタ番人 残り"+mobs.filter(m=>m.hp>0&&m.salvageCacheId===live.id).length+
+   "体："+(species[guardian.type]?.name||guardian.type),"fight",live.id);
  if(live.guardState==="pending"||live.guardState==="engaged")
   return makeGoal(live,"未鑑定ガラクタ：番人を誘い出して討伐","guard",live.id);
  return makeGoal(live,"番人撃破済み：ガラクタを回収（○）","pickup",live.id);

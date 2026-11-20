@@ -61,7 +61,7 @@ const handler=part(game,"function equippedWeapon(){","function contextAction(lon
  part(game,"function contextAction(longPress=false){","const RUSH_COST=")+
  part(game,"function recordWeaponScrapGuardianDefeat(m){","function kill(m){");
 function fixture(id,failWorld=false){
- const env={window,weaponScraps:[{id,x:9320,y:1877,seed:21232,foundAt:2,pulse:0,guardianAwake:true,guardState:"legacy"}],
+ const env={window,totalScore:0,worldEventJournal:[],weaponScraps:[{id,x:9320,y:1877,seed:21232,foundAt:2,pulse:0,guardianAwake:true,guardState:"legacy"}],
  weaponScrapSerial:44,weaponScrapClock:0,weaponGuardianClock:0,day:2,weather:"CLEAR",scoreRunId:"attempt-qa-run",
  P:{x:9320,y:1877,type:"cat",hp:100,r:16},mode:"play",elapsed:170,
  TWO:Math.PI*2,MOUNTAIN:M,WORLD:{w:13600,h:6000},carcasses:[],mobs:[],species:{wolf:{prey:false},rabbit:{prey:true}},debugTutorialSession:null,
