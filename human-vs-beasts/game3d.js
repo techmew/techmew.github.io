@@ -70,7 +70,7 @@ const KAIJU_SPECS={spinetitan:{heightM:27,strideM:9,form:'biped'},velka:{heightM
 // Measurement is the entire modeled silhouette (including horns/crest), not shoulder height.
 const SPECIES_HEIGHT_M={
  dog:0.78,
- cat:0.88,
+ cat:1.04,
  fox:0.55,
  dodo:1,
  rabbit:0.5,
@@ -434,7 +434,10 @@ function normalizeSubjectHeight(rig,model,heightM){
    if(Number.isFinite(footBounds.min.y))soleY=Math.min(soleY,footBounds.min.y);
   }
  }
- const groundY=Number.isFinite(soleY)&&Math.abs(soleY-bbox.min.y)<.65*measured?soleY:bbox.min.y;
+ // Ground contact is determined by the articulated feet even when a long tail,
+ // wing or decorative geometry extends far below the soles. Comparing the foot
+ // to the overall bounds made some quadrupeds hover over the track.
+ const groundY=Number.isFinite(soleY)?soleY:bbox.min.y;
  holder.position.y=-groundY/Math.max(.0001,rootScale);
  holder.add(model);
  rig.root.scale.multiplyScalar(heightM/measured);
