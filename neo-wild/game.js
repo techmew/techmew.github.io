@@ -5233,6 +5233,36 @@ function wakeWeaponScrapGuardian(drop){
 }
 function tickWeaponScraps(dt){
  if(!P||mode!=="play"||debugTutorialSession||!window.WildArsenal)return;
+ // The east is an eight-site expedition, not a random seven-cache lottery.
+ // Entering an unserved post creates one real, guarded cache near that post.
+ // Respect the existing 18 ground / 240 durable vault caps and all spawn
+ // collision, water and owner restrictions in spawnWeaponScrap.
+ if(P.type!=="carp"&&P.x>=8400&&weaponScraps.length<18){
+  const stops=window.WildEastExpedition?.stops||[];
+  const near=stops.filter(site=>Math.hypot(P.x-site.x,P.y-site.y)<330)
+   .sort((a,b)=>Math.hypot(P.x-a.x,P.y-a.y)-Math.hypot(P.x-b.x,P.y-b.y))[0];
+  if(near){
+   const retry=tickWeaponScraps.siteRetryAt||(tickWeaponScraps.siteRetryAt=Object.create(null));
+   const served=weaponScraps.some(q=>Math.hypot(q.x-near.x,q.y-near.y)<300);
+   if(!served&&(!retry[near.id]||elapsed>=retry[near.id])){
+    // Avoid infinite replenishment at the same site after its weapon is won:
+    // the durable vault contains the authoritative history of collected IDs.
+    const lineage=String(scoreRunId||"world").replace(/[^a-zA-Z0-9._:-]/g,"").slice(0,55);
+    const siteKey="scrap-site:"+lineage+":"+near.id;
+    if(!window.WildArsenal.read()?.vault?.items?.some(i=>i.id.startsWith(siteKey+":"))){
+     const before=weaponScraps.length;
+     if(spawnWeaponScrap(false,near.index)&&weaponScraps.length>before){
+      // Use the normal durable ID for ownership; the site claim is tracked
+      // through the saved site's original spawn position and ID.
+      const drop=weaponScraps[weaponScraps.length-1];
+      drop.siteId=near.id;
+      drop.id=siteKey+":"+drop.id.slice(6);
+     }else retry[near.id]=elapsed+15;
+    }
+   }
+  }
+ }
+
  // World wildlife may migrate offscreen; losing a live guardian must NEVER
  // count as a defeat. Reset its encounter so the loot remains earnable.
  for(const drop of weaponScraps){
@@ -6626,7 +6656,10 @@ function eastSalvageObjective(){
  if(!P||P.hp<=0||P.type==="carp"||P.x<7600)return null;
  const armory=window.WildArsenal;
  if(!armory)return null;
- const nearby=weaponScraps.filter(q=>q.x>=8400&&Math.hypot(q.x-P.x,q.y-P.y)<1150)
+ // Track the nearest real unclaimed eastern cache across all eight zones.
+ // A random eastern start must not show an empty objective simply because
+ // the nearest cache is beyond the previous 1150-unit local scan.
+ const nearby=weaponScraps.filter(q=>q.x>=8400)
   .sort((a,b)=>Math.hypot(a.x-P.x,a.y-P.y)-Math.hypot(b.x-P.x,b.y-P.y));
  const live=nearby[0];
  const makeGoal=(target,label,phase,scrapId)=>{
