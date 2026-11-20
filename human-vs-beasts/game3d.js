@@ -2440,8 +2440,10 @@ function captureCeremonyPhoto(){
      // leaving only drawImage(WebGLCanvas), which may return a grey frame.
      // readPixels cannot scale, so use a center crop with an explicit memory cap.
      const maxReadW=mobile?640:960,maxReadH=Math.round(maxReadW/aspect);
-     const readW=Math.min(cropW,maxReadW);
-     const readH=Math.min(cropH,maxReadH,Math.floor(readW/aspect));
+     // Keep the readback exactly 16:9. Independently clamping height used
+     // to stretch or clip the rival on portrait Android drawing buffers.
+     const readW=Math.max(1,Math.floor(Math.min(cropW,maxReadW,cropH*aspect,maxReadH*aspect)));
+     const readH=Math.max(1,Math.round(readW/aspect));
      const rx=Math.floor((pw-readW)/2),ry=Math.floor((ph-readH)/2);
      if(readW<16||readH<9)throw Error('Default framebuffer too small');
      const raw=new Uint8Array(readW*readH*4);
