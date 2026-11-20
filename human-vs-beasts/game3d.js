@@ -70,7 +70,7 @@ const KAIJU_SPECS={spinetitan:{heightM:27,strideM:9,form:'biped'},velka:{heightM
 // Measurement is the entire modeled silhouette (including horns/crest), not shoulder height.
 const SPECIES_HEIGHT_M={
  dog:0.78,
- cat:0.37,
+ cat:0.88,
  fox:0.55,
  dodo:1,
  rabbit:0.5,
@@ -421,7 +421,21 @@ function normalizeSubjectHeight(rig,model,heightM){
  const rootScale=rig.root.scale.y;
  const holder=new T.Group();
  rig.root.add(holder);
- holder.position.y=-bbox.min.y/Math.max(.0001,rootScale);
+ // Prefer the lowest articulated foot over decorative tails, manes and body ornaments.
+ // The standing sole is measured before the race animation; this prevents the
+ // whole quadruped being lifted when an accessory hangs below its hooves.
+ let soleY=Infinity;
+ if(Array.isArray(rig.legs)&&rig.legs.length){
+  for(const leg of rig.legs){
+   const foot=leg.knee||leg.hip;
+   if(!foot)continue;
+   foot.updateWorldMatrix(true,true);
+   const footBounds=new T.Box3().setFromObject(foot);
+   if(Number.isFinite(footBounds.min.y))soleY=Math.min(soleY,footBounds.min.y);
+  }
+ }
+ const groundY=Number.isFinite(soleY)&&Math.abs(soleY-bbox.min.y)<.65*measured?soleY:bbox.min.y;
+ holder.position.y=-groundY/Math.max(.0001,rootScale);
  holder.add(model);
  rig.root.scale.multiplyScalar(heightM/measured);
  // Make the new world-space bounds immediately valid for camera and podium setup.
@@ -507,7 +521,7 @@ function makeBeast(data){
   if(k==='horse'||k==='zebra')ball(tailGroup,shade,0,-.31,-.69,.12,.26,.16);
   tail=tailGroup;
  }
- bodyGroup.scale.setScalar((['cat','rabbit'].includes(k))?.87:1);
+ bodyGroup.scale.setScalar(k==='rabbit'?.94:1);
  lineShadow(root,large?.8:.6);
  return {root,bodyGroup,legs,arms,tail,rabbitEars,animate(t,speed){const speedF=clamp(speed/13,0,1.5),phase=t,s=Math.sin(phase),hop=k==='rabbit'||k==='kangaroo';bodyGroup.position.y=(hop?Math.abs(s)*.16:Math.sin(phase*2)*.047)*speedF;bodyGroup.rotation.x=hop?s*.045:Math.sin(phase)*.014;legs.forEach((v,i)=>{const offset=(i%2===0?0:Math.PI)+((v.front||1)<0?Math.PI*.35:0);v.hip.rotation.x=Math.sin(phase+offset)*(hop?.85:.62)*speedF;v.knee.rotation.x=Math.max(0,-Math.sin(phase+offset))*.85*speedF});if(tail){tail.rotation.y=Math.sin(t*5)*.16;tail.rotation.x=Math.sin(t*6)*.09}}};
 }
