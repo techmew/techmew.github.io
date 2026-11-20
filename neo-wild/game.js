@@ -5351,7 +5351,8 @@ function drawWeaponScrapLabels(){
   const guarded=drop.guardState==="engaged",locked=drop.guardState==="pending";
   ctx.fillStyle=guarded?"#ffaaa0":locked?"#ffcf9c":"#bde9be";
   const remaining=guarded?mobs.filter(m=>m.hp>0&&m.salvageCacheId===drop.id).length:0;
-  ctx.fillText(guarded?"！番人 残り"+remaining+"体":locked?"！番人未討伐":"？ ガラクタ",pos.x,pos.y-11);
+  ctx.fillText(guarded?"！番人 残り"+Math.max(remaining,salvageRemaining(drop))+"体":
+   locked?"！番人 残り"+salvageRemaining(drop)+"体":"？ ガラクタ",pos.x,pos.y-11);
   if(++count>=5)break;
  }
  // A living guardian, not an arbitrary nearby predator, carries the combat
@@ -5741,14 +5742,20 @@ function recordWeaponScrapGuardianDefeat(m){
  const before=Number(cache.siegeDefeated)||0,total=Math.max(1,Number(cache.siegeTotal)||1);
  const others=mobs.filter(q=>q&&q!==m&&q.hp>0&&q.salvageCacheId===cache.id);
  cache.siegeDefeated=Math.min(total,before+1);
- if(others.length){
+ const outstanding=Math.max(0,total-cache.siegeDefeated);
+ if(others.length||outstanding>0){
+  // A resumed three-guardian siege can have only one spawned replacement.
+  // The saved defeat quota, not the number of currently loaded NPCs,
+  // decides when the real cache is unlocked.
   // Only an actual recorded kill counts. Other living guards still defend
   // the exact same physical drop, even after moving away or reloading.
   if(saveAuto()){
-   notify("番人撃破！ 残り"+others.length+"体を倒すとガラクタ解放",3);
+   if(!others.length){cache.guardState="pending";cache.guardianAwake=false;cache.guardRetryAt=elapsed+2;}
+   notify("番人撃破！ 残り"+Math.max(others.length,outstanding)+"体を倒すとガラクタ解放",3);
    return true;
   }
   cache.siegeDefeated=before;
+  cache.guardState="engaged";cache.guardianAwake=true;
   notify("番人撃破の保存に失敗。討伐記録は保留",3);
   return false;
  }
@@ -6618,7 +6625,7 @@ function eastSalvageObjective(){
   "ガラクタ番人 残り"+mobs.filter(m=>m.hp>0&&m.salvageCacheId===live.id).length+
    "体："+(species[guardian.type]?.name||guardian.type),"fight",live.id);
  if(live.guardState==="pending"||live.guardState==="engaged")
-  return makeGoal(live,"未鑑定ガラクタ：番人を誘い出して討伐","guard",live.id);
+  return makeGoal(live,"未鑑定ガラクタ：残り"+salvageRemaining(live)+"体の番人を討伐","guard",live.id);
  return makeGoal(live,"番人撃破済み：ガラクタを回収（○）","pickup",live.id);
 }
 function getObjective(){
@@ -9132,6 +9139,10 @@ function drawMini(){
    drop.guardState==="pending"?"#ebc16c":"#b9dcac";
   mc.strokeStyle="#243b34";mc.lineWidth=1.2;
   mc.beginPath();mc.arc(X(drop.x),Y(drop.y),3.8,0,TWO);mc.fill();mc.stroke();
+  if(drop.guardState!=="cleared"&&drop.guardState!=="legacy"){
+   mc.strokeStyle="#f6a16c";mc.lineWidth=1.4;mc.beginPath();
+   mc.arc(X(drop.x),Y(drop.y),6.2,0,TWO);mc.stroke();
+  }
  }
  // Classify live wildlife by actual species, alert state and strength relative to the player.
  const visibleMobs=mobs.filter(m=>m.hp>0&&Math.abs(m.x-P.x)<span/2&&Math.abs(m.y-P.y)<span/2)
