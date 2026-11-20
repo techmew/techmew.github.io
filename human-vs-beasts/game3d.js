@@ -1391,6 +1391,10 @@ function withSpeciesLocomotion(data,rig){
    const contact=rig.userDataHoofContact||(rig.userDataHoofContact={lastPhase:-999,offset:0});
    if(phase-contact.lastPhase>.18||phase<contact.lastPhase){
     contact.lastPhase=phase;
+    // Measure uncorrected feet: otherwise last frame's correction feeds into
+    // the next bounds reading and creates a hovering/drifting feedback loop.
+    // The correction is reapplied after sampling, preserving the gait cycle.
+    body.position.y-=contact.offset;
     rig.root.updateMatrixWorld(true);
     let minSole=Infinity;
     for(const leg of legs){
@@ -1402,7 +1406,7 @@ function withSpeciesLocomotion(data,rig){
     if(Number.isFinite(minSole)){
      // World-space correction, limited to prevent snapping and ground penetration.
      const desired=clamp((rig.root.position.y-minSole)/Math.max(.001,rig.root.scale.y),-.14,.14);
-     contact.offset=contact.offset*.45+desired*.55;
+     contact.offset=clamp(contact.offset*.45+desired*.55,-.14,.14);
     }
    }
    body.position.y+=contact.offset;
