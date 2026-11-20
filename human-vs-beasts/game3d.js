@@ -2265,19 +2265,18 @@ function capturePodiumFromGPU(ctx,w,h,lowMemory=false){
   // A stadium-only frame can pass whole-frame contrast checks even when the
   // actual runner and opponent are outside the camera. Validate the portrait
   // before committing the pixels to the final result canvas.
-  const probe=document.createElement('canvas');
-  probe.width=w;probe.height=h;
-  const probeCtx=probe.getContext('2d',{willReadFrequently:true});
-  if(!probeCtx)throw Error('Podium validation canvas unavailable');
-  const probeImage=probeCtx.createImageData(w,h);
+  // Validate the real GPU portrait in the final canvas rather than allocating
+  // a second full-resolution RGBA canvas. Android WebView often fails when
+  // GPU readback, the result canvas and a duplicate validation canvas coexist.
+  // A failed validation is cleared by the caller before any fallback is shown.
+  const frame=ctx.createImageData(w,h);
   const stride=w*4;
   for(let y=0;y<h;y++){
    const sourceStart=(h-1-y)*stride;
-   probeImage.data.set(pixels.subarray(sourceStart,sourceStart+stride),y*stride);
+   frame.data.set(pixels.subarray(sourceStart,sourceStart+stride),y*stride);
   }
-  probeCtx.putImageData(probeImage,0,0);
-  if(!podiumPixelsValid(probeCtx,w,h))throw Error('Podium subjects not visible in GPU readback');
-  ctx.putImageData(probeImage,0,0);
+  ctx.putImageData(frame,0,0);
+  if(!podiumPixelsValid(ctx,w,h))throw Error('Podium subjects not visible in GPU readback');
   return;
 
  }finally{
