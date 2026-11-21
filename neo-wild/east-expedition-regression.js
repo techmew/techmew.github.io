@@ -15,11 +15,35 @@ for(const s of route.stops){
  ok(!M.blocked(s.x,s.y,21),s.id+" reachable landmark");ok(s.z>=0,s.id+" altitude");
  eq(route.arrival({x:s.x,y:s.y,hp:100},0)?.id,s.id,s.id+" discover at real collision XY");
 }
+const patch={x:9500,y:1950,r:32},runner={...patch,hp:100,vx:140,vy:0};
+route.disturbBrush(runner,[],[patch],2,()=>true);
+ok(route.brushMotion(patch,2).x>.9,"actual passage bends leaves along velocity");
+eq(route.brushMotion(patch,3.2),null,"brush settles after passage");
+route.disturbBrush({...runner,jumpHeight:60},[],[patch],4,()=>true);
+eq(route.brushMotion(patch,4),null,"airborne animal leaves no ground trail");
+const predator={type:"dog",x:9510,y:1950,hp:80};
+route.wildlifeResponse({...runner,hidden:true},[predator],{dog:{prey:false}},"RAIN",3);
+eq(predator.lastX,undefined,"regional AI cannot reveal a concealed animal");
+route.wildlifeResponse(runner,[predator],{dog:{prey:false}},"RAIN",3);
+eq(predator.lastX,runner.x,"exposed actor can still attract predators");
+const blades=[];
+const vegetation=new Function("window","SEASONAL_FOLIAGE","triangle","color",
+ gl.slice(gl.indexOf("function vegetation("),gl.indexOf("function foodMesh("))+";return vegetation;")(
+ {WildMountain:{height:()=>80},WildEastExpedition:route},[,,{shrub:["#444","#555","#666"],grass:"#777"}],
+ (a,b,c)=>blades.push([a,b,c]),c=>c);
+const shrub={...patch,type:1,phase:0};
+vegetation(shrub,5,2);
+const still=blades[0];blades.length=0;
+route.disturbBrush(runner,[],[shrub],5,()=>true);
+vegetation(shrub,5,2);
+eq(blades[0][0][2],81,"3D roots on slope");
+ok(blades[0][2][0]>still[2][0]+8,"actual 3D leaf tip bends in travel direction");
+eq(blades[0][0][0],still[0][0],"roots remain anchored");
 const make=new Function("env","with(env){"+part("// P3 eastward expedition:","const CLAN_NAMES=")+";return {claim:eastTrailClaim,supply:tryEastTrailSupplies,tick:tickEastTrail,state:()=>({mask:eastTrailMask,years:[...eastTrailSupplyYears]})};}");
 function fixture(){
  let api;const e={P:{x:8360,y:1680,r:16,type:"cat",hp:25,maxHp:100,sp:40,maxSp:100,hunger:100},
  mode:"play",WORLD:{w:13600,h:6000},MOUNTAIN:M,TWO:Math.PI*2,weather:"CLEAR",elapsed:0,
- totalScore:0,mobs:[],species:{dog:{prey:false}},carcasses:[],worldEventJournal:[],debugTutorialSession:null,
+ plants:[],visibleShrub:()=>true,totalScore:0,mobs:[],species:{dog:{prey:false}},carcasses:[],worldEventJournal:[],debugTutorialSession:null,
  window:{WildEastExpedition:route,WildTrophies:{record:()=>{}}},fail:false,saveRecords:[],tickets:[],notices:[],flee:0,
  collides:(x,y,r)=>M.blocked(x,y,r),waterBlocksLand:()=>false,lineBlocked:()=>false,notify:x=>e.notices.push(x),
  label:()=>{},syncHUD:()=>{},persistWorldChronicle:()=>{},startleCaveWildlife:()=>{e.flee++},

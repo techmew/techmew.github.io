@@ -377,9 +377,37 @@
   }
   return {pressure,alerted,near,wet,depth};
  }
+ // Record physical contact on nearby ground cover; discarded when a world is unloaded.
+ const brushMarks=new WeakMap();
+ function disturbBrush(player,mobs,plants,clock,usable){
+  const moving=[player,...mobs].filter(a=>a&&a.hp>0&&
+   Math.abs(a.x-player.x)<520&&Math.abs(a.y-player.y)<520&&
+   !(a.groundZ>18||a.jumpHeight>18||a.treeHeight>18)&&Math.hypot(a.vx||0,a.vy||0)>24);
+  if(!moving.length)return;
+  for(const plant of plants){
+   if(Math.abs(plant.x-player.x)>540||Math.abs(plant.y-player.y)>540||!usable(plant))continue;
+   let strongest=0;
+   for(const a of moving){
+    const reach=plant.r*.85+(a.r||12),d=Math.hypot(plant.x-a.x,plant.y-a.y);
+    if(d>=reach)continue;
+    const speed=Math.hypot(a.vx,a.vy),force=(1-d/reach)*Math.min(1,speed/130);
+    if(force<=strongest)continue;
+    strongest=force;
+    brushMarks.set(plant,{at:clock,x:a.vx/speed*force,y:a.vy/speed*force});
+   }
+  }
+ }
+ function brushMotion(plant,clock){
+  const mark=brushMarks.get(plant);
+  if(!mark)return null;
+  const age=clock-mark.at;
+  if(age<0||age>=1.1){brushMarks.delete(plant);return null;}
+  const bend=Math.cos(age*8)*(1-age/1.1)**2;
+  return {x:mark.x*bend,y:mark.y*bend};
+ }
  // Modifies only live wild NPC awareness; never creates/revives roster individuals.
  function wildlifeResponse(player,mobs,species,weather,year,blocked){
-  if(!player||player.hp<=0)return {alerted:0,fleeing:0};
+  if(!player||player.hp<=0||player.hidden)return {alerted:0,fleeing:0};
   const biome=biomeAt(player.x,player.y);if(!biome)return {alerted:0,fleeing:0};
   const wet=weather==="RAIN"||weather==="THUNDER";
   const radius=biome.id==="cave"&&year>=25?370:biome.wet&&wet?260:190;
@@ -405,6 +433,6 @@
   return {alerted,fleeing};
  }
  global.WildEastExpedition=Object.freeze({stops:STOPS,walkway:WALKWAY,waterStations,
-  waterRibbons,channelDepth,aquaticDepth,waterNodes,aquaticNetworkStep,
+  disturbBrush,brushMotion,waterRibbons,channelDepth,aquaticDepth,waterNodes,aquaticNetworkStep,
   cleanWaterMask,waterVisited,waterArrival,waterReplenishable,all:ALL,cleanMask,visited,count,near,arrival,next,replenishable,navigation,aquaticStep,routePosition,groundGuide,habitat,biomes:BIOMES,biomeAt,fieldStatus,wildlifeResponse,aquaticEncounter,drawMap,drawPost2D});
 })(window);

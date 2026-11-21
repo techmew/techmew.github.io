@@ -748,6 +748,7 @@ function tickEastTrail(dt){
  const tick=eastTrailClock;eastTrailClock=0;
  const route=window.WildEastExpedition;
  if(!route)return;
+ route.disturbBrush?.(P,mobs,plants,elapsed,visibleShrub);
  // P3: connected eastern habitat encounters run in the live update loop.
  const field=route.fieldStatus?.(P,P.type==="carp"?eastWaterMask:eastTrailMask,weather,Math.floor(elapsed/120));
  if(P.type!=="carp"&&field?.biome&&P.hp>0)
@@ -782,7 +783,7 @@ function tickEastTrail(dt){
  const storm=climate==="storm"||climate==="rain";
  const dangerous=pressure>=2&&(storm||climate==="snow"||siteIndex===7);
  const patrolRadius=pressure>=3?460:pressure>=2?360:270;
- if(eastX>=8400&&P.type!=="carp"&&dangerous){
+ if(eastX>=8400&&P.type!=="carp"&&!P.hidden&&dangerous){
   let aggro=0;
   for(const m of mobs){
    if(aggro>=Math.min(3,pressure)||!m||m.hp<=0||m.companion||
@@ -822,7 +823,7 @@ function tickEastTrail(dt){
  }
  // In rain the headwater attracts wildlife; in the late cave, predators
  // investigate a live player using existing pursuit/search AI, not fake spawns.
- if((waterRisk||caveRisk)&&P.hp>0){
+ if((waterRisk||caveRisk)&&P.hp>0&&!P.hidden){
   const radius=caveRisk?390:280;
   let pressured=0;
   for(const m of mobs){
@@ -7803,7 +7804,11 @@ function updateIndoorRest(m,sp,dt,spotted,d){
  const hunterAnimal=sp.prey?nearbyAwareWildPredator(m,155):null;
  const hunter=!!hunterAnimal;
  // Awake prey also reacts immediately to a nearby visible wild predator.
- if(sp.prey&&hunterAnimal&&m.restTime<=0&&m.flee<=0)startlePrey(m,hunterAnimal,"alarm");
+ if(sp.prey&&hunterAnimal&&m.restTime<=0&&m.flee<=0){
+  startlePrey(m,hunterAnimal,"alarm");
+  if(m.x>=8360&&HERD_ALARM_FAMILIES[m.type]==="grazer")
+   alertNearbyPreyHerd(m,hunterAnimal,"alarm");
+ }
  const danger=spotted||m.alert>0||m.flee>0||m.stun>0||m.windup>0||
   m.chargeTime>0||(m.evadeTime||0)>0||hunter||
   (d<115&&sharesPlayerElevation(m)&&!lineBlocked(m,P));
@@ -9453,6 +9458,7 @@ function drawPlant(p){
  if(p.type===2&&window.WildSeasonClouds?.season?.index===0&&!p.denSite&&!p.trainingCover)return;
  ctx.save();ctx.translate(p.x,p.y);
  const dense=visibleShrub(p),r=p.r*(p.type===2?.74:dense?.94:.70);
+ const brush=window.WildEastExpedition?.brushMotion(p,elapsed);
  const count=p.type===2?36:dense?26:9;
  // Small decorative grass stays short; large formerly triangular plants are
  // now readable, dense grass clumps with the same concealment footprint.
@@ -9463,7 +9469,7 @@ function drawPlant(p){
   const baseY=(layer-1)*r*.14+Math.cos(n*1.8)*r*.06;
   const tall=r*(dense?.80:.48)*(.80+(n%5)*.13);
   const bend=spread*r*.24+Math.sin(elapsed*1.6+p.phase+n)*r*.045;
-  const tipX=baseX+bend,tipY=baseY-tall,half=Math.max(.65,r*(.052+(n%3)*.012));
+  const tipX=baseX+bend+(brush?.x||0)*r*.55,tipY=baseY-tall+(brush?.y||0)*r*.38,half=Math.max(.65,r*(.052+(n%3)*.012));
   const winter=window.WildSeasonClouds?.season?.index===0;
   ctx.fillStyle=winter?(n%3===0?"#71946c":n%2?"#315a49":"#4c7858"):(n%4===0?"#83a86a":n%3===0?"#436e47":n%2?"#527f4f":"#6c9655");
   ctx.beginPath();ctx.moveTo(baseX-half,baseY);
@@ -9477,7 +9483,8 @@ function drawPlant(p){
 }
 function drawCoverForeground(p){
  if(!visibleShrub(p))return;
- const r=p.r*.68,sway=Math.sin(elapsed*1.8+p.phase)*r*.028;
+ const r=p.r*.68,brush=window.WildEastExpedition?.brushMotion(p,elapsed);
+ const sway=Math.sin(elapsed*1.8+p.phase)*r*.028+(brush?.x||0)*r*.55;
  ctx.save();ctx.translate(p.x,p.y);
  if(P&&Math.hypot(P.x-p.x,P.y-p.y)<110)ctx.globalAlpha*=.38;
  for(let i=0;i<11;i++){

@@ -661,18 +661,29 @@ function drawCommonAnimal3D(m,clock){
    orb(hoofX,y,r*.13+lift+pose.dz,r*.13,r*.14,r*.17,fur);
    orb(hoofX+swing*.15,y,r*.065+lift+pose.dz,r*.19,r*.18,r*.09,"#3d3931");
   }
+  const alarm=m.flee>0||m.alert>0;
+  const feeding=!alarm&&(m.foragePose>0||m.drinkPose>0);
+  const raise=alarm?.31:feeding?-.42:0;
+  const neck=r*(1.25+raise),head=r*(1.56+raise),nose=r*(1.45+raise);
   orb(-r*.14,0,r*.88,r*1.08,r*.49,r*.60,fur);
-  orb(r*.69,0,r*.95,r*.44,r*.31,r*.53,fur);
-  orb(r*1.07,0,r*1.06,r*.44,r*.33,r*.34,fur);
-  orb(r*1.43,0,r*.93,r*.32,r*.23,r*.20,belly);
+  orb(-r*.77,0,r*.99,r*.46,r*.44,r*.41,fur);
+  orb(r*.66,0,r*1.03,r*.48,r*.39,r*.57,fur);
+  orb(r*.81,0,neck,r*.34,r*.27,r*(.54+raise*.3),fur);
+  orb(r*1.08,0,head,r*.42,r*.29,r*.31,fur);
+  orb(r*1.43,0,nose,r*.31,r*.21,r*.18,belly);
+  orb(r*1.66,0,nose+r*.035,r*.11,r*.17,r*.105,"#36322d");
   for(const side of [-1,1]){
-   orb(r*1.00,side*r*.38,r*1.36,r*.20,r*.14,r*.16,fur);
-   horn(r*1.02,side*r*.28,r*1.37,r*.10,r*.10,r*.67,"#c4ab82");
-   horn(r*.92,side*r*.55,r*1.76,r*.08,r*.08,r*.35,"#c4ab82");
-   horn(r*1.27,side*r*.56,r*1.78,r*.08,r*.08,r*.37,"#c4ab82");
-   orb(r*1.40,side*r*.21,r*1.14,r*.08,r*.06,r*.07,"#283029");
+   const earY=alarm?.28:.40;
+   orb(r*.90,side*r*earY,head+r*(alarm?.34:.23),r*.14,r*.13,r*(alarm?.28:.21),fur);
+   orb(r*1.27,side*r*.235,head+r*.075,r*.075,r*.055,r*.07,"#28251e");
+   // Joined main beam and tines share the head pose while feeding and fleeing.
+   for(let k=0;k<3;k++){
+    const dx=r*(.96-k*.09),dy=side*r*(.22+k*.10),z=head+r*(.20+k*.24);
+    orb(dx,dy,z,r*.105,r*.09,r*.20,"#a88a62");
+    if(k>0)horn(dx+r*.065,dy,z+r*.08,r*.075,r*.065,r*(.19+k*.06),"#d5bc91");
+   }
   }
-  orb(-r*1.17,0,r*1.04,r*.29,r*.18,r*.17,belly);
+  orb(-r*1.17,0,r*(alarm?1.23:1.04),r*.26,r*.15,r*(alarm?.26:.16),belly);
  }else if(t==="weasel"){
   const bite=(m.swing||0)>0,feeding=(m.scavengePose||0)>0;
   const stalk=Number.isFinite(m.wildTargetX)&&Number.isFinite(m.wildTargetY)&&
@@ -1903,6 +1914,8 @@ function vegetation(p,clock,season=2){
  if(p.type===2&&season===0&&!p.denSite&&!p.trainingCover)return;
  const dense=p.type===2||p.r>=18;
  const r=p.r*(p.type===2?.74:dense?.94:.70);
+ const ground=window.WildMountain?.height?.(p.x,p.y)||0;
+ const brush=window.WildEastExpedition?.brushMotion?.(p,clock);
  const count=p.type===2?34:dense?24:8;
  // Multi-angle pointed leaves replace old green pyramids; dense patches conceal.
  for(let i=0;i<count;i++){
@@ -1910,11 +1923,11 @@ function vegetation(p,clock,season=2){
   const bx=p.x+Math.cos(a)*rad,by=p.y+Math.sin(a)*rad;
   const height=r*(dense?.75:.43)*(.78+(i%6)*.13),width=Math.max(.6,r*(.055+(i%3)*.012));
   const sway=Math.sin(clock*1.55+p.phase+i)*r*.045;
-  const tip=[bx+Math.cos(a)*r*.21+sway,by+Math.sin(a)*r*.18,height];
+  const tip=[bx+Math.cos(a)*r*.21+sway+(brush?.x||0)*r*.55,by+Math.sin(a)*r*.18+(brush?.y||0)*r*.55,ground+height];
   const tint=color(season===0?["#406f55","#5a8c66","#345943"][i%3]:palette.shrub[i%3]);
   const cross=color(season===0?"#3c7058":palette.grass);
-  triangle([bx-width,by,1],[bx+width,by,1],tip,tint);
-  triangle([bx,by-width,1],[bx,by+width,1],tip,cross);
+  triangle([bx-width,by,ground+1],[bx+width,by,ground+1],tip,tint);
+  triangle([bx,by-width,ground+1],[bx,by+width,ground+1],tip,cross);
  }
 }
 // Food shares depth with terrain, buildings and animals.
@@ -2038,7 +2051,13 @@ function landmarkMesh(site){
    for(let n=0;n<9;n++)pyramid(x-64+n*16,y+58,z+1,5,7,24+n%3*8,"#62814d");
   }else if(site.id==="northwood"){
    for(let n=0;n<5;n++){const a=n*Math.PI*2/5,tx=x+Math.cos(a)*110,ty=y+Math.sin(a)*95;
-    box(tx-7,ty-7,z+1,14,14,58,"#675640");pyramid(tx,ty,z+50,47,39,105,"#426c45");}
+    const base=window.WildMountain?.height?.(tx,ty)||0,h=65+n%3*14;
+    box(tx-6,ty-6,base,12,12,h,"#635448");
+    const side=n%2?1:-1;
+    ellipsoid(tx+side*13,ty+5,base+h*.79,22,6,8,"#655747",a,6,3);
+    ellipsoid(tx+side*21,ty+5,base+h+10,38,31,25,"#435f40",a,8,4);
+    ellipsoid(tx-side*14,ty-8,base+h+29,32,27,27,"#55764b",a,8,4);
+    ellipsoid(tx-3,ty+4,base+h+46,23,20,15,"#698253",a,7,3);}
   }else if(site.id==="pass"||site.id==="ravine"){
    for(let n=0;n<6;n++){const a=n*1.1,tx=x+Math.cos(a)*(72+n%2*17),ty=y+Math.sin(a)*65;
     pyramid(tx,ty,z+1,21+n%2*12,22,20+n%3*18,"#7b8072");}
