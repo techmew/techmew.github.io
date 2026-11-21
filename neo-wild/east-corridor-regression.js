@@ -30,8 +30,8 @@ for(const s of e.stops){
  ok(e.arrival(p,0)?.id===s.id,"stop arrival persists");
 }
 const source=fs.readFileSync(__dirname+"/game.js","utf8");
-ok(source.includes("route.navigation?.(P,eastTrailMask"),"navigation called in live tick");
-ok(source.includes("nav.offPath?"),"route rejoin HUD connected");
+ok(source.includes("navigation?.(P,eastTrailMask,false)"),"navigation called in live tick");
+ok(source.includes("guideWisp=waypoint&&!waypoint.blocked"),"route rejoin HUD connected");
 ok(source.includes("route.wildlifeResponse?.(P,mobs"),"existing hostile ecology remains active");
 ok(source.includes("eastTrailClaim(arrival,false)"),"actual exploration rewards connected");
 ok(source.includes("eastTrailSupplyYears"),"save compatible resupply preserved");

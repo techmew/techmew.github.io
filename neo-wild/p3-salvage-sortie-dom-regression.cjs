@@ -98,6 +98,7 @@ ok(!A.alreadyClaimed("scrap:p3-sortie:1"),"no weapon granted by failed early Act
 // The normal combat kill calls the same production kill-credit function.
 guardian.hp=0;
 ok(api.recordWeaponScrapGuardianDefeat(guardian),"actual tagged kill unlocks and saves");
+env.mobs.push({...guardian,hp:100,alert:4,salvageCacheId:"other-fight"});
 eq(api.eastSalvageObjective().salvagePhase,"pickup","victory updates next objective");
 api.contextAction(false);
 eq(env.weaponScraps.length,0,"Action now claims physical scrap");

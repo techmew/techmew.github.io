@@ -22,12 +22,12 @@ for(const stop of E.stops){
  ok(E.navigation(player,0,false)?.stop!=null,"navigation "+stop.id);
  ok(E.fieldStatus(player,0,"CLEAR",0)?.target!=null,"field status "+stop.id);
 }
-for(const pos of [[11320,3530],[12320,3260],[13190,3790],[8700,1750]]){
- const p={x:pos[0],y:pos[1],hp:100,type:"carp"};
- const n=E.navigation(p,0,true),status=E.fieldStatus(p,0,"RAIN",0);
- ok(["ravine","headwater"].includes(n.stop.id),"carp water stop");
+for(const station of E.waterStations){
+ const p={...station,hp:100,type:"carp"},wet=(x,y)=>E.aquaticDepth(x,y)>.09;
+ const n=E.navigation(p,0,true,wet),status=E.fieldStatus(p,0,"RAIN",0);
+ ok(n.stop.waterRoute&&n.waterReachable,"carp water stop");
  ok(n.stop.id===status.target.id,"carp HUD and route agree");
- ok(n.x===n.stop.x&&n.y===n.stop.y,"carp avoids dry walkway vertices");
+ ok(wet(n.x,n.y),"carp avoids dry walkway vertices");
 }
 ok(A.owners.length===35,"35 species");
 ok(A.grades.reduce((s,g)=>s+g.weight,0)===1000,"rarity weights");

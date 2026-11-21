@@ -748,15 +748,6 @@ function tickEastTrail(dt){
  const tick=eastTrailClock;eastTrailClock=0;
  const route=window.WildEastExpedition;
  if(!route)return;
- const nav=route.navigation?.(P,P.type==="carp"?eastWaterMask:eastTrailMask,
-  P.type==="carp",(x,y)=>swimWaterDepth(x,y)>.09&&!collides(x,y,15,P,true));
- if(nav&&elapsed-eastTrailHazardNoticeAt>28&&(P.x>=7600||P.type==="carp")){
-  eastTrailHazardNoticeAt=elapsed;
-  const routeHint=nav.offPath?"｜街道から"+nav.routeDistance+"m離脱・合流地点へ案内":
-   "｜次の道標まで"+nav.distance+"m";
-  notify("探索経路："+nav.stop.name+routeHint+"｜"+nav.section.label+
-   (nav.water?"｜コイは水路から陸地に上がれない。水域を探索":"｜補給・危険は地図で確認"),3);
- }
  // P3: connected eastern habitat encounters run in the live update loop.
  const field=route.fieldStatus?.(P,P.type==="carp"?eastWaterMask:eastTrailMask,weather,Math.floor(elapsed/120));
  if(P.type!=="carp"&&field?.biome&&P.hp>0)
@@ -856,11 +847,10 @@ function tickEastTrail(dt){
     waterRisk?"水源の増水で持久力を消耗。周辺の獣にも注意":
     "洞窟の強敵が接近。遮蔽物を使い、補給地点へ戻れる",3);
   }else if(P.type!=="carp"&&P.x>=7600&&P.x<13380){
-   const target=route.next(P,eastTrailMask);
-   if(target){
+   const goal=getObjective();
+   if(goal?.eastTrail){
     eastTrailHazardNoticeAt=elapsed;
-    const meters=Math.round(Math.hypot(P.x-target.x,P.y-target.y));
-    notify("東部探索："+target.name+"まで約"+meters+"m｜"+target.danger+"｜地図に経路表示",3);
+    notify(goal.label,3);
    }
   }
  }
@@ -5342,22 +5332,6 @@ function pickWeaponScrap(){
   else notify("番人が出現するまで待機。討伐しないとガラクタは回収できない",3);
   return true;
  }
- // A contested cache must be earned through actual combat. Do not grant
- // the durable vault item while its alerted territorial guardian survives.
- // Nearby wild predators remain ordinary combat actors with normal HP,
- // movement, collision, attack, death and loot behavior.
- if(drop.guardianAwake){
-  const guards=mobs.filter(m=>m&&m.hp>0&&!m.companion&&!m.strongBoss&&
-   !species[m.type]?.prey&&!m.releasedIndividualId&&
-   Math.hypot(m.x-drop.x,m.y-drop.y)<300&&
-   (Number(m.alert)>0||Number(m.search)>0));
-  if(guards.length){
-   notify("ガラクタは敵の縄張り！ 周囲の敵"+guards.length+"体を倒してから回収",3);
-   guards.forEach(m=>{m.alert=Math.max(Number(m.alert)||0,4);
-    m.search=Math.max(Number(m.search)||0,4);m.lastX=P.x;m.lastY=P.y;});
-   return true;
-  }
- }
  const outcome=armory.open(drop); // Verified localStorage write or no item granted.
  if(!outcome.ok){
   notify(outcome.error==="vault_full"?"武器保管庫が満杯です（240本）":
@@ -6708,6 +6682,8 @@ function eastSalvageObjective(){
   "ガラクタ番人 残り"+mobs.filter(m=>m.hp>0&&m.salvageCacheId===fighting.drop.id).length+
   "体："+(species[fighting.guard.type]?.name||fighting.guard.type),
   "fight",fighting.drop.id);
+ const earned=nearby.find(q=>q.guardState==="cleared"&&q.guardianAwake&&dist(q,P)<=300&&!scrapLivingGuardian(q));
+ if(earned)return makeGoal(earned,"番人撃破：○でガラクタを鑑定","pickup",earned.id);
  const record=armory.read?.();
  if(record?.ok){
   const equipped=armory.equippedFor?.(P);
@@ -6738,23 +6714,35 @@ function getObjective(){
  // Eastern random starts need the real live P3 objective before tutorial
  // completion; keep the original western tutorial and title untouched.
  if(P.type==="carp"){
-  const nav=window.WildEastExpedition?.navigation?.(P,eastWaterMask,true,
+  const year=Math.floor(elapsed/120);
+  const ready=eastWaterMask===15?eastWaterSupplyYears.reduce((mask,last,i)=>year-last>=3?mask|(1<<i):mask,0):0;
+  if(eastWaterMask===15&&!ready)return null;
+  const routeMask=eastWaterMask===15?15^ready:eastWaterMask;
+  const nav=window.WildEastExpedition?.navigation?.(P,routeMask,true,
    (x,y)=>swimWaterDepth(x,y)>.09&&!collides(x,y,15,P,true));
   return nav?{x:nav.x,y:nav.y,label:nav.waterReachable?
-   "水中探索 "+nav.stop.name:"水路の安全な経路を探索",eastTrail:true}:null;
+   (ready?"水中補給 ":"水中探索 ")+nav.stop.name+(ready?"｜○長押しで補給":""):"水路の安全な経路を探索",eastTrail:true}:null;
  }
- if(P.x>=8400){
+ if(P.x>=8360){
   const sortie=eastSalvageObjective();
-  if(sortie)return sortie;
+  // A wounded animal can reach an unvisited recovery post before opening a new fight.
+  // A distant unopened cache also yields to a closer unexplored habitat.
+  if(sortie&&sortie.salvagePhase!=="guard")return sortie;
   const nav=window.WildEastExpedition?.navigation?.(P,eastTrailMask,false);
-  if(nav)return {x:nav.x,y:nav.y,label:"東部探索 "+nav.stop.name+"｜"+nav.stop.danger,eastTrail:true};
+  if(sortie){
+   const cacheDistance=Math.hypot(P.x-sortie.targetX,P.y-sortie.targetY);
+   if(!nav||eastTrailMask===255||!(P.hp<P.maxHp*.45||
+      (cacheDistance>500&&nav.targetDistance<cacheDistance)))return sortie;
+   return {x:nav.x,y:nav.y,label:"補給地点 "+nav.stop.name+"｜到着で体力回復",eastTrail:true};
+  }
+  if(nav&&eastTrailMask!==255)return {x:nav.x,y:nav.y,label:"東部探索 "+nav.stop.name+"｜"+nav.stop.danger,eastTrail:true};
  }
  if(mission>=7){
   if(freeStep===2&&freeTarget<EXPLORE_SITES.length&&discoveredSites.length<EXPLORE_SITES.length){
    const destination=nearestGoal(EXPLORE_SITES.filter(q=>!discoveredSites.includes(q.id)));
    return destination?{x:destination.x,y:destination.y,label:"未発見の探索地点"}:null;
   }
-  if(P.x>7650){
+  if(P.x>7650&&P.x<8360){
    // A moving, living guardian is targeted ahead of its locked cache. The
    // same objective guides pickup, species-correct den equipment and bosses.
    // Carp never receive a dry-land scrap objective.
@@ -9065,21 +9053,20 @@ function syncHUD(hour){
  if(carryGuide||stock||lessonHint)$("stockpile-guide").textContent=carryGuide||(stock?stock.text+"（巣に1回預けたら完了）":lessonHint);
  $("mission-progress").textContent=info.stage;
  $("mission-title").textContent=info.title;
- const eastLive=mode==="play"&&(P.type==="carp"||P.x>=8400);
+ const objective=getObjective();
+ const eastLive=mode==="play"&&(P.type==="carp"||P.x>=8360);
  $("survival-goal").classList.toggle("hidden",(mission<7&&!eastLive)||mode!=="play");
  if(mission>=7||eastLive){
   const east=window.WildEastExpedition,aquatic=P.type==="carp";
   const visited=aquatic?eastWaterMask:eastTrailMask;
-  const next=aquatic?(east?.waterStations||[]).find(site=>!east.waterVisited(visited,site.index))||
-   (east?.waterStations||[])[0]:P.x>7600?east?.next?.(P,eastTrailMask):null;
   const cleared=aquatic?(east?.waterStations||[]).filter(site=>east.waterVisited(visited,site.index)).length:
    east?.count?.(eastTrailMask)||0;
   const status=east?.fieldStatus?.(P,visited,weather,Math.floor(elapsed/120));
   const prefix=mission>=7?fieldQuestInfo().summary:aquatic?"水中探索":"東部遠征";
   const progress=aquatic?"水中補給 "+cleared+"/4":"東部踏破 "+cleared+"/8";
   $("survival-goal").textContent=prefix+"｜"+progress+
-   (next?" 次:"+next.name+(next.danger?"（"+next.danger+"）":""):" 全拠点踏破")+
-   (status?.message?"｜"+status.message:"");
+   (objective?.eastTrail?"｜"+objective.label:aquatic&&cleared===4?"｜全水域踏破・次の補給は"+(Math.min(...eastWaterSupplyYears)+3)+"年目":"")+
+   (status?.dangerous?"｜"+status.message:"");
  }
 
  $("mission-sub").textContent=info.detail;
@@ -9088,7 +9075,7 @@ function syncHUD(hour){
  $("mission-nav").classList.toggle("hidden",mission>=7);
  $("mission-bar").parentElement.classList.toggle("hidden",false);
  setBar("mission-bar",info.progress*100);
- const objective=getObjective(),waypoint=objective&&guidancePoint(objective);
+ const waypoint=objective&&guidancePoint(objective);
  guideWisp=waypoint&&!waypoint.blocked?{x:waypoint.x,y:waypoint.y}:null;
  guideGoal=objective&&Number.isFinite(objective.x)&&Number.isFinite(objective.y)?{x:objective.x,y:objective.y,label:objective.label||objectiveShortLabel(),eastTrail:!!objective.eastTrail}:null;
  $("nav-distance").textContent=waypoint&&!waypoint.blocked?"目的地まで約"+Math.round(dist(P,objective))+"m":"目的地を探索中";
@@ -9194,7 +9181,7 @@ function drawWorldMap(){
   bm.save();bm.fillStyle=isFire?"rgba(229,91,24,.38)":"rgba(35,143,190,.38)";bm.strokeStyle=isFire?"#ffc07b":"#90e7ff";bm.lineWidth=2;
   bm.beginPath();bm.ellipse(X(e.x),Y(e.y),X(e.radius),Y(e.radius),0,0,TWO);bm.fill();bm.stroke();bm.restore();
  }
- const obj=getObjective();if(obj&&mission!==3&&dist(P,obj)>85)mark(obj.x,obj.y,"#f1d885",4);
+ const obj=getObjective();if(obj&&(mission!==3||obj.eastTrail)&&dist(P,obj)>85)mark(obj.x,obj.y,"#f1d885",4);
  // Player position: one yellow directional triangle, no circle or label.
  bm.save();bm.translate(X(P.x),Y(P.y));
  const facing=Number.isFinite(P.dir)?P.dir:0;
@@ -9206,7 +9193,7 @@ function drawWorldMap(){
  const zone=regionAt(P.x,P.y),area=eastLocationName(P.x,P.y),eco=ecology[zone];
  $("map-place").textContent="現在地："+area+"｜東部踏破 "+(window.WildEastExpedition?.count?.(eastTrailMask)||0)+"/8｜探索 "+discoveredSites.length+"/"+EXPLORE_SITES.length+
  "｜獲物 "+eco.prey+"・捕食者 "+eco.predators+"｜勢力 "+CLAN_NAMES[zone]+(eco.dominance?"（交代"+eco.dominance+"）":"")+
- "｜"+ecologyNews;
+ "｜"+ecologyNews+(obj?.eastTrail?"｜"+obj.label:"");
  $("map-perks").textContent="探索能力 "+earnedDiscoveries.length+"/"+Object.keys(DISCOVERY_PERKS).length+"：" +
  (earnedDiscoveries.length?earnedDiscoveries.map(id=>DISCOVERY_PERKS[id]?.name||id).join("・"):"未解放。未踏地点を訪れると成長します")+
  "｜東部地図の1〜8を踏破：得点・食料、2か所ごとにガチャ権。各地点は3年後に○長押しで再補給";
@@ -9255,7 +9242,7 @@ function drawMini(){
   mc.save();mc.strokeStyle=isFire?"#ffad62":"#7bdcf6";mc.fillStyle=isFire?"rgba(229,91,24,.30)":"rgba(35,143,190,.30)";mc.lineWidth=1.6;
   mc.beginPath();mc.arc(X(e.x),Y(e.y),e.radius*w/span,0,TWO);mc.fill();mc.stroke();mc.restore();
  }
- if(P.x>7600)window.WildEastExpedition?.drawMap?.(mc,X,Y,eastTrailMask,false);
+ if(P.x>7600||P.type==="carp")window.WildEastExpedition?.drawMap?.(mc,X,Y,eastTrailMask,false,eastWaterMask);
  // Loot blips only appear within actual surveying distance, not across the city.
  for(const drop of weaponScraps)if(Math.abs(drop.x-P.x)<span/2&&Math.abs(drop.y-P.y)<span/2){
   mc.fillStyle=drop.guardState==="engaged"?"#f07870":
@@ -12339,7 +12326,7 @@ window.WildGamepadBridge={
  pause(){if(mode==="play"||mode==="pause")togglePause()},
  map(){if(mode==="play"||mode==="map")toggleWorldMap()}
 };
-})();
 
 // Read-only active-play clock for the world chronology UI; never advances while offline.
 window.WildGameWorldTime=()=>elapsed;
+})();

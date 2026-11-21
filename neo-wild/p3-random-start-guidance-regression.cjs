@@ -11,7 +11,7 @@ const E=window.WildEastExpedition;
 const a=game.indexOf("function getObjective(){"),b=game.indexOf("\nfunction ",a+10);
 assert(a>=0&&b>a);
 const env={window,P:null,mode:"play",mission:0,freeStep:2,freeTarget:0,
- EXPLORE_SITES:[{x:10,y:20,id:"legacy"}],discoveredSites:[],eastWaterMask:0,eastTrailMask:0,
+ EXPLORE_SITES:[{x:10,y:20,id:"legacy"}],discoveredSites:[],elapsed:0,eastWaterSupplyYears:[0,0,0,0],eastWaterMask:0,eastTrailMask:0,
  eastSalvageObjective:()=>null,collides:()=>false,
  swimWaterDepth:(x,y)=>E.aquaticDepth(x,y),nearestGoal:xs=>xs[0],
  plants:[{x:30,y:40}],visibleShrub:()=>true};
@@ -26,6 +26,13 @@ for(const s of E.waterStations.slice(0,2)){
  env.P={x:s.x,y:s.y,type:"carp",hp:100};env.mission=0;
  ok(goal()?.label.includes("水"),"fish "+s.id);
 }
+env.P={...E.waterStations[0],hp:100,type:"carp"};env.eastWaterMask=15;
+ok(goal()===null,"completed stations on cooldown");
+env.elapsed=360;env.eastWaterSupplyYears=[2,2,2,0];
+ok(goal()?.label.includes(E.waterStations[3].name),"guide to the only replenished station");
+env.P={x:8360,y:1680,type:"cat",hp:25,maxHp:100};env.mission=0;
+env.eastSalvageObjective=()=>({salvagePhase:"guard",targetX:8450,targetY:1680});
+ok(goal()?.label.includes("体力回復"),"wounded animal can choose nearby east gate recovery");
 env.P={x:10800,y:2500,type:"cat",hp:100};env.mission=1;
 env.eastSalvageObjective=()=>({x:11111,y:2444,label:"番人",salvagePhase:"fight",eastTrail:true});
 ok(goal()?.salvagePhase==="fight","guardian combat");
