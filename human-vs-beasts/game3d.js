@@ -3442,11 +3442,27 @@ renderer.domElement.addEventListener('webglcontextrestored',()=>{
   else if(ceremonyStage&&!$('result3DWindow').hidden){
    const view=$('result3DWindow');
    const w=Math.max(320,view.clientWidth||340),h=Math.max(180,view.clientHeight||192);
-   renderer.setRenderTarget(null);
-   renderer.setPixelRatio(Math.min(1.4,devicePixelRatio||1));
-   renderer.setSize(w,h,false);
-   fitPodiumCamera(ceremonyStage,w/h);
-   renderer.render(ceremonyStage.scene,ceremonyStage.camera);
+   // Context restoration must not leave the global race renderer at the
+   // result-card dimensions. Preserve the full-screen drawing buffer for
+   // replay, character editing and future podium captures.
+   const previousPixelRatio=renderer.getPixelRatio();
+   const previousSize=renderer.getSize(new T.Vector2());
+   try{
+    renderer.setRenderTarget(null);
+    renderer.setScissorTest(false);
+    renderer.setPixelRatio(Math.min(1.4,devicePixelRatio||1));
+    renderer.setSize(w,h,false);
+    const buffer=renderer.getDrawingBufferSize(new T.Vector2());
+    renderer.setViewport(0,0,buffer.x,buffer.y);
+    fitPodiumCamera(ceremonyStage,w/h);
+    renderer.render(ceremonyStage.scene,ceremonyStage.camera);
+   }finally{
+    renderer.setPixelRatio(previousPixelRatio);
+    renderer.setSize(previousSize.x,previousSize.y,false);
+    const buffer=renderer.getDrawingBufferSize(new T.Vector2());
+    renderer.setViewport(0,0,buffer.x,buffer.y);
+    renderer.setScissorTest(false);
+   }
   }
  }else initResize();
 },false);
