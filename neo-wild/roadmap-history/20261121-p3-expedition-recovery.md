@@ -12,3 +12,6 @@
 - 8陸域と4水域は実装済み。実機での連続縦断・タッチ戦闘、旧実セーブの復元、Androidの描画位置とFPSは未検証。ローカルChromiumはソケット作成制限で起動できなかった。
 - 全体回帰では変更前から anomaly-hunt、game-intro、p2-bestiary-acquisition、p2-specialist-survival-loop、squad-confirm の5本が失敗。幽霊の年条件、導入・図鑑・行動・確定のテスト前提と現行コードを切り分けること。
 - 次は実プレイで東門→郊外→森林の移動・戦闘→鑑定→装備→ボス→タイトル・Continueを確認。水中2開始地点、Android縦横、旧JSONの確認も残る。P3受入継続。P1・P2・P4〜P8の進捗変更なし。
+
+## 公開版の検証結果
+実装は `6bca5a18c764c3a4fa0dbbf1b69a5161973a58df`。Pages run [44895532571](https://github.com/techmew/techmew.github.io/actions/runs/44895532571) 成功。配信された index.html と game.js の全バイトを実装と照合した。公開版Chromeの分離デバッグセーブで鹿を抽選・採用し、ゲーム開始→原生林のねぐらへ移動。YEAR 000、AREA 05、番人残り1体の目的が実際のHUDに出ることを確認。終了後は通常タイトルへ復帰。ここでの移動はデバッグ移動で、東部の連続走破・実戦闘の受入は引き続き未完。全体回帰は29本中24本成功、上記5本が既存失敗。
