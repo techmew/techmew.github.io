@@ -2010,7 +2010,15 @@ async function showAsyncPodiumPreview(canvas){
   if(mobile){
    image.hidden=true;
    $('result3DWindow').hidden=false;
-   showCapturedPodiumCanvas(canvas);
+   // A decoded Blob is not proof that Android actually copied visible pixels.
+   // Keep the real 3D scene visible and report failure to the retry caller.
+   if(!showCapturedPodiumCanvas(canvas)){
+    if(podiumPreviewURL===url)podiumPreviewURL=null;
+    URL.revokeObjectURL(url);
+    image.removeAttribute('src');
+    $('shareHelp').textContent='写真の表示を確認できません。3D表示を維持しています。再撮影してください。';
+    return false;
+   }
   }else{
    image.hidden=false;$('result3DWindow').hidden=true;
    clearCapturedPodiumCanvas();
