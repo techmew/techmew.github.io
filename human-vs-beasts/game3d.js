@@ -2242,6 +2242,22 @@ function buildPodiumPhoto(){
  // Fixed-distance framing cropped large dinosaurs and made small rivals hard to see.
  const subjects=new T.Box3().setFromObject(athlete.root);
  subjects.union(new T.Box3().setFromObject(rival.root));
+ // Keep the medal and both subjects inside the podium light's shadow frustum.
+ // The former fixed 20x20 shadow box clipped giant dinosaurs and mammoths,
+ // while wasting most shadow resolution on small animals.
+ const center=subjects.getCenter(new T.Vector3());
+ const extent=subjects.getSize(new T.Vector3());
+ const shadowSpan=Math.max(6,Math.min(110,Math.max(extent.x,extent.y,extent.z)*1.35+3));
+ sunlight.target.position.copy(center);
+ sunlight.position.copy(center).add(new T.Vector3(-shadowSpan*.45,shadowSpan*.85,shadowSpan*.55));
+ sunlight.shadow.camera.left=-shadowSpan;
+ sunlight.shadow.camera.right=shadowSpan;
+ sunlight.shadow.camera.top=shadowSpan;
+ sunlight.shadow.camera.bottom=-shadowSpan;
+ sunlight.shadow.camera.near=.1;
+ sunlight.shadow.camera.far=shadowSpan*3.5;
+ sunlight.shadow.camera.updateProjectionMatrix();
+ sunlight.target.updateMatrixWorld(true);
  const cam=new T.PerspectiveCamera(39,16/9,.1,160);
  // Portrait Android previews must refit after changing the camera aspect.
  const stage={scene:sc,camera:cam,fitBounds:{min:subjects.min.clone(),max:subjects.max.clone()}};
