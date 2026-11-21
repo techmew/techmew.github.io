@@ -2458,11 +2458,22 @@ function captureCeremonyPhoto(){
      for(let n=0;n<8&&gl.getError()!==gl.NO_ERROR;n++){}
      gl.readPixels(rx,ry,readW,readH,gl.RGBA,gl.UNSIGNED_BYTE,raw);
      if(gl.getError()!==gl.NO_ERROR)throw Error('Default framebuffer readback failed');
+     // Flip GPU rows in place, avoiding a second full-frame RGBA allocation.
+     // Android WebView may exhaust memory when the WebGL framebuffer, raw
+     // pixels, ImageData and an additional copied frame coexist.
+     const stride=readW*4,swap=new Uint8Array(stride);
+     for(let y=0,half=Math.floor(readH/2);y<half;y++){
+      const top=y*stride,bottom=(readH-1-y)*stride;
+      swap.set(raw.subarray(top,top+stride));
+      raw.copyWithin(top,bottom,bottom+stride);
+      raw.set(swap,bottom);
+     }
      const scan=document.createElement('canvas');scan.width=readW;scan.height=readH;
-     const scanCtx=scan.getContext('2d',{alpha:false,willReadFrequently:true});
+     const scanCtx=scan.getContext('2d',{alpha:false,willReadFrequently:true})||scan.getContext('2d');
      if(!scanCtx)throw Error('Readback canvas unavailable');
-     const frame=scanCtx.createImageData(readW,readH),stride=readW*4;
-     for(let y=0;y<readH;y++)frame.data.set(raw.subarray((readH-1-y)*stride,(readH-y)*stride),y*stride);
+     let frame;
+     if(typeof ImageData==='function')frame=new ImageData(new Uint8ClampedArray(raw.buffer),readW,readH);
+     else{frame=scanCtx.createImageData(readW,readH);frame.data.set(raw)}
      scanCtx.putImageData(frame,0,0);
      const sourceAspect=readW/readH;
      const sw=sourceAspect>aspect?readH*aspect:readW;
