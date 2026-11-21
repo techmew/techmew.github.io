@@ -2418,6 +2418,9 @@ function captureCeremonyPhoto(){
    // devices. Draw a fresh frame at the existing preview resolution and
    // downsample its pixels into the photo canvas instead.
    renderer.setRenderTarget(null);
+   renderer.setScissorTest(false);
+   const liveBuffer=renderer.getDrawingBufferSize(new T.Vector2());
+   renderer.setViewport(0,0,liveBuffer.x,liveBuffer.y);
    const live=renderer.domElement;
    if(!live.width||!live.height)throw Error('Podium preview framebuffer unavailable');
    const liveAspect=live.width/live.height;
@@ -3352,6 +3355,13 @@ function renderCeremonyFrame(){
  if(ceremonyStage.photoCaptured&&!$('resultPhoto').hidden)return;
  try{
   renderer.setRenderTarget(null);
+  // The character editor leaves a right-side scissor/viewport active. Results
+  // return before the normal frame resets it, so the podium can render into
+  // only part of the drawing buffer and produce a blank/cropped photograph.
+  renderer.setScissorTest(false);
+  const podiumBuffer=renderer.getDrawingBufferSize(new T.Vector2());
+  renderer.setViewport(0,0,podiumBuffer.x,podiumBuffer.y);
+  fitPodiumCamera(ceremonyStage,podiumBuffer.x/Math.max(1,podiumBuffer.y));
   renderer.render(ceremonyStage.scene,ceremonyStage.camera);
   if(ceremonyStage.photoCaptured||podiumRetryAttempts>=4)return;
   podiumRetryFrame++;
