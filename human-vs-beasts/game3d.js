@@ -2428,6 +2428,9 @@ function captureCeremonyPhoto(){
    // permanently grey podium or lose the WebGL context on memory-limited
    // devices. Draw a fresh frame at the existing preview resolution and
    // downsample its pixels into the photo canvas instead.
+   // A failed offscreen capture can leave editor scissor/viewport state active.
+   // The live fallback must render into the entire default framebuffer, not
+   // the stale editor rectangle, or the resulting photograph can be blank.
    renderer.setRenderTarget(null);
    renderer.setScissorTest(false);
    const liveBuffer=renderer.getDrawingBufferSize(new T.Vector2());
@@ -2439,6 +2442,11 @@ function captureCeremonyPhoto(){
    // Fit the camera to the actual drawing buffer before taking the frame;
    // the offscreen target may have used a different aspect ratio.
    fitPodiumCamera(ceremonyStage,liveAspect);
+   renderer.setScissor(0,0,liveBuffer.x,liveBuffer.y);
+   renderer.autoClear=true;
+   renderer.clear(true,true,true);
+   ceremonyStage.scene.updateMatrixWorld(true);
+   ceremonyStage.camera.updateMatrixWorld(true);
    renderer.render(ceremonyStage.scene,ceremonyStage.camera);
    // Read the live WebGL framebuffer synchronously before Android WebView's
    // compositor can discard it. This is a third independent real-3D capture
