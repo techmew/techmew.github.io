@@ -2237,7 +2237,15 @@ function capturePodiumFromGPU(ctx,w,h,lowMemory=false){
  const previousClearAlpha=renderer.getClearAlpha();
  const previousAutoClear=renderer.autoClear;
  const previousShadows=renderer.shadowMap.enabled;
+ // Editor mode uses a clipped viewport. Preserve and reset it explicitly for
+ // offscreen podium capture, including captures started before the next frame.
+ const previousViewport=renderer.getViewport(new T.Vector4());
+ const previousScissor=renderer.getScissor(new T.Vector4());
+ const previousScissorTest=renderer.getScissorTest();
  try{
+  renderer.setScissorTest(false);
+  renderer.setViewport(0,0,w,h);
+  renderer.setScissor(0,0,w,h);
   // Android GPUs can fail allocating a depth texture plus a shadow atlas
   // simultaneously. Retry with a flat-lit REAL 3D scene before giving up.
   if(lowMemory)renderer.shadowMap.enabled=false;
@@ -2314,6 +2322,9 @@ function capturePodiumFromGPU(ctx,w,h,lowMemory=false){
 
  }finally{
   renderer.setRenderTarget(previousTarget);
+  renderer.setViewport(previousViewport);
+  renderer.setScissor(previousScissor);
+  renderer.setScissorTest(previousScissorTest);
   renderer.setClearColor(previousClearColor,previousClearAlpha);
   renderer.autoClear=previousAutoClear;
   renderer.shadowMap.enabled=previousShadows;
