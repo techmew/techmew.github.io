@@ -2251,6 +2251,13 @@ function capturePodiumFromGPU(ctx,w,h,lowMemory=false){
   renderer.setClearColor(0x657783,1);
   renderer.clear(true,true,true);
   renderer.render(ceremonyStage.scene,ceremonyStage.camera);
+  // Force the offscreen draw to complete before Android WebView readback.
+  // Some tile-based mobile GPUs otherwise return the cleared target while
+  // the live podium still renders correctly. Keep this inside the capture
+  // path so the race animation never pays for a blocking GPU flush.
+  const captureGL=renderer.getContext();
+  if(captureGL.isContextLost?.())throw Error('Podium WebGL context lost');
+  captureGL.finish();
   // Three.js may restore or switch framebuffer bindings during render.
   // Checking the *current* GL framebuffer here can inspect the default
   // framebuffer instead of this render target, rejecting a valid 3D frame.
