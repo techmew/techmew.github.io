@@ -1896,6 +1896,24 @@ function showCapturedPodiumCanvas(source){
   const ctx=snapshot.getContext('2d',{alpha:false});
   if(!ctx)throw Error('Podium snapshot context unavailable');
   ctx.drawImage(source,0,0);
+  // A successful drawImage call does not guarantee visible pixels on
+  // Android WebView. Reject blank/flat compositor copies before overlaying
+  // the live WebGL podium; keep the actual 3D stage as fallback.
+  const probe=document.createElement('canvas');
+  probe.width=96;probe.height=54;
+  const probeCtx=probe.getContext('2d',{willReadFrequently:true});
+  if(!probeCtx)throw Error('Podium snapshot verification unavailable');
+  probeCtx.drawImage(snapshot,0,0,probe.width,probe.height);
+  const rgba=probeCtx.getImageData(0,0,probe.width,probe.height).data;
+  let low=255,high=0,opaque=0;
+  for(let i=0;i<rgba.length;i+=4){
+   if(rgba[i+3]<240)continue;
+   opaque++;
+   const l=(rgba[i]*3+rgba[i+1]*6+rgba[i+2])/10;
+   low=Math.min(low,l);high=Math.max(high,l);
+  }
+  if(opaque<probe.width*probe.height*.9||high-low<45)
+   throw Error('Blank or flat podium snapshot; retaining live 3D');
   snapshot.hidden=false;
   $('resultPhoto').hidden=true;
   view.hidden=false;
