@@ -2666,8 +2666,15 @@ function captureCeremonyPhoto(){
    if(!view.hidden){
     const pw=Math.max(320,view.clientWidth||340),ph=Math.max(180,view.clientHeight||192);
     renderer.setRenderTarget(null);
-    renderer.setPixelRatio(Math.min(1.4,devicePixelRatio||1));
-    renderer.setSize(pw,ph,false);
+    // Reallocating the WebGL drawing buffer after every capture can evict
+    // Android's context, even when the preview dimensions did not change.
+    // Only resize when the CSS dimensions or pixel ratio actually differ.
+    const desiredRatio=Math.min(1.4,devicePixelRatio||1);
+    const currentSize=renderer.getSize(new T.Vector2());
+    if(Math.abs(renderer.getPixelRatio()-desiredRatio)>.001)
+     renderer.setPixelRatio(desiredRatio);
+    if(Math.abs(currentSize.x-pw)>1||Math.abs(currentSize.y-ph)>1)
+     renderer.setSize(pw,ph,false);
     // A failed default-framebuffer readback leaves the centered 16:9
     // viewport active. Reset all clipping state before presenting the live
     // podium, otherwise Android may show a narrow/grey partial frame.
