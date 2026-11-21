@@ -2633,8 +2633,17 @@ function captureCeremonyPhoto(){
     renderer.setRenderTarget(null);
     renderer.setPixelRatio(Math.min(1.4,devicePixelRatio||1));
     renderer.setSize(pw,ph,false);
+    // A failed default-framebuffer readback leaves the centered 16:9
+    // viewport active. Reset all clipping state before presenting the live
+    // podium, otherwise Android may show a narrow/grey partial frame.
+    renderer.setScissorTest(false);
+    renderer.setViewport(0,0,renderer.domElement.width,renderer.domElement.height);
+    renderer.setScissor(0,0,renderer.domElement.width,renderer.domElement.height);
     fitPodiumCamera(ceremonyStage,pw/ph);
-    if(!success)renderer.render(ceremonyStage.scene,ceremonyStage.camera);
+    if(!success){
+     renderer.clear(true,true,true);
+     renderer.render(ceremonyStage.scene,ceremonyStage.camera);
+    }
    }
   }
  }
