@@ -2498,14 +2498,23 @@ function captureCeremonyPhoto(){
   }
   if(!captured)throw Error('Podium framebuffer is empty or uniform');
   // Only a snapshot of the actual game models is used. No illustrated substitute.
-  const start=h-84,gradient=ctx.createLinearGradient(0,start,0,h);
+  // Low-memory Android capture may be only 256x144. A fixed 84px footer
+  // obscured most of the actual 3D subjects, making valid photos look blank.
+  // Scale the caption and its safe margins with the real framebuffer size.
+  const photoScale=Math.min(1,w/640,h/360);
+  const footerH=Math.round(84*photoScale);
+  const start=h-footerH,gradient=ctx.createLinearGradient(0,start,0,h);
   gradient.addColorStop(0,'rgba(8,20,25,0)');gradient.addColorStop(.22,'rgba(8,20,25,.82)');gradient.addColorStop(1,'rgba(8,20,25,.96)');
-  ctx.fillStyle=gradient;ctx.fillRect(0,start,w,104);
+  ctx.fillStyle=gradient;ctx.fillRect(0,start,w,footerH);
+  const margin=Math.round(24*photoScale);
   ctx.fillStyle='#fff9ee';ctx.textAlign='left';
-  ctx.font='600 19px system-ui,sans-serif';ctx.fillText('動物と100m走 / '+raceName,24,start+29);
-  ctx.font='800 30px system-ui,sans-serif';ctx.fillText(resultText,24,start+63);
-  ctx.textAlign='right';ctx.fillStyle='#ccd7d4';ctx.font='500 13px sans-serif';
-  ctx.fillText('techmew.github.io/human-vs-beasts/',w-20,h-8);
+  ctx.font='600 '+Math.max(8,Math.round(19*photoScale))+'px system-ui,sans-serif';
+  ctx.fillText('動物と100m走 / '+raceName,margin,start+Math.round(29*photoScale),w-margin*2);
+  ctx.font='800 '+Math.max(12,Math.round(30*photoScale))+'px system-ui,sans-serif';
+  ctx.fillText(resultText,margin,start+Math.round(63*photoScale),w-margin*2);
+  ctx.textAlign='right';ctx.fillStyle='#ccd7d4';
+  ctx.font='500 '+Math.max(7,Math.round(13*photoScale))+'px sans-serif';
+  ctx.fillText('techmew.github.io/human-vs-beasts/',w-Math.round(20*photoScale),h-Math.round(8*photoScale),w-margin*2);
   // A valid WebGL readback is already held in the canvas. Android WebView
   // may block synchronous toDataURL even though asynchronous toBlob works.
   // Keep the captured pixels for Save/Share instead of discarding them.
