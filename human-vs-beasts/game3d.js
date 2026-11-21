@@ -2439,12 +2439,18 @@ function captureCeremonyPhoto(){
    if(!live.width||!live.height)throw Error('Podium preview framebuffer unavailable');
    const liveAspect=live.width/live.height;
    const photoAspect=w/h;
-   // Fit the camera to the actual drawing buffer before taking the frame;
-   // the offscreen target may have used a different aspect ratio.
-   fitPodiumCamera(ceremonyStage,liveAspect);
+   // Render the actual 3D portrait into a centered 16:9 viewport. Fitting
+   // the camera to the full phone screen and cropping afterwards can cut
+   // off the opponent or avatar on tall Android devices.
+   const portraitW=Math.max(1,Math.floor(Math.min(liveBuffer.x,liveBuffer.y*photoAspect)));
+   const portraitH=Math.max(1,Math.floor(Math.min(liveBuffer.y,liveBuffer.x/photoAspect)));
+   const portraitX=Math.floor((liveBuffer.x-portraitW)/2);
+   const portraitY=Math.floor((liveBuffer.y-portraitH)/2);
+   fitPodiumCamera(ceremonyStage,portraitW/portraitH);
    renderer.setScissor(0,0,liveBuffer.x,liveBuffer.y);
    renderer.autoClear=true;
    renderer.clear(true,true,true);
+   renderer.setViewport(portraitX,portraitY,portraitW,portraitH);
    ceremonyStage.scene.updateMatrixWorld(true);
    ceremonyStage.camera.updateMatrixWorld(true);
    renderer.render(ceremonyStage.scene,ceremonyStage.camera);
