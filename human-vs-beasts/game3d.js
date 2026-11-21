@@ -1890,13 +1890,21 @@ function showCapturedPodiumCanvas(source){
  }
  if(snapshot.width!==source.width)snapshot.width=source.width;
  if(snapshot.height!==source.height)snapshot.height=source.height;
- const ctx=snapshot.getContext('2d',{alpha:false});
- if(!ctx)return false;
- ctx.drawImage(source,0,0);
- snapshot.hidden=false;
- $('resultPhoto').hidden=true;
- view.hidden=false;
- return true;
+ // Android WebView may reject a 2D context or lose it while the GPU
+ // framebuffer is being copied. Never leave a blank overlay over live 3D.
+ try{
+  const ctx=snapshot.getContext('2d',{alpha:false});
+  if(!ctx)throw Error('Podium snapshot context unavailable');
+  ctx.drawImage(source,0,0);
+  snapshot.hidden=false;
+  $('resultPhoto').hidden=true;
+  view.hidden=false;
+  return true;
+ }catch(err){
+  snapshot.remove();
+  console.warn('Podium framebuffer copy failed; retaining live 3D',err);
+  return false;
+ }
 }
 function clearCapturedPodiumCanvas(){
  const view=$('result3DWindow');
