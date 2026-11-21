@@ -2313,6 +2313,14 @@ function capturePodiumFromGPU(ctx,w,h,lowMemory=false){
   ceremonyStage.scene.updateMatrixWorld(true);
   ceremonyStage.camera.updateMatrixWorld(true);
   renderer.setRenderTarget(target);
+  // Reject incomplete Android render targets before rendering or reading pixels.
+  // Some WebViews silently allocate an incomplete depth attachment and return
+  // a flat grey photo without raising a JavaScript exception.
+  const framebufferGL=renderer.getContext();
+  const framebufferStatus=framebufferGL.checkFramebufferStatus(framebufferGL.FRAMEBUFFER);
+  if(framebufferStatus!==framebufferGL.FRAMEBUFFER_COMPLETE){
+   throw Error('Podium framebuffer incomplete: '+framebufferStatus);
+  }
   renderer.autoClear=true;
   renderer.setClearColor(0x657783,1);
   renderer.clear(true,true,true);
