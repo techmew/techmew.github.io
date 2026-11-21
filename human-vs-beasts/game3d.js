@@ -2430,7 +2430,21 @@ function captureCeremonyPhoto(){
  // Retry at progressively smaller 16:9 resolutions on memory-constrained GPUs.
 // A failed full-size framebuffer should not cause three identical failed attempts.
  let success=false;
- const widths=mobile?[640,512,384,256]:[960,768,576,384];
+ // Query the actual GPU rather than assuming every Android WebView can
+ // allocate the same render target. The photo remains a genuine 3D capture.
+ const gl=renderer.getContext();
+ if(gl.isContextLost?.()){
+  console.warn('Podium photo deferred: WebGL context lost');
+  return false;
+ }
+ const maxTexture=gl.getParameter(gl.MAX_TEXTURE_SIZE)||2048;
+ const maxRenderbuffer=gl.getParameter(gl.MAX_RENDERBUFFER_SIZE)||2048;
+ const maxWidth=Math.max(1,Math.min(maxTexture,maxRenderbuffer,
+  Math.floor(Math.min(maxTexture,maxRenderbuffer)*16/9)));
+ const widths=(mobile?[640,512,384,256]:[960,768,576,384])
+  .filter(width=>width<=maxWidth);
+ // A device below the standard capture size still gets a real 3D photo.
+ if(!widths.length)widths.push(Math.max(64,Math.floor(maxWidth/16)*16));
  const w=widths[Math.min(podiumRetryAttempts,widths.length-1)],h=Math.round(w*9/16);
  const photo=document.createElement('canvas');photo.width=w;photo.height=h;
  try{
