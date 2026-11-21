@@ -2520,6 +2520,15 @@ function captureCeremonyPhoto(){
    // A failed offscreen capture can leave editor scissor/viewport state active.
    // The live fallback must render into the entire default framebuffer, not
    // the stale editor rectangle, or the resulting photograph can be blank.
+   // The default-buffer fallback must not leak its centered capture viewport
+   // into the live ceremony or the next race. Restore even when readPixels,
+   // canvas copying, or validation throws on Android WebView.
+   const savedViewport=renderer.getViewport(new T.Vector4());
+   const savedScissor=renderer.getScissor(new T.Vector4());
+   const savedScissorTest=renderer.getScissorTest();
+   const savedTarget=renderer.getRenderTarget();
+   const savedAutoClear=renderer.autoClear;
+   try{
    renderer.setRenderTarget(null);
    renderer.setScissorTest(false);
    const liveBuffer=renderer.getDrawingBufferSize(new T.Vector2());
@@ -2597,6 +2606,13 @@ function captureCeremonyPhoto(){
     const sx=(live.width-cropW)*.5,sy=(live.height-cropH)*.5;
     ctx.drawImage(live,sx,sy,cropW,cropH,0,0,w,h);
     captured=podiumPixelsValid(ctx,w,h);
+   }
+   }finally{
+    renderer.setRenderTarget(savedTarget);
+    renderer.setViewport(savedViewport);
+    renderer.setScissor(savedScissor);
+    renderer.setScissorTest(savedScissorTest);
+    renderer.autoClear=savedAutoClear;
    }
   }
   if(!captured)throw Error('Podium framebuffer is empty or uniform');
