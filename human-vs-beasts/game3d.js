@@ -2437,11 +2437,8 @@ function captureCeremonyPhoto(){
      // Read only the centered 16:9 portrait region, bounded to a mobile-safe
      // framebuffer allocation. WebGL readPixels uses bottom-left coordinates.
      const aspect=w/h;
-     const cropW=Math.max(1,Math.floor(Math.min(pw,ph*aspect)));
-     const cropH=Math.max(1,Math.floor(Math.min(ph,pw/aspect)));
-     // Read the ENTIRE 16:9 scene in narrow GPU strips, not just the
-     // centre 640px. The old centre crop cut off the runner, rival and medal
-     // on high-density Android drawing buffers.
+     // Read the entire 16:9 podium in bounded strips; do not crop out the
+     // runner or rival on high-density Android WebView drawing buffers.
      const cropW=Math.max(1,Math.floor(Math.min(pw,ph*aspect)));
      const cropH=Math.max(1,Math.floor(Math.min(ph,pw/aspect)));
      if(cropW<16||cropH<9)throw Error('Default framebuffer too small');
