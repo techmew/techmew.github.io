@@ -1759,7 +1759,7 @@ function waterDepth(x,y){
   const offset=Math.abs(y-canalAxis(x));
   if(offset<100&&!roadsX.some(rx=>Math.abs(x-rx)<80))depth=Math.max(depth,Math.min(1,(100-offset)/55));
  }
- return Math.max(depth,window.WildEastExpedition?.channelDepth?.(x,y)||0);
+ return Math.max(depth,window.WildEastExpedition?.surfaceDepth?.(x,y)||0);
 }
 function swimWaterDepth(x,y){return Math.max(waterDepth(x,y),window.WildEastExpedition?.aquaticDepth?.(x,y)||0);}
 function shallowWater(x,y){return waterDepth(x,y)>0;}
@@ -3830,7 +3830,7 @@ function collides(x,y,r,actor=null,ignoreWater=false,mountainIgnore=null){
  if(x<r+12||y<r+12||x>WORLD.w-r-12||y>WORLD.h-r-12)return true;
  const aerial=!!actor&&actor===P&&actor.flying&&actor.flightAltitude>=42;
  if(MOUNTAIN?.blocked(x,y,r,mountainIgnore,
-  !!actor&&actor.type==="carp"&&swimWaterDepth(x,y)>.035)&&!aerial)return true;
+  !!actor&&WATER_PLAYABLES.has(actor.type)&&(actor.type==="carp"?swimWaterDepth(x,y)>.035:waterDepth(x,y)>.035||window.WildEastExpedition?.streamBank(x,y,r)))&&!aerial)return true;
  if(window.WildDisaster?.blocked(x,y,r,elapsed/120)&&!aerial)return true;
  if(!ignoreWater){
   const depth=waterDepth(x,y);
@@ -3951,7 +3951,7 @@ function move(o,dx,dy){
    const water=waterDepth(x,y);
    // Shoebills are wading birds: walk into shallows, not across deep channels.
    if(o===P&&o.flying&&o.flightAltitude>=42)return true;
-   if(o===P&&o.type==="carp")return water>.035;
+   if(o===P&&o.type==="carp")return swimWaterDepth(x,y)>.035;
    // This is the physical movement gate: water roster must affect real collision.
    if(o===P&&WATER_PLAYABLES.has(o.type))return true;
    // Wild wetland swimmers use the same collision engine; cap depth for small NPCs.
@@ -8353,8 +8353,11 @@ function update(dt){
     const forced={x:Math.cos(P.ghostWanderAngle),y:Math.sin(P.ghostWanderAngle)};
     applyDirectionalInput(P,forced,Math.min(152,Math.max(64,P.speed*.52)),dt,false);
    }else applyDirectionalInput(P,a,target,dt,foxTurbo);
-   const oldX=P.x,oldY=P.y;move(P,P.vx*dt,P.vy*dt);
-   if(WATER_PLAYABLES.has(P.type))P.swimVisual=fishWaterAt(P.x,P.y)?1:0;
+   const oldX=P.x,oldY=P.y;
+   const current=WATER_PLAYABLES.has(P.type)&&!ghostSteering?
+    window.WildEastExpedition?.streamCurrent(P.x,P.y,weather):null;
+   move(P,(P.vx+(current?.x||0))*dt,(P.vy+(current?.y||0))*dt);
+   if(WATER_PLAYABLES.has(P.type))P.swimVisual=(P.type==="carp"?fishWaterAt(P.x,P.y):waterDepth(P.x,P.y)>.035)?1:0;
    if(ghostSteering&&Math.hypot(P.x-oldX,P.y-oldY)<.3){
     P.ghostWanderAngle=(P.ghostWanderAngle||0)+Math.PI*(.65+Math.random()*.7);
     P.ghostWanderClock=0;
@@ -10679,6 +10682,16 @@ function drawScene(){
   const n=noise(xx/180,yy/180);ctx.fillStyle=n>.5?"#536a4214":"#b6a8850a";ctx.beginPath();ctx.ellipse(xx+78,yy+65,75+n*30,45+n*19,n,0,TWO);ctx.fill();
  }
  drawWater2D();
+  ctx.beginPath();
+  window.WildEastExpedition?.eachRapid(P,elapsed,weather,(x,y,xx,yy)=>{
+   if(visible(x,y,55)){ctx.moveTo(x,y);ctx.lineTo(xx,yy);}
+  });
+  ctx.strokeStyle="#abdcd6";ctx.lineWidth=2;ctx.stroke();
+  ctx.fillStyle="#a9a995";
+  for(const stone of window.WildEastExpedition?.fordStones||[]){
+   if(!visible(stone.x,stone.y,24))continue;
+   ctx.beginPath();ctx.ellipse(stone.x,stone.y,stone.r*1.4,stone.r*.7,0,0,TWO);ctx.fill();
+  }
   roadDraw();
   drawWorldSnow2D(currentSnowpack(),x,y);
   drawScenery2D();

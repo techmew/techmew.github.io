@@ -33,6 +33,77 @@
   if(y>=2485&&y<=4650)d=Math.max(d,depthBand(x-creekX(y),53));
   return d;
  }
+ // Keep the walking surface distinct from the water below a timber deck.
+ const streams=[
+  {shape:M?.creek,minY:2485,maxY:4650,x:9250,half:53},
+  {shape:M?.gorge,minY:3000,maxY:4650,x:10950,half:44}
+ ].filter(s=>s.shape);
+ function deckAt(stream,y){
+  return Math.abs(y-stream.shape.bridgeY)<=stream.shape.bridgeHalf;
+ }
+ // The pass reaches the upper gorge on a diagonal bed of pale gravel.
+ function fordX(y){
+  return y<=3280?10740+(y-2590)*220/690:10960+(y-3280);
+ }
+ function passFord(x,y){
+  return y>=3120&&y<=3320&&Math.abs(x-fordX(y))<28;
+ }
+ const fordStones=[];
+ for(let y=3128;y<3320;y+=12){
+  for(const side of [-1,1]){
+   const x=fordX(y)+side*(8+5*Math.sin(y));
+   if(M?.gorge&&Math.abs(x-M.gorge.xAt(y))<44)
+    fordStones.push(Object.freeze({x,y,r:4+2*Math.cos(y*.31+side)}));
+  }
+ }
+ Object.freeze(fordStones);
+ function surfaceDepth(x,y){
+  const channel=channelDepth(x,y);
+  if(passFord(x,y)||M?.headwater?.fordAt(x,y,18))return 0;
+  for(const s of streams){
+   if(Math.abs(x-s.x)>100||y<s.minY||y>s.maxY)continue;
+   const d=depthBand(x-s.shape.xAt(y),s.half);
+   if(d>0)return deckAt(s,y)?0:Math.max(channel,d);
+  }
+  return channel;
+ }
+ const flowSpeed=weather=>weather==="THUNDER"?48:weather==="RAIN"?33:16;
+ function streamBank(x,y,r){
+  return streams.some(s=>Math.abs(x-s.x)<120&&y>=s.minY&&y<=s.maxY&&
+   Math.abs(x-s.shape.xAt(y))<=s.half+r&&!deckAt(s,y));
+ }
+ function streamCurrent(x,y,weather){
+  if(passFord(x,y))return null;
+  for(const s of streams){
+   if(Math.abs(x-s.x)>100||y<s.minY||y>s.maxY||deckAt(s,y))continue;
+   const axis=s.shape.xAt(y),d=depthBand(x-axis,s.half);
+   if(d<=0)continue;
+   const speed=flowSpeed(weather)*d;
+   return {x:(s.shape.xAt(y+1)-axis)*speed,y:speed};
+  }
+  return null;
+ }
+ // Sparse foam streaks follow the same curved centerline and weather speed as swimmers.
+ function eachRapid(player,clock,weather,emit){
+  if(!player)return;
+  for(const s of streams){
+   if(Math.abs(player.x-s.x)>1000||player.y<s.minY-800||player.y>s.maxY+800)continue;
+   const stride=76,speed=flowSpeed(weather);
+   for(let lane=-1;lane<=1;lane++){
+    const offset=(clock*speed+lane*19+stride)%stride;
+    const start=Math.max(0,Math.ceil((player.y-800-s.minY-offset)/stride));
+    for(let i=start;;i++){
+     const y=s.minY+i*stride+offset;
+     if(y>Math.min(player.y+800,s.maxY-18))break;
+     const length=8+speed*.18;
+     if(deckAt(s,y)||deckAt(s,y+length))continue;
+     const lateral=lane*s.half*.33;
+     const x=s.shape.xAt(y)+lateral,xx=s.shape.xAt(y+length)+lateral;
+     if(!passFord(x,y)&&!passFord(xx,y+length))emit(x,y,xx,y+length);
+    }
+   }
+  }
+ }
  // Physical water below a road bridge remains swimmable for fish, while surface
  // waterDepth can keep the old dry road crossing for land creatures.
  function aquaticDepth(x,y){
@@ -433,6 +504,6 @@
   return {alerted,fleeing};
  }
  global.WildEastExpedition=Object.freeze({stops:STOPS,walkway:WALKWAY,waterStations,
-  disturbBrush,brushMotion,waterRibbons,channelDepth,aquaticDepth,waterNodes,aquaticNetworkStep,
+  fordStones,surfaceDepth,streamBank,streamCurrent,eachRapid,disturbBrush,brushMotion,waterRibbons,channelDepth,aquaticDepth,waterNodes,aquaticNetworkStep,
   cleanWaterMask,waterVisited,waterArrival,waterReplenishable,all:ALL,cleanMask,visited,count,near,arrival,next,replenishable,navigation,aquaticStep,routePosition,groundGuide,habitat,biomes:BIOMES,biomeAt,fieldStatus,wildlifeResponse,aquaticEncounter,drawMap,drawPost2D});
 })(window);

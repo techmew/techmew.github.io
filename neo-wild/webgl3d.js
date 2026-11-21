@@ -2195,6 +2195,10 @@ function mountainTerrain(isVisible){
    for(const side of [-1,1])
     box(bridgeX-70,bridgeY+side*174-3,z+5,140,6,14,"#635f4e","#a89b79");
   }
+  for(const stone of window.WildEastExpedition?.fordStones||[]){
+   if(isVisible(stone.x,stone.y,40))
+    ellipsoid(stone.x,stone.y,m.height(stone.x,stone.y)+2,stone.r*1.4,stone.r,2.5,"#acae99",0,6,3);
+  }
   // Upper ravine uses the same world-space crossing as collision and 2D.
   for(let y=3000;y<4650;y+=70){
    const y2=Math.min(4650,y+70),x1=m.gorge.xAt(y),x2=m.gorge.xAt(y2);
@@ -2630,6 +2634,12 @@ function render(o){
    staticKey=regionKey;staticRebuilds++;
   }
   data=[];
+  window.WildEastExpedition?.eachRapid?.(P,elapsed,weather,(x,y,xx,yy)=>{
+   if(!isVisible(x,y,55))return;
+   const z=(window.WildMountain?.height(x,y)||0)+3;
+   const endZ=(window.WildMountain?.height(xx,yy)||0)+3;
+   quad([x-1.4,y,z],[x+1.4,y,z],[xx+.65,yy,endZ],[xx-.65,yy,endZ],color("#abdcd6"));
+  });
   const foliageSeason=seasonIndexFromElapsed(elapsed);
   for(const p of plants)if(isVisible(p.x,p.y,p.r*2+90))vegetation(p,elapsed,foliageSeason);
   for(const den of o.dens||[])if(isVisible(den.x,den.y,160))denBeddingMesh(den);
