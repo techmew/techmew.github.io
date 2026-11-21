@@ -2439,46 +2439,40 @@ function captureCeremonyPhoto(){
      const aspect=w/h;
      const cropW=Math.max(1,Math.floor(Math.min(pw,ph*aspect)));
      const cropH=Math.max(1,Math.floor(Math.min(ph,pw/aspect)));
-     // Read a complete centered crop before reducing resolution. Capping
-     // width and height independently turns tall phone screens into a narrow
-     // strip and can cut the runners and medal out of the saved picture.
-     // Read a centered, bounded 16:9 region directly from the GPU.
-     // Large Android drawing buffers previously skipped readPixels entirely,
-     // leaving only drawImage(WebGLCanvas), which may return a grey frame.
-     // readPixels cannot scale, so use a center crop with an explicit memory cap.
-     const maxReadW=mobile?640:960,maxReadH=Math.round(maxReadW/aspect);
-     // Keep the readback exactly 16:9. Independently clamping height used
-     // to stretch or clip the rival on portrait Android drawing buffers.
-     const readW=Math.max(1,Math.floor(Math.min(cropW,maxReadW,cropH*aspect,maxReadH*aspect)));
-     const readH=Math.max(1,Math.round(readW/aspect));
-     const rx=Math.floor((pw-readW)/2),ry=Math.floor((ph-readH)/2);
-     if(readW<16||readH<9)throw Error('Default framebuffer too small');
-     const raw=new Uint8Array(readW*readH*4);
-     gl.finish();
-     for(let n=0;n<8&&gl.getError()!==gl.NO_ERROR;n++){}
-     gl.readPixels(rx,ry,readW,readH,gl.RGBA,gl.UNSIGNED_BYTE,raw);
-     if(gl.getError()!==gl.NO_ERROR)throw Error('Default framebuffer readback failed');
-     // Flip GPU rows in place, avoiding a second full-frame RGBA allocation.
-     // Android WebView may exhaust memory when the WebGL framebuffer, raw
-     // pixels, ImageData and an additional copied frame coexist.
-     const stride=readW*4,swap=new Uint8Array(stride);
-     for(let y=0,half=Math.floor(readH/2);y<half;y++){
-      const top=y*stride,bottom=(readH-1-y)*stride;
-      swap.set(raw.subarray(top,top+stride));
-      raw.copyWithin(top,bottom,bottom+stride);
-      raw.set(swap,bottom);
-     }
-     const scan=document.createElement('canvas');scan.width=readW;scan.height=readH;
+     // Read the ENTIRE 16:9 scene in narrow GPU strips, not just the
+     // centre 640px. The old centre crop cut off the runner, rival and medal
+     // on high-density Android drawing buffers.
+     const cropW=Math.max(1,Math.floor(Math.min(pw,ph*aspect)));
+     const cropH=Math.max(1,Math.floor(Math.min(ph,pw/aspect)));
+     if(cropW<16||cropH<9)throw Error('Default framebuffer too small');
+     const rx=Math.floor((pw-cropW)/2),ry=Math.floor((ph-cropH)/2);
+     const stripH=Math.max(1,Math.min(cropH,Math.floor((mobile?640*360:960*540)/cropW)));
+     const scan=document.createElement('canvas');scan.width=cropW;scan.height=stripH;
      const scanCtx=scan.getContext('2d',{alpha:false,willReadFrequently:true})||scan.getContext('2d');
      if(!scanCtx)throw Error('Readback canvas unavailable');
-     let frame;
-     if(typeof ImageData==='function')frame=new ImageData(new Uint8ClampedArray(raw.buffer),readW,readH);
-     else{frame=scanCtx.createImageData(readW,readH);frame.data.set(raw)}
-     scanCtx.putImageData(frame,0,0);
-     const sourceAspect=readW/readH;
-     const sw=sourceAspect>aspect?readH*aspect:readW;
-     const sh=sourceAspect<aspect?readW/aspect:readH;
-     ctx.drawImage(scan,(readW-sw)*.5,(readH-sh)*.5,sw,sh,0,0,w,h);
+     const raw=new Uint8Array(cropW*stripH*4);
+     const stride=cropW*4,swap=new Uint8Array(stride);
+     gl.finish();
+     for(let n=0;n<8&&gl.getError()!==gl.NO_ERROR;n++){}
+     for(let y=0;y<cropH;y+=stripH){
+      const rows=Math.min(stripH,cropH-y);
+      gl.readPixels(rx,ry+y,cropW,rows,gl.RGBA,gl.UNSIGNED_BYTE,raw.subarray(0,rows*stride));
+      if(gl.getError()!==gl.NO_ERROR)throw Error('Default framebuffer strip readback failed');
+      for(let row=0,half=Math.floor(rows/2);row<half;row++){
+       const top=row*stride,bottom=(rows-1-row)*stride;
+       swap.set(raw.subarray(top,top+stride));
+       raw.copyWithin(top,bottom,bottom+stride);
+       raw.set(swap,bottom);
+      }
+      const frame=scanCtx.createImageData(cropW,rows);
+      frame.data.set(raw.subarray(0,rows*stride));
+      scanCtx.putImageData(frame,0,0);
+      // GPU rows run bottom-up. Place each flipped strip at its correct
+      // vertical location, preserving the entire podium and both models.
+      const destTop=h*(cropH-y-rows)/cropH;
+      const destBottom=h*(cropH-y)/cropH;
+      ctx.drawImage(scan,0,0,cropW,rows,0,destTop,w,destBottom-destTop);
+     }
      captured=podiumPixelsValid(ctx,w,h);
     }
    }catch(readErr){console.warn('Default WebGL readback unavailable',readErr)}
