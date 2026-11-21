@@ -2361,18 +2361,27 @@ function podiumPixelsValid(ctx,w,h,rgbaPixels=null){
  // The previous seven fixed columns could miss thin runners, tall dinosaurs,
  // and off-centre rivals even when both 3D models were clearly rendered.
  // Ignore the lower caption strip and upper spectator stands.
- let strongEdges=0,edgeSum=0,samples=0;
+ // Check BOTH subjects independently. A textured stadium or one visible
+ // runner used to pass the combined edge test, producing an empty opponent
+ // in the saved photo. Keep the scan proportional to the output resolution.
  const dx=Math.max(3,Math.round(w*.014)),dy=Math.max(3,Math.round(h*.025));
- for(let y=Math.round(h*.25);y<Math.round(h*.72);y+=dy){
-  for(let x=Math.round(w*.14);x<Math.round(w*.86);x+=dx){
-   const l=luminance(x,y);
-   const edge=Math.max(Math.abs(l-luminance(x+dx,y)),
-                       Math.abs(l-luminance(x,y+dy)));
-   if(edge>24)strongEdges++;
-   edgeSum+=edge;samples++;
+ const regions=[[.14,.50],[.50,.86]];
+ let totalSamples=0,totalEdges=0;
+ for(const [left,right] of regions){
+  let strongEdges=0,edgeSum=0,samples=0;
+  for(let y=Math.round(h*.25);y<Math.round(h*.72);y+=dy){
+   for(let x=Math.round(w*left);x<Math.round(w*right);x+=dx){
+    const l=luminance(x,y);
+    const edge=Math.max(Math.abs(l-luminance(x+dx,y)),
+                        Math.abs(l-luminance(x,y+dy)));
+    if(edge>24)strongEdges++;
+    edgeSum+=edge;samples++;
+   }
   }
+  if(samples<35||strongEdges<Math.max(4,samples*.018)||edgeSum/samples<=4)return false;
+  totalSamples+=samples;totalEdges+=strongEdges;
  }
- return samples>80&&strongEdges>=Math.max(9,samples*.025)&&edgeSum/samples>5;
+ return totalSamples>80&&totalEdges>=Math.max(9,totalSamples*.025);
 }
 function captureCeremonyPhoto(){
  if(!ceremonyStage)return false;
