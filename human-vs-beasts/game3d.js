@@ -2543,13 +2543,21 @@ function captureCeremonyPhoto(){
  let success=false;
  // Query the actual GPU rather than assuming every Android WebView can
  // allocate the same render target. The photo remains a genuine 3D capture.
- const gl=renderer.getContext();
- if(gl.isContextLost?.()){
-  console.warn('Podium photo deferred: WebGL context lost');
+ // WebGL capability queries can throw while Android is restoring its context.
+ // Do not let that exception abort the result screen or its retry scheduler.
+ let maxTexture=2048,maxRenderbuffer=2048;
+ try{
+  const gl=renderer.getContext();
+  if(!gl||gl.isContextLost?.()){
+   console.warn('Podium photo deferred: WebGL context lost');
+   return false;
+  }
+  maxTexture=gl.getParameter(gl.MAX_TEXTURE_SIZE)||2048;
+  maxRenderbuffer=gl.getParameter(gl.MAX_RENDERBUFFER_SIZE)||2048;
+ }catch(error){
+  console.warn('Podium GPU limits unavailable; retry after WebGL recovery',error);
   return false;
  }
- const maxTexture=gl.getParameter(gl.MAX_TEXTURE_SIZE)||2048;
- const maxRenderbuffer=gl.getParameter(gl.MAX_RENDERBUFFER_SIZE)||2048;
  const maxWidth=Math.max(1,Math.min(maxTexture,maxRenderbuffer,
   Math.floor(Math.min(maxTexture,maxRenderbuffer)*16/9)));
  const widths=(mobile?[640,512,384,256]:[960,768,576,384])
