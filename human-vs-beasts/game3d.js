@@ -1946,7 +1946,18 @@ function releasePodiumPreview(){
 // Keep the live 3D stage visible until an actual encoded photo is ready.
 async function showAsyncPodiumPreview(canvas){
  const token=++podiumPreviewToken;
- if(typeof canvas.toBlob!=='function')return false;
+ // Some Android WebViews omit canvas.toBlob or fail its encoder even when
+ // the actual GPU portrait has been validated. Display the verified 3D
+ // canvas directly rather than treating an encoder failure as a blank photo.
+ const showCanvasWithoutEncoder=()=>{
+  if(token!==podiumPreviewToken||!ceremonyStage||racePicture!==canvas)return false;
+  if(!showCapturedPodiumCanvas(canvas))return false;
+  $('resultPhoto').hidden=true;
+  $('result3DWindow').hidden=false;
+  $('shareHelp').textContent='3D表彰台写真を保存・共有できます。';
+  return true;
+ };
+ if(typeof canvas.toBlob!=='function')return showCanvasWithoutEncoder();
  let blob=null;
  for(const format of ['image/jpeg','image/png']){
   try{
@@ -1960,7 +1971,8 @@ async function showAsyncPodiumPreview(canvas){
   if(blob&&blob.size>2048&&blob.type.startsWith('image/'))break;
   blob=null;
  }
- if(token!==podiumPreviewToken||!ceremonyStage||racePicture!==canvas||!blob)return false;
+ if(!blob)return showCanvasWithoutEncoder();
+ if(token!==podiumPreviewToken||!ceremonyStage||racePicture!==canvas)return false;
  const url=URL.createObjectURL(blob);
  const image=$('resultPhoto');
  try{
