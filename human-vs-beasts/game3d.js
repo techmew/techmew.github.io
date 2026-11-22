@@ -2015,7 +2015,9 @@ async function showAsyncPodiumPreview(canvas){
    };
    probe.onerror=()=>finish(Error('Podium preview decode failed'));
    probe.src=url;
-   if(probe.complete&&probe.naturalWidth&&probe.naturalHeight)finish(null);
+   // Do not short-circuit on cached/synchronous image loads: only onload
+   // performs the pixel validation that rejects blank Android captures.
+   // A synchronous complete state still delivers onload for a new Image.
   });
   if(token!==podiumPreviewToken||!ceremonyStage||racePicture!==canvas){
    URL.revokeObjectURL(url);return false;
