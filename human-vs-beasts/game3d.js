@@ -1786,10 +1786,13 @@ function startRace(){if(mode==='race')return;opponent.root.visible=true;opponent
 function tap(side,overlapping=false){
  if(!race||race.phase!=='running'||race.hFinish!==null)return;
  const r=race,now=r.time,elapsed=now-r.lastTap;
- // Ignore physically impossible rapid repeat presses (including multi-touch macros).
- // Keep a separate accepted-input clock so a rejected press cannot change combo,
- // steering, burst charge, foot animation or the next valid alternation.
- if(Number.isFinite(r.lastAcceptedTap)&&now-r.lastAcceptedTap<.065)return;
+ // Fast legitimate alternating strides must not be discarded by the
+ // same-side anti-macro limiter. Still reject simultaneous duplicate events
+ // and keep rejected presses from modifying combo, steering or burst charge.
+ // A fresh first press after a pause is never throttled.
+ const alternatingInput=!!r.lastFoot&&side!==r.lastFoot&&!overlapping;
+ const minTapGap=alternatingInput?.035:.065;
+ if(Number.isFinite(r.lastAcceptedTap)&&now-r.lastAcceptedTap<minTapGap)return;
  r.lastAcceptedTap=now;
  const hadFoot=!!r.lastFoot;
  // Alternation is always valid, even for very fast taps. Timing only adjusts a bonus.
