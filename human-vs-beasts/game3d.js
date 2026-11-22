@@ -2435,13 +2435,27 @@ function capturePodiumFromGPU(ctx,w,h,lowMemory=false){
   const readError=gl.getError();
   if(readError!==gl.NO_ERROR)throw Error('Podium GPU readback error '+readError);
   // Reject cleared / partial readback before copying or encoding it.
+  // A coloured runner or animal can have almost uniform luminance. Reject
+  // truly blank GPU readbacks using RGB range as well as brightness, matching
+  // the subsequent canvas/encoded-photo validators on Android.
   let opaque=0,low=255,high=0;
-  for(let i=0;i<pixels.length;i+=4){
-   if(pixels[i+3]>=245)opaque++;
-   const light=(pixels[i]*3+pixels[i+1]*6+pixels[i+2])/10;
+  let minR=255,maxR=0,minG=255,maxG=0,minB=255,maxB=0;
+  const halfOpaque=[0,0];
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+   const i=(y*w+x)*4;
+   if(pixels[i+3]<245)continue;
+   opaque++;halfOpaque[x<w/2?0:1]++;
+   const red=pixels[i],green=pixels[i+1],blue=pixels[i+2];
+   const light=(red*3+green*6+blue)/10;
    low=Math.min(low,light);high=Math.max(high,light);
+   minR=Math.min(minR,red);maxR=Math.max(maxR,red);
+   minG=Math.min(minG,green);maxG=Math.max(maxG,green);
+   minB=Math.min(minB,blue);maxB=Math.max(maxB,blue);
   }
-  if(opaque<w*h*.95||high-low<45)throw Error('Incomplete or uniform podium GPU readback');
+  const colourRange=Math.max(maxR-minR,maxG-minG,maxB-minB);
+  if(opaque<w*h*.95||Math.max(high-low,colourRange)<45||
+     halfOpaque.some(n=>n<w*h*.45))
+   throw Error('Incomplete or uniform podium GPU readback');
   // A stadium-only frame can pass whole-frame contrast checks even when the
   // actual runner and opponent are outside the camera. Validate the portrait
   // before committing the pixels to the final result canvas.
