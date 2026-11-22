@@ -3100,6 +3100,9 @@ function rivalStridePace(kind,phase,distance){
 // from advancing the rival through a large portion of the race at once.
 function updateRace(dt){
  if(!race||!Number.isFinite(dt)||dt<=0||document.hidden)return;
+ // A resumed WebView may deliver one stale animation delta. Discard it
+ // completely rather than gifting the rival 250ms while the runner is stopped.
+ if(race.skipResumeFrame){race.skipResumeFrame=false;return;}
  let remaining=Math.min(dt,.25);
  while(remaining>0.000001){
   const step=Math.min(remaining,.05);
@@ -3324,8 +3327,10 @@ function releaseAllFootPointers(){
   race.lateralTarget=race.lateral;
  }
 }
-document.addEventListener('visibilitychange',()=>{if(document.hidden)releaseAllFootPointers()});
-window.addEventListener('blur',releaseAllFootPointers);
+document.addEventListener('visibilitychange',()=>{
+ if(document.hidden){releaseAllFootPointers();if(race)race.skipResumeFrame=true;}
+});
+window.addEventListener('blur',()=>{releaseAllFootPointers();if(race)race.skipResumeFrame=true;});
 
 for(const [side,id] of [['L','leftTap'],['R','rightTap']]){
  const el=$(id);
