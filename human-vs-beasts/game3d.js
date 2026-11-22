@@ -1880,57 +1880,55 @@ let podiumPreviewURL=null,podiumPreviewToken=0;
 function showCapturedPodiumCanvas(source){
  const view=$('result3DWindow');
  if(!view||!source||!source.width||!source.height)return false;
- let snapshot=view.querySelector('canvas[data-podium-snapshot]');
- if(!snapshot){
-  snapshot=document.createElement('canvas');
-  snapshot.dataset.podiumSnapshot='1';
-  snapshot.setAttribute('aria-label','3D表彰台の撮影画像');
-  snapshot.style.cssText='position:absolute;inset:0;width:100%;height:100%;object-fit:contain;z-index:2;pointer-events:none';
-  view.appendChild(snapshot);
- }
- if(snapshot.width!==source.width)snapshot.width=source.width;
- if(snapshot.height!==source.height)snapshot.height=source.height;
- // Android WebView may reject a 2D context or lose it while the GPU
- // framebuffer is being copied. Never leave a blank overlay over live 3D.
- try{
-  const ctx=snapshot.getContext('2d',{alpha:false});
-  if(!ctx)throw Error('Podium snapshot context unavailable');
-  ctx.drawImage(source,0,0);
-  // A successful drawImage call does not guarantee visible pixels on
-  // Android WebView. Reject blank/flat compositor copies before overlaying
-  // the live WebGL podium; keep the actual 3D stage as fallback.
-  const probe=document.createElement('canvas');
-  probe.width=96;probe.height=54;
-  const probeCtx=probe.getContext('2d',{willReadFrequently:true});
-  if(!probeCtx)throw Error('Podium snapshot verification unavailable');
-  probeCtx.drawImage(snapshot,0,0,probe.width,probe.height);
-  const rgba=probeCtx.getImageData(0,0,probe.width,probe.height).data;
-  // Android may copy only one half of a WebGL frame while leaving the
-  // other half flat. Validate each subject's half before hiding live 3D.
-  const halves=[{low:255,high:0,opaque:0},{low:255,high:0,opaque:0}];
-  let low=255,high=0,opaque=0;
-  for(let y=0;y<probe.height;y++)for(let x=0;x<probe.width;x++){
-   const i=(y*probe.width+x)*4;
-   if(rgba[i+3]<240)continue;
-   opaque++;
-   const l=(rgba[i]*3+rgba[i+1]*6+rgba[i+2])/10;
-   low=Math.min(low,l);high=Math.max(high,l);
-   const half=halves[x<probe.width/2?0:1];
-   half.opaque++;
-   half.low=Math.min(half.low,l);half.high=Math.max(half.high,l);
+ // Android WebView can fail a full-size 2D allocation even when the original
+ // GPU portrait is valid. Retry with progressively smaller *3D pixel copies*.
+ // The full-resolution racePicture remains untouched for download and sharing.
+ for(const scale of [1,.5,.25]){
+  let snapshot=null;
+  try{
+   const w=Math.max(1,Math.round(source.width*scale));
+   const h=Math.max(1,Math.round(source.height*scale));
+   snapshot=document.createElement('canvas');
+   snapshot.width=w;snapshot.height=h;
+   snapshot.dataset.podiumSnapshot='1';
+   snapshot.setAttribute('aria-label','3D表彰台の撮影画像');
+   snapshot.style.cssText='position:absolute;inset:0;width:100%;height:100%;object-fit:contain;z-index:2;pointer-events:none';
+   const ctx=snapshot.getContext('2d',{alpha:false})||snapshot.getContext('2d');
+   if(!ctx)throw Error('Podium snapshot context unavailable');
+   ctx.drawImage(source,0,0,w,h);
+   const probe=document.createElement('canvas');
+   probe.width=96;probe.height=54;
+   const probeCtx=probe.getContext('2d',{willReadFrequently:true})||probe.getContext('2d');
+   if(!probeCtx)throw Error('Podium snapshot verification unavailable');
+   probeCtx.drawImage(snapshot,0,0,96,54);
+   const rgba=probeCtx.getImageData(0,0,96,54).data;
+   const halves=[{low:255,high:0,opaque:0},{low:255,high:0,opaque:0}];
+   let low=255,high=0,opaque=0;
+   for(let y=0;y<54;y++)for(let x=0;x<96;x++){
+    const i=(y*96+x)*4;
+    if(rgba[i+3]<240)continue;
+    opaque++;
+    const l=(rgba[i]*3+rgba[i+1]*6+rgba[i+2])/10;
+    low=Math.min(low,l);high=Math.max(high,l);
+    const half=halves[x<48?0:1];
+    half.opaque++;half.low=Math.min(half.low,l);half.high=Math.max(half.high,l);
+   }
+   if(opaque<4665||high-low<45||
+      halves.some(h=>h.opaque<2200||h.high-h.low<20))
+    throw Error('Blank or partially copied podium snapshot');
+   clearCapturedPodiumCanvas();
+   view.appendChild(snapshot);
+   $('resultPhoto').hidden=true;
+   view.hidden=false;
+   return true;
+  }catch(err){
+   snapshot?.remove();
+   console.warn('Podium snapshot copy failed at scale '+scale,err);
   }
-  if(opaque<probe.width*probe.height*.9||high-low<45||
-     halves.some(h=>h.opaque<probe.width*probe.height*.43||h.high-h.low<20))
-   throw Error('Blank or partially copied podium snapshot; retaining live 3D');
-  snapshot.hidden=false;
-  $('resultPhoto').hidden=true;
-  view.hidden=false;
-  return true;
- }catch(err){
-  snapshot.remove();
-  console.warn('Podium framebuffer copy failed; retaining live 3D',err);
-  return false;
  }
+ // Never cover the live WebGL stage with an unverified blank canvas.
+ clearCapturedPodiumCanvas();
+ return false;
 }
 function clearCapturedPodiumCanvas(){
  const view=$('result3DWindow');
