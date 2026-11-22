@@ -1988,7 +1988,31 @@ async function showAsyncPodiumPreview(canvas){
     if(error)reject(error);else resolve();
    };
    const timeout=setTimeout(()=>finish(Error('Podium preview image timed out')),1800);
-   probe.onload=()=>finish(probe.naturalWidth&&probe.naturalHeight?null:Error('Empty podium preview'));
+   probe.onload=()=>{
+    if(!probe.naturalWidth||!probe.naturalHeight){finish(Error('Empty podium preview'));return}
+    try{
+     // Decoding success is not proof that Android encoded the WebGL scene.
+     // Sample the actual encoded image before it can replace the live 3D stage.
+     const check=document.createElement('canvas');
+     check.width=96;check.height=54;
+     const context=check.getContext('2d',{willReadFrequently:true});
+     if(!context)throw Error('Podium encoded image verification unavailable');
+     context.drawImage(probe,0,0,96,54);
+     const pixels=context.getImageData(0,0,96,54).data;
+     let min=255,max=0,opaque=0;
+     const halves=[{min:255,max:0,count:0},{min:255,max:0,count:0}];
+     for(let y=0;y<54;y++)for(let x=0;x<96;x++){
+      const p=(y*96+x)*4;
+      if(pixels[p+3]<240)continue;
+      const lum=(pixels[p]*3+pixels[p+1]*6+pixels[p+2])/10;
+      min=Math.min(min,lum);max=Math.max(max,lum);opaque++;
+      const h=halves[x<48?0:1];h.min=Math.min(h.min,lum);h.max=Math.max(h.max,lum);h.count++;
+     }
+     if(opaque<4665||max-min<45||halves.some(h=>h.count<2200||h.max-h.min<20))
+      throw Error('Blank or incomplete encoded 3D podium image');
+     finish(null);
+    }catch(error){finish(error)}
+   };
    probe.onerror=()=>finish(Error('Podium preview decode failed'));
    probe.src=url;
    if(probe.complete&&probe.naturalWidth&&probe.naturalHeight)finish(null);
