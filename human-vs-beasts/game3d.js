@@ -3778,9 +3778,13 @@ function frame(){requestAnimationFrame(frame);
  // Preserve race time across dropped Android frames. A capped frame delta used
  // to discard real elapsed time, making low-FPS rivals and countdowns slower.
  // Bound catch-up to prevent a long background-tab pause from ending a race.
- raceTimeDebt=mode==='race'&&race?.phase!=='results'&&!webglUnavailable?Math.min(1.5,raceTimeDebt+Math.max(0,elapsed)):0;
- const raceDt=Math.min(.75,raceTimeDebt);
- raceTimeDebt-=raceDt;
+ // Never bank hidden-tab or resume time: a stopped player cannot tap while
+ // the rival is simulated. Keep the same 250ms ceiling as updateRace().
+ const raceActive=mode==='race'&&race?.phase!=='results'&&!webglUnavailable&&!document.hidden;
+ if(!raceActive||race?.skipResumeFrame)raceTimeDebt=0;
+ else raceTimeDebt=Math.min(.25,raceTimeDebt+Math.max(0,elapsed));
+ const raceDt=raceTimeDebt;
+ raceTimeDebt=0;
  sceneTime+=dt;
  if(webglUnavailable)return;
  if(mode==='race'&&race?.phase==='results'){renderCeremonyFrame();return}
