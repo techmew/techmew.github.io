@@ -3447,11 +3447,43 @@ async function raceImageBlob(){
  return null;
 }
 async function saveRacePhoto(){
- const blob=await raceImageBlob();if(!blob){$('shareHelp').textContent='画像を生成できませんでした。';return false}
- const url=URL.createObjectURL(blob),a=document.createElement('a');
- a.href=url;a.download='100m走_'+new Date().toISOString().slice(0,10)+(blob.type==='image/jpeg'?'.jpg':'.png');document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),45000);return true
+ const button=$('downloadRace');
+ if(button.disabled)return false;
+ button.disabled=true;
+ try{
+  const photo=racePicture;
+  const blob=await raceImageBlob();
+  if(!blob){$('shareHelp').textContent='3D写真を保存できません。再撮影してからお試しください。';return false}
+  // Never save a previous race's asynchronous export after the user retries.
+  if(photo&&photo!==racePicture)return false;
+  const filename='100m走_'+new Date().toISOString().slice(0,10)+(blob.type==='image/jpeg'?'.jpg':'.png');
+  const a=document.createElement('a');
+  // Some embedded Android WebViews do not implement the download attribute.
+  // Offer the actual captured 3D file to the OS share sheet instead.
+  if(mobile&&(!('download' in a))&&navigator.share&&navigator.canShare){
+   const file=new File([blob],filename,{type:blob.type});
+   if(navigator.canShare({files:[file]})){
+    await navigator.share({files:[file],title:'動物と100m走 3D表彰台写真'});
+    return true;
+   }
+  }
+  const url=URL.createObjectURL(blob);
+  try{
+   a.href=url;a.download=filename;
+   document.body.appendChild(a);a.click();
+   $('shareHelp').textContent='保存が始まらない場合はブラウザで開いて再試行してください。';
+   return true;
+  }finally{
+   a.remove();
+   setTimeout(()=>URL.revokeObjectURL(url),45000);
+  }
+ }catch(err){
+  if(err?.name!=='AbortError')console.warn('3D photo download failed',err);
+  $('shareHelp').textContent=err?.name==='AbortError'?'保存をキャンセルしました。':'写真を保存できません。再撮影してからお試しください。';
+  return false;
+ }finally{button.disabled=false}
 }
-$('downloadRace')?.addEventListener('click',()=>{saveRacePhoto()});
+$('downloadRace')?.addEventListener('click',()=>{void saveRacePhoto()});
 // Recover from a blank WebGL result without replaying the entire race.
 // Rebuilds the customized human and the opponent from the finished race.
 let recaptureBusy=false;
