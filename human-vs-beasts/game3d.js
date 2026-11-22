@@ -3587,6 +3587,8 @@ let webglUnavailable=false;
 renderer.domElement.addEventListener('webglcontextlost',event=>{
  event.preventDefault();
  webglUnavailable=true;
+ // A lost GPU context must freeze the race, not accumulate delayed physics.
+ raceTimeDebt=0;
  if(mode==='race'&&race?.phase==='results')
   $('shareHelp').textContent='3D描画を復旧しています。復旧後に写真を再撮影できます。';
 },false);
@@ -3596,6 +3598,7 @@ renderer.domElement.addEventListener('webglcontextrestored',()=>{
  // Do not discard an already validated 3D photograph.
  if(!racePicture){podiumRetryAttempts=0;podiumRetryFrame=0;}
  clock.getDelta();
+ raceTimeDebt=0;
  if(mode==='race'&&race?.phase==='results'){
   // Preserve a validated photo and its image/canvas preview. Rebuilding
   // the podium here destroyed the photo just as Android returned from Share.
@@ -3636,7 +3639,7 @@ function frame(){requestAnimationFrame(frame);
  // Preserve race time across dropped Android frames. A capped frame delta used
  // to discard real elapsed time, making low-FPS rivals and countdowns slower.
  // Bound catch-up to prevent a long background-tab pause from ending a race.
- raceTimeDebt=mode==='race'&&race?.phase!=='results'?Math.min(1.5,raceTimeDebt+Math.max(0,elapsed)):0;
+ raceTimeDebt=mode==='race'&&race?.phase!=='results'&&!webglUnavailable?Math.min(1.5,raceTimeDebt+Math.max(0,elapsed)):0;
  const raceDt=Math.min(.75,raceTimeDebt);
  raceTimeDebt-=raceDt;
  sceneTime+=dt;
