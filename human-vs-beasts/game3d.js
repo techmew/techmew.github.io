@@ -2017,7 +2017,19 @@ async function showAsyncPodiumPreview(canvas){
       min=Math.min(min,lum);max=Math.max(max,lum);opaque++;
       const h=halves[x<48?0:1];h.min=Math.min(h.min,lum);h.max=Math.max(h.max,lum);h.count++;
      }
-     if(opaque<4665||max-min<45||halves.some(h=>h.count<2200||h.max-h.min<20))
+     // Match the direct-canvas verifier: bright subjects can differ in hue
+     // without a large luminance range. Reject uniform or partial frames,
+     // but do not discard a real 3D portrait solely for pale lighting.
+     let minR=255,maxR=0,minG=255,maxG=0,minB=255,maxB=0;
+     for(let p=0;p<pixels.length;p+=4){
+      if(pixels[p+3]<240)continue;
+      minR=Math.min(minR,pixels[p]);maxR=Math.max(maxR,pixels[p]);
+      minG=Math.min(minG,pixels[p+1]);maxG=Math.max(maxG,pixels[p+1]);
+      minB=Math.min(minB,pixels[p+2]);maxB=Math.max(maxB,pixels[p+2]);
+     }
+     const colourRange=Math.max(maxR-minR,maxG-minG,maxB-minB);
+     if(opaque<4665||Math.max(max-min,colourRange)<45||
+        halves.some(h=>h.count<2200))
       throw Error('Blank or incomplete encoded 3D podium image');
      finish(null);
     }catch(error){finish(error)}
