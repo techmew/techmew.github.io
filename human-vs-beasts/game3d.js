@@ -2497,6 +2497,16 @@ function captureCeremonyPhoto(){
    capturePodiumFromGPU(ctx,w,h);
    captured=true;
   }catch(e){console.warn('Offscreen podium capture unavailable',e)}
+  // Preserve portrait detail on Android: retry the SAME resolution without
+  // the expensive shadow atlas before degrading to a smaller photograph.
+  // This remains a genuine 3D render of the customized runner and rival.
+  if(!captured){
+   try{
+    fitPodiumCamera(ceremonyStage,w/h);
+    capturePodiumFromGPU(ctx,w,h,true);
+    captured=true;
+   }catch(e){console.warn('Shadow-free full-size 3D podium capture unavailable',e)}
+  }
   // Independent GPU fallback: progressively smaller real-3D framebuffers.
   // Reuse ONE small validation canvas rather than allocating a new canvas on
   // each retry. Android WebViews may reject 384px FBOs but accept 256px.
