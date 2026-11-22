@@ -2285,6 +2285,16 @@ function endCeremonyStage(){
  $('result3DWindow').hidden=true;$('resultPhoto').hidden=true;
  racePicture=null;raceShareBlob=null;raceShareCanvas=null;manualXSharePrepared=false;podiumRetryAttempts=0;podiumRetryFrame=0;initResize();
 }
+// Some Android WebViews throw (rather than return null) for optional 2D
+// context attributes. Retry with progressively simpler options so a working
+// canvas can still receive the real 3D GPU screenshot.
+function podiumCanvas2D(canvas){
+ for(const options of [{alpha:false,willReadFrequently:true},{alpha:false},undefined]){
+  try{const context=canvas.getContext('2d',options);if(context)return context}
+  catch(error){console.warn('Podium 2D context option unsupported',error)}
+ }
+ return null;
+}
 function capturePodiumFromGPU(ctx,w,h,lowMemory=false){
  // A fresh offscreen framebuffer is essential on Android: the visible WebGL
  // drawing buffer may already have been discarded by the compositor.
@@ -2472,7 +2482,7 @@ function captureCeremonyPhoto(){
  const w=widths[Math.min(podiumRetryAttempts,widths.length-1)],h=Math.round(w*9/16);
  const photo=document.createElement('canvas');photo.width=w;photo.height=h;
  try{
-  const ctx=photo.getContext('2d',{alpha:false,willReadFrequently:true})||photo.getContext('2d');
+  const ctx=podiumCanvas2D(photo);
   if(!ctx)throw Error('Canvas 2D context unavailable');
   // Prefer the explicit GPU framebuffer: mobile WebGL canvases may clear
   // their default drawing buffer before drawImage reads it.
@@ -2489,7 +2499,7 @@ function captureCeremonyPhoto(){
   // each retry. Android WebViews may reject 384px FBOs but accept 256px.
   if(!captured){
    const reduced=document.createElement('canvas');
-   const reducedCtx=reduced.getContext('2d',{alpha:false,willReadFrequently:true})||reduced.getContext('2d');
+   const reducedCtx=podiumCanvas2D(reduced);
    if(reducedCtx){
     const sizes=[Math.min(w,384),Math.min(w,256)];
     for(const reducedW of [...new Set(sizes)]){
