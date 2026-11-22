@@ -2987,7 +2987,7 @@ function rivalStridePace(kind,phase,distance){
 // Clamp background-tab stalls to 250ms to avoid sudden unseen race progress.
 function updateRace(dt){
  if(!race||!Number.isFinite(dt)||dt<=0)return;
- let remaining=Math.min(dt,.25);
+ let remaining=Math.min(dt,.75);
  while(remaining>0.000001){
   const step=Math.min(remaining,.05);
   updateRaceStep(step);
