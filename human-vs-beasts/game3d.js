@@ -3600,11 +3600,18 @@ renderer.domElement.addEventListener('webglcontextrestored',()=>{
   }
  }else initResize();
 },false);
-let humanGait=0,beastGait=0;function frame(){requestAnimationFrame(frame);
+let humanGait=0,beastGait=0;let raceTimeDebt=0;
+function frame(){requestAnimationFrame(frame);
  // Keep visual animation capped at 65ms, but advance race physics using the
  // actual elapsed frame time in bounded substeps. Low-FPS Android devices
  // must not make the 100m clock and countdown run in slow motion.
- const elapsed=clock.getDelta(),dt=Math.min(.065,elapsed),raceDt=Math.min(.25,elapsed);
+ const elapsed=clock.getDelta(),dt=Math.min(.065,elapsed);
+ // Preserve race time across dropped Android frames. A capped frame delta used
+ // to discard real elapsed time, making low-FPS rivals and countdowns slower.
+ // Bound catch-up to prevent a long background-tab pause from ending a race.
+ raceTimeDebt=mode==='race'&&race?.phase!=='results'?Math.min(1.5,raceTimeDebt+Math.max(0,elapsed)):0;
+ const raceDt=Math.min(.75,raceTimeDebt);
+ raceTimeDebt-=raceDt;
  sceneTime+=dt;
  if(webglUnavailable)return;
  if(mode==='race'&&race?.phase==='results'){renderCeremonyFrame();return}
