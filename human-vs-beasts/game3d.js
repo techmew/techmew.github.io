@@ -3090,10 +3090,12 @@ function rivalStridePace(kind,phase,distance){
 
 // Advance race physics in bounded steps on low-FPS phones. Previously frames
 // longer than 65ms lost elapsed time, slowing both runners and the countdown.
-// Clamp background-tab stalls to 250ms to avoid sudden unseen race progress.
+// Pause while the tab is hidden: no unseen opponent progress or lost race time.
+// Limit visible-frame catch-up to 250ms to prevent a stalled Android WebView
+// from advancing the rival through a large portion of the race at once.
 function updateRace(dt){
- if(!race||!Number.isFinite(dt)||dt<=0)return;
- let remaining=Math.min(dt,.75);
+ if(!race||!Number.isFinite(dt)||dt<=0||document.hidden)return;
+ let remaining=Math.min(dt,.25);
  while(remaining>0.000001){
   const step=Math.min(remaining,.05);
   updateRaceStep(step);
