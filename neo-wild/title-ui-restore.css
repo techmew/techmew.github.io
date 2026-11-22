@@ -89,3 +89,14 @@
   }
   #menu #squad-home #continue-btn{min-height:49px!important;}
 }
+
+/* P0 2026-11-22: reveal squad picker/gacha entry hidden by older title styles. */
+#menu #squad-home #squad-open:not([hidden]){
+ display:flex!important;align-items:center!important;justify-content:center!important;
+ width:100%!important;min-height:48px!important;margin:0 0 3px!important;
+ position:static!important;padding:9px 12px!important;box-sizing:border-box!important;
+ border:2px solid #ffe4a7!important;border-radius:11px!important;
+ background:linear-gradient(110deg,#f0cb7c,#e4e9b3)!important;
+ color:#20342a!important;font:900 15px/1.25 "Noto Sans JP",sans-serif!important;
+ cursor:pointer!important;touch-action:manipulation!important;
+}

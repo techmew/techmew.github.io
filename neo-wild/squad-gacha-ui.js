@@ -49,6 +49,12 @@ const ready=()=>{
  const gacha=$("squad-open")||makeBtn("ガチャを引く・編成する",()=>{}, "squad-home-gacha");
  // Handler is assigned below after begin exists.
  gacha.id="squad-open";
+ // P0: the original title markup hides this button; expose the shared
+ // entry to the roster and gacha even when all three slots are empty.
+ gacha.hidden=false;
+ gacha.removeAttribute("aria-hidden");
+ gacha.removeAttribute("tabindex");
+ gacha.style.removeProperty("display");
  const title=home.querySelector(".squad-home-title")||el("h2","squad-home-title");
   title.textContent="所有動物（操作1体＋ストック2体）";
  const roster=$("squad-roster")||el("div","squad-home-roster");roster.id="squad-roster";
@@ -303,8 +309,12 @@ const ready=()=>{
    roster.append(card);
   }
   const tickets=data?.gachaTickets||0;
-  hint.textContent=!members.length?(window.WildBossRoster?.load?.()?.members?.length?"通常動物がゼロでも、下のボス専用枠から選んで出撃できます。":"＋を押して最初の動物を選択（無料）"):data.pendingStart?"出発前は空き枠を無料で追加できます。":"所有 "+members.length+"/"+MAX_OWNED+"体｜ガチャ権 "+tickets+"枚。狩り8回・共有経験値600・探索2地点・ミッション完了で獲得。"+(members.length>MAX_OWNED?"旧セーブの4〜5体は保護中。削除せず、3体未満になるまでガチャ補充できません。":members.length===MAX_OWNED?"上限に達しています。死亡・野生への放流で枠が空くまで追加できません。":"");
-  gacha.hidden=true;
+  hint.textContent=!members.length?(window.WildBossRoster?.load?.()?.members?.length?"通常動物がゼロでも、下のボス専用枠から選んで出撃できます。":(Math.max(0,3-(data?.initialGachaUsed||0))+(data?.gachaTickets||0)>0?"＋か「ガチャで動物を選ぶ」を押して仲間を迎える。":"動物がいません。無料枠は使用済みです。上のボタンから新世界の開始を確認してください。")):data.pendingStart?"出発前は空き枠を無料で追加できます。":"所有 "+members.length+"/"+MAX_OWNED+"体｜ガチャ権 "+tickets+"枚。狩り8回・共有経験値600・探索2地点・ミッション完了で獲得。"+(members.length>MAX_OWNED?"旧セーブの4〜5体は保護中。削除せず、3体未満になるまでガチャ補充できません。":members.length===MAX_OWNED?"上限に達しています。死亡・野生への放流で枠が空くまで追加できません。":"");
+  // Remain accessible after a party wipe or exhausted free draws. A reset
+  // must still be an explicit and confirmed user action.
+  const available=Math.max(0,3-(data?.initialGachaUsed||0))+tickets;
+  gacha.textContent=members.length?"動物を選択・ガチャ":available?"ガチャで動物を選ぶ":"ガチャ券なし・新世界の開始を確認";
+  gacha.hidden=false;
  }
  function showSize(){
   const roster=core.load(),left=Math.max(0,3-(roster?.initialGachaUsed||0));
@@ -470,6 +480,11 @@ const ready=()=>{
  function openSlot(index){
   const current=core.load(),members=current?.members||[];
   if(!Number.isInteger(index)||index<0||index>=MAX_OWNED||members.some(m=>m.slotIndex===index))return;
+  if(!members.length&&Math.max(0,3-(current?.initialGachaUsed||0))+(current?.gachaTickets||0)===0){
+   // Clicking an empty card must reach the explicit choice instead of a dead end.
+   // Nothing is erased merely by opening this dialog.
+   root.hidden=false;showSize();root.scrollTop=0;return;
+  }
   // Reject field gacha before drawing: only the title screen or an actual den may replenish stock.
   if(members.length&&!current?.pendingStart&&$("menu")?.classList.contains("hidden")&&!window.__wildSquadAtDen){
    message("追加ガチャはタイトル画面か巣でのみ利用できます。巣に戻るかタイトルへ移動してください。");
