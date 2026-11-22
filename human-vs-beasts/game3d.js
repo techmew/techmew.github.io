@@ -3620,12 +3620,22 @@ renderer.domElement.addEventListener('webglcontextrestored',()=>{
     renderer.setViewport(0,0,buffer.x,buffer.y);
     fitPodiumCamera(ceremonyStage,w/h);
     renderer.render(ceremonyStage.scene,ceremonyStage.camera);
+   }catch(err){
+    // Android can report context restoration before all GPU resources are ready.
+    // Do not let a failed podium redraw interrupt result-screen recovery.
+    console.warn('Podium redraw after context restore deferred',err);
+    podiumRetryAttempts=0;
+    podiumRetryFrame=0;
+    $('shareHelp').textContent='3D描画の復旧待ちです。復旧後に再撮影できます。';
    }finally{
-    renderer.setPixelRatio(previousPixelRatio);
-    renderer.setSize(previousSize.x,previousSize.y,false);
-    const buffer=renderer.getDrawingBufferSize(new T.Vector2());
-    renderer.setViewport(0,0,buffer.x,buffer.y);
-    renderer.setScissorTest(false);
+    try{
+     renderer.setRenderTarget(null);
+     renderer.setPixelRatio(previousPixelRatio);
+     renderer.setSize(previousSize.x,previousSize.y,false);
+     const buffer=renderer.getDrawingBufferSize(new T.Vector2());
+     renderer.setViewport(0,0,buffer.x,buffer.y);
+     renderer.setScissorTest(false);
+    }catch(err){console.warn('Renderer resize after context restore deferred',err)}
    }
   }
  }else initResize();
