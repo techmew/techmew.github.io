@@ -2061,7 +2061,22 @@ async function showAsyncPodiumPreview(canvas){
   }
   $('shareHelp').textContent='3D表彰台写真を保存・共有できます。';
   return true;
- }catch(e){URL.revokeObjectURL(url);if(token===podiumPreviewToken)image.removeAttribute('src');return false}
+ }catch(e){
+  // Decoder failures are common in Android WebView. Do not let a failed
+  // encoded preview replace or obscure the already validated 3D framebuffer.
+  URL.revokeObjectURL(url);
+  if(podiumPreviewURL===url)podiumPreviewURL=null;
+  if(token===podiumPreviewToken){
+   image.removeAttribute('src');image.hidden=true;
+   const restored=showCapturedPodiumCanvas(canvas);
+   $('result3DWindow').hidden=false;
+   $('shareHelp').textContent=restored
+    ?'3D表彰台を表示中です。写真は保存・共有できます。'
+    :'写真の表示を確認できません。3D表示を維持しています。再撮影してください。';
+  }
+  console.warn('Podium encoded preview failed; retaining real 3D capture',e);
+  return false;
+ }
  finally{
   // An older asynchronous preview must not erase the callbacks of a newer
   // capture, otherwise Android can remain stuck on a blank result surface.
