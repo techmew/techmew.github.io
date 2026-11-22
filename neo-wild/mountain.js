@@ -265,6 +265,23 @@ for(const group of [trees,rocks,pines,scree,alpinePines,alpineRocks]){
        Math.abs(p.y-headwaterY(p.x))<p.r+headwater.halfWidth+12))group.splice(i,1);
  }
 }
+// Move only scenery intruding on the marked route. Physics, sight tests
+// and both renderers keep the same object at its new ground coordinates.
+function fitTrailScenery(project){
+ for(const group of [trees,rocks,pines,scree,alpinePines,alpineRocks,caveColumns]){
+  for(const prop of group){
+   const foot=project(prop),clearance=prop.r+65;
+   if(foot.distance>=clearance)continue;
+   // At a switchback, clearing one leg can push a tree onto the other.
+   // Keep the prop on its side and clear both legs of the route.
+   const side=prop.y<foot.y?-1:1;
+   let offset=0;
+   while(project({x:prop.x,y:prop.y+side*offset}).distance<clearance)offset+=8;
+   prop.y+=side*offset;
+   prop.z=height(prop.x,prop.y);
+  }
+ }
+}
  function blocked(x,y,r=0,sourceTree=null,swimmer=false){
  if(x<CITY_EDGE)return false;
  // The actual lowland-to-headwater river is a navigable water trench for carp.
@@ -568,6 +585,6 @@ for(let i=0;i<24;i++){
 }
 // Renewable food sites are the same visible ferns/heather in both renderers.
 const forageSites=Object.freeze([...ferns,...heather,...alpineGrass,...meadowGrass,...habitatGroves]);
-const api=Object.freeze({WEST,FOOTHILL_END,SUMMIT_START,EAST,CITY_EDGE,center,trail,height,snowCover,active,northWood,northTrail,blocked,sightBlocked,zone,southReach,meadowTrail,meadowAt,spawnCandidate,choose,forageSites,habitatGroves,meadowGrass,trees,rocks,ferns,pines,scree,heather,alpinePines,alpineRocks,alpineGrass,caveStones,caveColumns,caveSeams,caveWallMarks,cave,ruins,ridgeHuts,creek,gorge,headwater,draw2D});
+const api=Object.freeze({WEST,FOOTHILL_END,SUMMIT_START,EAST,CITY_EDGE,center,trail,height,fitTrailScenery,snowCover,active,northWood,northTrail,blocked,sightBlocked,zone,southReach,meadowTrail,meadowAt,spawnCandidate,choose,forageSites,habitatGroves,meadowGrass,trees,rocks,ferns,pines,scree,heather,alpinePines,alpineRocks,alpineGrass,caveStones,caveColumns,caveSeams,caveWallMarks,cave,ruins,ridgeHuts,creek,gorge,headwater,draw2D});
 window.WildMountain=api;
 })();

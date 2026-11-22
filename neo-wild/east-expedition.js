@@ -296,6 +296,7 @@
   }
   return best;
  }
+ M?.fitTrailScenery?.(routePosition);
  // Local water-only A* uses the same live collision predicate as player movement.
  // It never advertises a dry straight-line waypoint as reachable.
  function aquaticStep(player,target,passable){
@@ -374,6 +375,11 @@
    if(goal>location.progress+.12)step=Math.min(WALKWAY.length-1,Math.floor(location.progress)+1);
    else if(goal<location.progress-.12)step=Math.max(0,Math.ceil(location.progress)-1);
   }
+  // A player can release the stick slightly short of a bend. Once within
+  // one walking step, point along the next segment in either direction.
+  if(!water&&!offPath&&step!==goal&&
+     Math.hypot(player.x-WALKWAY[step][0],player.y-WALKWAY[step][1])<=8)
+   step+=Math.sign(goal-step);
   const [wx,wy]=WALKWAY[step];
   const x=water?(swim.reachable?swim.x:player.x):(offPath?location.x:wx);
   const y=water?(swim.reachable?swim.y:player.y):(offPath?location.y:wy);
