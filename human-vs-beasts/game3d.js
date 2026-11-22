@@ -3281,8 +3281,10 @@ async function raceImageBlob(){
    if(attempt>0){
     const framesReady=await waitForPodiumFrames(2,900);
     if(!framesReady){
-     $('shareHelp').textContent='画面復帰後に写真保存・共有を再試行してください。';
-     return null;
+     // Android WebView may suspend rAF while a share/download gesture is
+     // pending. Do not abandon the user's tap: synchronous GPU capture
+     // can still succeed, and captureCeremonyPhoto validates real 3D pixels.
+     console.warn('Podium frame wait timed out; trying immediate GPU capture');
     }
    }
    if(webglUnavailable||!ceremonyStage)break;
@@ -3360,9 +3362,12 @@ async function recaptureRacePhoto(){
   makeRacePhoto();
   if(!ceremonyStage){$('shareHelp').textContent='3Dモデルの作成に失敗しました。';return false}
   const ready=await waitForPodiumFrames(2,900);
-  if(!ready||webglUnavailable||!ceremonyStage){
-   $('shareHelp').textContent='描画が停止しています。画面復帰後に再撮影してください。';return false;
+  if(webglUnavailable||!ceremonyStage){
+   $('shareHelp').textContent='3D描画が停止しています。画面復帰後に再撮影してください。';return false;
   }
+  // An rAF timeout alone is not a GPU failure on Android WebView.
+  // Attempt the validated synchronous 3D capture before reporting failure.
+  if(!ready)console.warn('Podium rAF unavailable; attempting direct capture');
   for(let attempt=0;attempt<4&&!racePicture&&ceremonyStage;attempt++){
    podiumRetryAttempts=attempt;
    renderer.setRenderTarget(null);
