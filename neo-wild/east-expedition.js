@@ -480,6 +480,38 @@
   return {pressure,alerted,near,wet,depth};
  }
  // Record physical contact on nearby ground cover; discarded when a world is unloaded.
+ const hoofed=new Set(["deer","serow","boar","mountainGoat","zebra"]);
+ const pawed=new Set(["dog","alpha","wildFox","lion","cheetah","blackPanther","whiteTiger","albinoWolf"]);
+ const tracks=[];
+ let lastTrack=new WeakMap();
+ function resetTracks(){tracks.length=0;lastTrack=new WeakMap();}
+ function updateTracks(player,mobs,clock,weather,depth){
+  while(tracks.length&&(clock-tracks[0].at>12||clock<tracks[0].at))tracks.shift();
+  if(player.x<8200)return;
+  for(const m of mobs){
+   if(!m||m.hp<=0||m.x<8400||Math.hypot(m.x-player.x,m.y-player.y)>440||
+      (!hoofed.has(m.type)&&!pawed.has(m.type))||m.jumpHeight>8||m.groundZ>8||
+      Math.hypot(m.vx||0,m.vy||0)<28||depth(m.x,m.y)>.01)continue;
+   const last=lastTrack.get(m);
+   if(last&&Math.hypot(last.x-m.x,last.y-m.y)<30)continue;
+   const side=last?-last.side:1,angle=Math.atan2(m.vy,m.vx),size=Math.min(9,Math.max(4,m.r*.25));
+   lastTrack.set(m,{x:m.x,y:m.y,side});
+   tracks.push({x:m.x-Math.sin(angle)*size*side,y:m.y+Math.cos(angle)*size*side,
+    angle,size,hoof:hoofed.has(m.type),at:clock,life:weather==="THUNDER"||weather==="RAIN"?4:12});
+   if(tracks.length>48)tracks.shift();
+  }
+ }
+ function eachTrack(clock,draw){
+  for(const t of tracks){
+   const age=clock-t.at;
+   if(age<0||age>=t.life)continue;
+   const scale=1-.5*age/t.life;
+   const c=Math.cos(t.angle),s=Math.sin(t.angle),r=t.size*scale;
+   const mark=(dx,dy,rx,ry)=>draw(t.x+dx*c-dy*s,t.y+dx*s+dy*c,rx,ry,t.angle);
+   if(t.hoof){mark(0,-r*.32,r,r*.24);mark(0,r*.32,r,r*.24);}
+   else{mark(0,0,r*.65,r*.7);for(const k of [-1,0,1])mark(r*(.85-.14*Math.abs(k)),k*r*.55,r*.28,r*.24);}
+  }
+ }
  const brushMarks=new WeakMap();
  function disturbBrush(player,mobs,plants,clock,usable){
   const moving=[player,...mobs].filter(a=>a&&a.hp>0&&
@@ -535,6 +567,6 @@
   return {alerted,fleeing};
  }
  global.WildEastExpedition=Object.freeze({stops:STOPS,walkway:WALKWAY,waterStations,bridgeEscape,
-  fordStones,surfaceDepth,streamBank,streamCurrent,eachRapid,disturbBrush,brushMotion,waterRibbons,channelDepth,aquaticDepth,waterNodes,aquaticNetworkStep,
+  resetTracks,updateTracks,eachTrack,fordStones,surfaceDepth,streamBank,streamCurrent,eachRapid,disturbBrush,brushMotion,waterRibbons,channelDepth,aquaticDepth,waterNodes,aquaticNetworkStep,
   cleanWaterMask,waterVisited,waterArrival,waterReplenishable,all:ALL,cleanMask,visited,count,near,arrival,next,replenishable,navigation,aquaticStep,routePosition,groundGuide,habitat,biomes:BIOMES,biomeAt,fieldStatus,wildlifeResponse,aquaticEncounter,drawMap,drawPost2D});
 })(window);

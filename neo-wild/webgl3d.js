@@ -1666,7 +1666,7 @@ function worldEndMesh(m,clock){
  animalLift=0;
  const x=m.x,y=m.y,r=Math.max(80,Math.min(345,Number(m.r)||345));
  const dir=m.dir||0,cz=window.WildMountain?.height(x,y)||0;
- const bodyZ=cz+r*.68,attack=Number(m.worldEndCharge)||0;
+ const exposed=m.worldEndOpening>0,bodyZ=cz+r*(exposed?.54:.68),attack=Number(m.worldEndCharge)||0;
  const strikeProgress=attack>0?clamp(1-attack/2.2,0,1):0;
  const strikePulse=attack>0?Math.sin(Math.PI*strikeProgress):0;
  const attackPhase=Math.max(0,Math.floor(Number(m.worldEndAttackPhase)||0))%3;
@@ -1678,7 +1678,7 @@ function worldEndMesh(m,clock){
  // A single enormous pale eye on the facing side. No mouth or second eye.
  const fx=Math.cos(dir),fy=Math.sin(dir);
  const eyeX=x+fx*r*.70,eyeY=y+fy*r*.70,eyeZ=bodyZ+r*.42;
- ellipsoid(eyeX,eyeY,eyeZ,r*.21,r*.17,r*.20,"#f2eadf",dir,10,6);
+ ellipsoid(eyeX,eyeY,eyeZ,r*(exposed?.26:.21),r*.17,r*(exposed?.25:.20),exposed?"#ffb55d":"#f2eadf",dir,10,6);
  ellipsoid(eyeX+fx*r*.065,eyeY+fy*r*.065,eyeZ-r*.005,r*.105,r*.09,r*.105,"#39303d",dir,9,6);
  ellipsoid(eyeX+fx*r*.106,eyeY+fy*r*.106,eyeZ+r*.015,r*.053,r*.049,r*.056,"#080710",dir,8,5);
  // Eight tentacles now aim and wind up toward the actual warned impact zones.
@@ -1691,7 +1691,7 @@ function worldEndMesh(m,clock){
   const dx=Math.cos(direction),dy=Math.sin(direction);
   const reachBoost=target?strikePulse*r*(attackPhase===2?.48:.33):0;
   for(let j=0;j<3;j++){
-   const f=(j+.55)/3,z=cz+r*(.53+.16*Math.sin(i*.93+j*.86+clock*.31));
+   const f=(j+.55)/3,z=cz+r*(exposed?.42-.37*f:.53+.16*Math.sin(i*.93+j*.86+clock*.31));
    const px=x+dx*(r*.63+(reach+reachBoost)*f)-dy*r*.075*wave*f;
    const py=y+dy*(r*.63+(reach+reachBoost)*f)+dx*r*.075*wave*f;
    const size=r*(.135-j*.031);
@@ -1746,7 +1746,9 @@ function animal(m,player,clock){
  const fx=(dx,dy)=>m.x+dx*cos-dy*sin,fy=(dx,dy)=>m.y+dx*sin+dy*cos;
  const fox=type==="fox"||type==="wildFox",cat=type==="cat"||type==="strayCat",wolf=type==="wolf"||type==="alpha",rabbit=type==="rabbit",rat=type==="rat",pigeon=type==="pigeon";
  const large=wolf||type==="boar",torso=fox?"#c97741":cat?"#9caaa1":wolf?"#647b84":base;
- const h=(large?r*.74:fox?r*.72:cat?r*.64:rabbit?r*.50:r*.56)*(resting?.64:1)*(1-collapse*.52);
+ const crouch=cat?(m.hidden?.32:attackPrep*.29):
+  type==="boar"?Math.max(attackPrep,attackCharge)*.23:0;
+ const h=(1-crouch)*(large?r*.74:fox?r*.72:cat?r*.64:rabbit?r*.50:r*.56)*(resting?.64:1)*(1-collapse*.52);
  const x=m.x,y=m.y;
  animalLift=0;
  // Shadow is projected to the walkable roof when standing on one.
@@ -1838,6 +1840,8 @@ function animal(m,player,clock){
   }
  }
  if(type==="boar"){
+  for(let k=0;k<4;k++)pyramid(fx(r*(.48-k*.27),0),fy(r*(.48-k*.27),0),
+   h+r*(.88-k*.035),r*.17,r*.12,r*(.22+attackPrep*.20),"#57473c");
   ellipsoid(fx(neck+r*.48,0),fy(neck+r*.48,0),h+r*.32-attackReach*r*.08,r*.35,r*.42,r*.31,"#ba9a83",dir,8,5);
   for(const side of [-1,1])pyramid(fx(neck+r*.52,side*r*.34),fy(neck+r*.52,side*r*.34),h+r*.40-attackReach*r*.08,r*.12,r*.13,r*.36,"#e9d7ad");
  }else if(pigeon){
@@ -1862,7 +1866,7 @@ function animal(m,player,clock){
  if(cat){
   // A bent segmented tail is visibly different from the fox's dense brush.
   for(let i=0;i<4;i++){
-   const dx=-r*(1.06+i*.33),dy=Math.sin(clock*2+i*.7)*r*.25,z=h+r*(.43+i*.16);
+   const dx=-r*(1.06+i*.33),dy=Math.sin(clock*(crouch?1.2:2)+i*.7)*r*.25,z=h+r*(.43+i*(.16-crouch));
    ellipsoid(fx(dx,dy),fy(dx,dy),z,r*.21,r*.105,r*.11,torso,dir,6,4);
   }
  }else if(fox){
@@ -2067,10 +2071,16 @@ function landmarkMesh(site){
    for(let n=0;n<6;n++)pyramid(x-65+n*23,y+73,z+1,5,5,27,"#87a280");
   }else if(site.id==="snowfield"){
    for(let n=0;n<6;n++){const a=n*Math.PI/3;
-    pyramid(x+Math.cos(a)*100,y+Math.sin(a)*88,z+1,26,26,58,"#9ba6a0");}
+    const tx=x+Math.cos(a)*100,ty=y+Math.sin(a)*88,base=window.WildMountain.height(tx,ty);
+    const h=40+(n%3)*13;
+    pyramid(tx,ty,base+1,29,22,h,"#727f84");
+    pyramid(tx,ty,base+h*.46,17,13,h*.57,"#e1ebe7");}
   }else if(site.id==="deepcave"){
    for(let n=0;n<5;n++){const a=n*Math.PI*2/5;
-    pyramid(x+Math.cos(a)*63,y+Math.sin(a)*45,z+1,17,15,48,"#5b6c67");}
+    const tx=x+Math.cos(a)*63,ty=y+Math.sin(a)*45,base=window.WildMountain.height(tx,ty);
+    ellipsoid(tx,ty,base+3,21,15,6,"#414b4d",a,7,3);
+    pyramid(tx,ty,base+6,12,10,32+n%3*7,"#648b8b");
+    pyramid(tx+7,ty-4,base+4,6,5,19,"#a2c3b9");}
   }
   return;
  }
@@ -2646,6 +2656,11 @@ function render(o){
    const z=(window.WildMountain?.height(x,y)||0)+3;
    const endZ=(window.WildMountain?.height(xx,yy)||0)+3;
    quad([x-1.4,y,z],[x+1.4,y,z],[xx+.65,yy,endZ],[xx-.65,yy,endZ],color("#abdcd6"));
+  });
+  window.WildEastExpedition?.eachTrack?.(elapsed,(x,y,rx,ry,a)=>{
+   if(!isVisible(x,y,28))return;
+   const z=(window.WildMountain?.height(x,y)||0)+3,c=Math.cos(a),s=Math.sin(a);
+   quad([x+c*rx,y+s*rx,z],[x-s*ry,y+c*ry,z],[x-c*rx,y-s*rx,z],[x+s*ry,y-c*ry,z],color("#504b40"));
   });
   const foliageSeason=seasonIndexFromElapsed(elapsed);
   for(const p of plants)if(isVisible(p.x,p.y,p.r*2+90))vegetation(p,elapsed,foliageSeason);

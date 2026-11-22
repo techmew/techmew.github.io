@@ -26,6 +26,16 @@ route.wildlifeResponse({...runner,hidden:true},[predator],{dog:{prey:false}},"RA
 eq(predator.lastX,undefined,"regional AI cannot reveal a concealed animal");
 route.wildlifeResponse(runner,[predator],{dog:{prey:false}},"RAIN",3);
 eq(predator.lastX,runner.x,"exposed actor can still attract predators");
+const prints=clock=>{let n=0;route.eachTrack(clock,()=>n++);return n;};
+const movingDog={...predator,r:16,vx:90,vy:0},movingDeer={...movingDog,type:"deer",y:1940};
+route.updateTracks(runner,[movingDog,movingDeer],6,"RAIN",()=>0);
+eq(prints(6),6,"paw pad and toes plus split hoof");
+route.updateTracks(runner,[movingDog,movingDeer],6.5,"RAIN",()=>0);
+eq(prints(6.5),6,"same ground does not duplicate prints");
+eq(prints(11),0,"rain washes out tracks");
+route.updateTracks(runner,[{...movingDog,x:9540}],12,"CLEAR",()=>1);
+eq(prints(12),0,"no track underwater");
+route.resetTracks();
 const blades=[];
 const vegetation=new Function("window","SEASONAL_FOLIAGE","triangle","color",
  gl.slice(gl.indexOf("function vegetation("),gl.indexOf("function foodMesh("))+";return vegetation;")(
@@ -43,7 +53,7 @@ const make=new Function("env","with(env){"+part("// P3 eastward expedition:","co
 function fixture(){
  let api;const e={P:{x:8360,y:1680,r:16,type:"cat",hp:25,maxHp:100,sp:40,maxSp:100,hunger:100},
  mode:"play",WORLD:{w:13600,h:6000},MOUNTAIN:M,TWO:Math.PI*2,weather:"CLEAR",elapsed:0,
- plants:[],visibleShrub:()=>true,totalScore:0,mobs:[],species:{dog:{prey:false}},carcasses:[],worldEventJournal:[],debugTutorialSession:null,
+ waterDepth:route.surfaceDepth,plants:[],visibleShrub:()=>true,totalScore:0,mobs:[],species:{dog:{prey:false}},carcasses:[],worldEventJournal:[],debugTutorialSession:null,
  window:{WildEastExpedition:route,WildTrophies:{record:()=>{}}},fail:false,saveRecords:[],tickets:[],notices:[],flee:0,
  collides:(x,y,r)=>M.blocked(x,y,r),waterBlocksLand:()=>false,lineBlocked:()=>false,notify:x=>e.notices.push(x),
  label:()=>{},syncHUD:()=>{},persistWorldChronicle:()=>{},startleCaveWildlife:()=>{e.flee++},

@@ -597,7 +597,18 @@ function starterFoodSpot(actor){
   const angle=k*TWO/16,x=actor.x+Math.cos(angle)*distance,y=actor.y+Math.sin(angle)*distance;
   if(x<28||y<28||x>WORLD.w-28||y>WORLD.h-28)continue;
   if(fish?!fishWaterAt(x,y):waterBlocksLand(x,y))continue;
-  if(collides(x,y,Math.min(12,r),fish?actor:null,fish)||lineBlocked(actor,{x,y}))continue;
+  if(lineBlocked(actor,{x,y}))continue;
+  // Probe the whole approach with this animal's footprint. A visible meal
+  // on the opposite side of a narrow bank can otherwise be unreachable.
+  let reachable=true;
+  const steps=Math.max(1,Math.ceil(distance/12));
+  for(let j=1;j<=steps;j++){
+   const px=actor.x+(x-actor.x)*j/steps,py=actor.y+(y-actor.y)*j/steps;
+   if((fish?!fishWaterAt(px,py):waterBlocksLand(px,py))||collides(px,py,r,fish?actor:null,fish)){
+    reachable=false;break;
+   }
+  }
+  if(!reachable)continue;
   return {x,y};
  }
  return {x:actor.x,y:actor.y};
@@ -748,6 +759,7 @@ function tickEastTrail(dt){
  const tick=eastTrailClock;eastTrailClock=0;
  const route=window.WildEastExpedition;
  if(!route)return;
+ route.updateTracks?.(P,mobs,elapsed,weather,waterDepth);
  route.disturbBrush?.(P,mobs,plants,elapsed,visibleShrub);
  // P3: connected eastern habitat encounters run in the live update loop.
  const field=route.fieldStatus?.(P,P.type==="carp"?eastWaterMask:eastTrailMask,weather,Math.floor(elapsed/120));
@@ -1906,6 +1918,7 @@ function show(id){
 }
 function start(newWorld=false){
  if(!ensureWorldReady())return false;
+ window.WildEastExpedition?.resetTracks?.();
  deathSharePending=false;window.WildDeathShare?.reset?.();
  resetAnimalMoves();
  window.WildPackTactics?.reset?.();
@@ -5105,7 +5118,8 @@ function putDownFood(){
 // duplicate a drop on reload or erase a weapon already collected.
 function equippedWeapon(){return window.WildArsenal?.equippedFor?.(P)||null}
 function weaponHitDamage(enemy,amount){
- return window.WildArsenal?.damage?.(P,enemy,amount)??amount;
+ const equippedDamage=window.WildArsenal?.damage?.(P,enemy,amount)??amount;
+ return enemy?.worldEndBoss&&enemy.worldEndOpening>0?Math.round(equippedDamage*1.35):equippedDamage;
 }
 function nearestWeaponScrap(range=95){
  if(!P||P.hp<=0||P.x<8340||!window.WildArsenal)return null;
@@ -6712,6 +6726,17 @@ function eastSalvageObjective(){
 }
 function getObjective(){
  if(!P||mode==="menu"||mode==="over"||mode==="clear")return null;
+ // During practice or critical hunger, point to food the animal can actually reach.
+ const practice=window.WildFirstSteps?.status?.();
+ if(P.type!=="carp"&&!P.carry&&(P.hunger<25||(practice?.active&&practice.step===3))){
+  let nearest=null,limit=360;
+  for(const food of carcasses){
+   const gap=dist(P,food);
+   if(gap>=limit||!foodAtActorLevel(food)||lineBlocked(P,food)||!routeClear(P,food,P.r))continue;
+   limit=gap;nearest=food;
+  }
+  if(nearest)return {x:nearest.x,y:nearest.y,label:foodName(nearest)+(limit<65?"｜○で食べる":"｜近づいて食べる")};
+ }
  // Eastern random starts need the real live P3 objective before tutorial
  // completion; keep the original western tutorial and title untouched.
  if(P.type==="carp"){
@@ -10716,6 +10741,11 @@ function drawScene(){
   }
   roadDraw();
   drawWorldSnow2D(currentSnowpack(),x,y);
+  ctx.fillStyle="#504b40";
+  window.WildEastExpedition?.eachTrack?.(elapsed,(tx,ty,rx,ry,angle)=>{
+   if(!visible(tx,ty,28))return;
+   ctx.beginPath();ctx.ellipse(tx,ty,rx,ry,angle,0,TWO);ctx.fill();
+  });
   drawScenery2D();
  drawDenBedding2D(false);
  // Foot-level water wake, visible only while an animal is actually moving.

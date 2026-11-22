@@ -108,9 +108,10 @@ function tick({P,mobs,year,elapsed,dt=0,WORLD,collides,notify,onSpawn,onImpact,p
  mob.worldEndStrikeCount=Math.max(0,Math.floor(Number(mob.worldEndStrikeCount)||0));
  const delta=Math.max(0,Math.min(.05,Number(dt)||0));
  const distance=Math.hypot(P.x-mob.x,P.y-mob.y),dir=Math.atan2(P.y-mob.y,P.x-mob.x);
+ mob.worldEndOpening=Math.max(0,(Number(mob.worldEndOpening)||0)-delta);
  mob.dir=dir;
  // Terrifyingly slow; never teleport into the player's den or chase through walls.
- if(distance>RADIUS+120&&distance<1900){
+ if(mob.worldEndOpening===0&&distance>RADIUS+120&&distance<1900){
   const step=19*delta;
   const x=mob.x+Math.cos(dir)*step,y=mob.y+Math.sin(dir)*step;
   if(validPos(x,y,WORLD)&&!collides?.(x,y,75)){
@@ -124,7 +125,12 @@ function tick({P,mobs,year,elapsed,dt=0,WORLD,collides,notify,onSpawn,onImpact,p
    // cannot stack because game.js applies its existing invulnerability window.
    const attacks=Array.isArray(mob.worldEndThreats)&&mob.worldEndThreats.length?
     mob.worldEndThreats:[{x:mob.worldEndTargetX,y:mob.worldEndTargetY,radius:190,damage:32}];
+   const dodged=attacks.every(t=>Math.hypot(P.x-t.x,P.y-t.y)>t.radius+(P.r||0));
    for(const impact of attacks)onImpact?.(mob,impact);
+   if(dodged){
+    mob.worldEndOpening=2.4;
+    notify?.("触手が地面に刺さった！ 反撃ダメージ＋35％",2.4);
+   }
    mob.worldEndThreats=[];
    mob.worldEndCooldown=4.7;mob.worldEndStrikeCount++;
   }
