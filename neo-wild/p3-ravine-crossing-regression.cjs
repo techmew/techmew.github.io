@@ -79,3 +79,24 @@ for(const [x,y] of route.walkway){
 }
 assert.equal(mask,255,"reach eight land stations in one continuous traversal");
 console.log("PASS both crossings, swimming and all eight stops in one walk");
+const navigation=new Function("env","with(env){"+part("function wildlifeBridgeWaypoint","// Small cave-only")+
+ part("function routeClear(","function navSetup(")+
+ part("function collides(","// Avoid admitting")+";return {wildlifeBridgeWaypoint,routeClear};}")(env);
+Object.assign(env,{waterBlocksLand:(x,y)=>physics.waterDepth(x,y)>.0001,
+ clamp:(n,a,b)=>Math.max(a,Math.min(b,n)),dist:(a,b)=>Math.hypot(a.x-b.x,a.y-b.y)});
+for(const stream of [mountain.creek,mountain.gorge]){
+ for(const side of [-1,1]){
+  const y=stream.bridgeY+stream.bridgeHalf+55,axis=stream.xAt(y);
+  const hunter={type:"wolf",r:16,x:axis+side*135,y},prey={x:axis-side*135,y};
+  assert(!navigation.routeClear(hunter,prey,hunter.r),"open water cuts off direct pursuit");
+  for(let frame=0;frame<250&&env.dist(hunter,prey)>6;frame++){
+   const next=navigation.routeClear(hunter,prey,hunter.r)?prey:navigation.wildlifeBridgeWaypoint(hunter,prey);
+   assert(next,"bridge approach reachable at "+hunter.x+","+hunter.y);
+   const d=env.dist(hunter,next);
+   physics.move(hunter,(next.x-hunter.x)*3/d,(next.y-hunter.y)*3/d);
+   assert.equal(physics.waterDepth(hunter.x,hunter.y),0);
+  }
+  assert(env.dist(hunter,prey)<=6,"arrive within striking distance");
+ }
+}
+console.log("PASS wildlife pursuit across both eastern bridges in both directions");

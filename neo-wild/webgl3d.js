@@ -2214,7 +2214,14 @@ function mountainTerrain(isVisible){
    const z=m.height(gorgeX,gorgeY)+3;
    box(gorgeX-82,gorgeY-158,z,164,316,6,"#625c4b","#a89a7a");
    for(let x=gorgeX-75;x<gorgeX+78;x+=16)box(x,gorgeY-154,z+6,11,308,1.5,"#8b7a5e","#c3b18c");
-   for(const side of [-1,1])box(gorgeX-85,gorgeY+side*164-3,z+7,170,6,13,"#676453","#b8aa85");
+   for(const side of [-1,1]){
+    const railY=gorgeY+side*164;
+    for(const along of [-74,0,74]){
+     box(gorgeX+along-4,railY-4,z-9,8,8,36,"#50483d","#a79574");
+     box(gorgeX+along-5,railY-5,z+20,10,10,3,"#79674e","#c3a77a");
+    }
+    box(gorgeX-81,railY-3,z+16,162,6,5,"#676453","#b8aa85");
+   }
   }
   // Cave corridor is walkable, with open ceiling except for entrance arch.
   for(let x=m.cave.start;x<m.cave.end;x+=65){

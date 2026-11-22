@@ -7365,6 +7365,24 @@ function wildlifeBridgeWaypoint(m,goal){
    }
   }
  }
+ if(MOUNTAIN&&Math.min(m.y,goal.y)>=2450&&Math.max(m.y,goal.y)<=4650){
+  for(const stream of [MOUNTAIN.creek,MOUNTAIN.gorge]){
+   if(!stream||Math.abs(m.y-stream.bridgeY)>700)continue;
+   const destinationSide=Math.sign(goal.x-stream.xAt(goal.y));
+   const offset=Math.max(55,stream.halfWidth)+m.r+24;
+   const along=(m.x-stream.xAt(m.y))*destinationSide;
+   if(!destinationSide||along>=offset||
+      (along>=0&&Math.abs(m.y-stream.bridgeY)>stream.bridgeHalf))continue;
+   const side=-destinationSide;
+   // Aim just inside the closest deck edge so a chase stays on the banks
+   // until the animal can cut diagonally across a clear part of the bridge.
+   const margin=stream.bridgeHalf-m.r-15;
+   if(margin<=0)continue;
+   const y=clamp(m.y,stream.bridgeY-margin,stream.bridgeY+margin);
+   const x=stream.xAt(y);
+   consider({x:x+side*offset,y},{x:x-side*offset,y});
+  }
+ }
  return best?.point||null;
 }
 // Small cave-only path graph follows real stone collision without rebuilding
