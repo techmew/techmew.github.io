@@ -6874,6 +6874,10 @@ function clearStep(m,angle,step){
  return !collides(m.x+dx*step*.45,m.y+dy*step*.45,m.r+4)&&!collides(m.x+dx*step,m.y+dy*step,m.r+4);
 }
 function chooseEscape(m,away,threat=P){
+ if(m.type==="deer"||m.type==="serow"||m.type==="mountainGoat"){
+  const crossing=window.WildEastExpedition?.bridgeEscape(m,threat,routeClear);
+  if(Number.isFinite(crossing))return crossing;
+ }
  const angles=[0,.44,-.44,.88,-.88,1.35,-1.35,1.9,-1.9,2.5,-2.5];
  let best=away,bestScore=-Infinity;
  // A blocked 78px sprint must not strand prey against a wall or canal bank.

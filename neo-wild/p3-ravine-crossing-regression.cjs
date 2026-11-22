@@ -100,3 +100,43 @@ for(const stream of [mountain.creek,mountain.gorge]){
  }
 }
 console.log("PASS wildlife pursuit across both eastern bridges in both directions");
+
+// Run the live hunt, alarm, flight and contact damage with a moving target.
+const chase=new Function("env","with(env){"+
+ part("function clearStep(","// A struck herd")+
+ part("function wildPreyInterceptPoint(","function nearbyVisibleWildPredator")+
+ part("function huntWildPrey(","const WEATHER_NAMES")+
+ part("function routeClear(","function navSetup(")+
+ part("function collides(","// Avoid admitting")+
+ part("function lineBlocked(","// Winter shrubs")+
+ ";return {huntWildPrey,chooseEscape};}")(env);
+Object.assign(env,{species:{deer:{prey:true}},scentReachTo:()=>150,windDirection:0,
+ visibleShrubCover:()=>false,navPlansThisFrame:0,routeTo:()=>null,weather:"CLEAR"});
+const dt=1/60;
+for(const stream of [mountain.creek,mountain.gorge]){
+ for(const side of [-1,1]){
+  const y=stream.bridgeY+stream.bridgeHalf+36,axis=stream.xAt(y);
+  const deer={x:axis+side*97,y,type:"deer",r:16,hp:50};
+  const dog={x:deer.x+side*177,y,type:"dog",r:16,hp:60};
+  while(mountain.blocked(dog.x,dog.y,dog.r)&&env.dist(dog,deer)>80)dog.x-=side*4;
+  assert(!mountain.blocked(dog.x,dog.y,dog.r)&&!mountain.blocked(deer.x,deer.y,deer.r));
+  env.mobs=[dog,deer];
+  let crossed=false;
+  for(let frame=0;frame<600&&deer.hp===50;frame++){
+   env.elapsed+=dt;
+   env.navPlansThisFrame=0;
+   const motion=chase.huntWildPrey(dog,{speed:143,damage:30},false,1000);
+   if(!motion)break;
+   if(deer.hp<50)break;
+   if(frame%12===0)deer.dir=chase.chooseEscape(deer,Math.atan2(deer.y-dog.y,deer.x-dog.x),dog);
+   physics.move(deer,Math.cos(deer.dir)*83*dt,Math.sin(deer.dir)*83*dt);
+   physics.move(dog,motion.vx*dt,motion.vy*dt);
+   assert.equal(physics.waterDepth(deer.x,deer.y),0);
+   assert.equal(physics.waterDepth(dog.x,dog.y),0);
+   if((deer.x-stream.xAt(deer.y))*side<0)crossed=true;
+  }
+  assert(crossed,"deer escapes across deck before contact "+side+" "+axis);
+  assert(deer.hp<50&&dog.hp===52&&dog.stun>0,"bite and deer counter both land");
+ }
+}
+console.log("PASS moving deer escape, pursuit, bite and counter on both bridges");

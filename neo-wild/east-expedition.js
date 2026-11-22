@@ -68,6 +68,31 @@
   return channel;
  }
  const flowSpeed=weather=>weather==="THUNDER"?48:weather==="RAIN"?33:16;
+ // A grazer pressed against a bank can run along it to the nearby deck.
+ function bridgeEscape(prey,threat,clear){
+  if(!threat)return null;
+  for(const stream of streams){
+   if(Math.abs(prey.x-stream.x)>175)continue;
+   const {shape}=stream,dy=prey.y-shape.bridgeY;
+   if(Math.abs(dy)>shape.bridgeHalf+135)continue;
+   const bank=prey.x-shape.xAt(prey.y),side=Math.sign(bank);
+   if(!side||side*(threat.x-prey.x)<20)continue;
+   const inset=shape.bridgeHalf-prey.r-14;
+   if(inset<=0)continue;
+   const y=shape.bridgeY+Math.max(-inset,Math.min(inset,dy));
+   const offset=stream.half+prey.r+16,x=shape.xAt(y);
+   const far={x:x-side*offset,y},near={x:x+side*offset,y};
+   const target=clear(prey,far,prey.r)?far:near;
+   const dx=target.x-prey.x,stepY=target.y-prey.y,length=Math.hypot(dx,stepY);
+   if(length<2||!clear(prey,target,prey.r))continue;
+   // Reject an approach that passes within striking range of the pursuer.
+   const t=Math.max(0,Math.min(1,((threat.x-prey.x)*dx+(threat.y-prey.y)*stepY)/(length*length)));
+   const closest=Math.hypot(prey.x+dx*t-threat.x,prey.y+stepY*t-threat.y);
+   if(closest+1<Math.min(Math.hypot(prey.x-threat.x,prey.y-threat.y),prey.r+(threat.r||16)+20))continue;
+   return Math.atan2(stepY,dx);
+  }
+  return null;
+ }
  function streamBank(x,y,r){
   return streams.some(s=>Math.abs(x-s.x)<120&&y>=s.minY&&y<=s.maxY&&
    Math.abs(x-s.shape.xAt(y))<=s.half+r&&!deckAt(s,y));
@@ -503,7 +528,7 @@
   }
   return {alerted,fleeing};
  }
- global.WildEastExpedition=Object.freeze({stops:STOPS,walkway:WALKWAY,waterStations,
+ global.WildEastExpedition=Object.freeze({stops:STOPS,walkway:WALKWAY,waterStations,bridgeEscape,
   fordStones,surfaceDepth,streamBank,streamCurrent,eachRapid,disturbBrush,brushMotion,waterRibbons,channelDepth,aquaticDepth,waterNodes,aquaticNetworkStep,
   cleanWaterMask,waterVisited,waterArrival,waterReplenishable,all:ALL,cleanMask,visited,count,near,arrival,next,replenishable,navigation,aquaticStep,routePosition,groundGuide,habitat,biomes:BIOMES,biomeAt,fieldStatus,wildlifeResponse,aquaticEncounter,drawMap,drawPost2D});
 })(window);
