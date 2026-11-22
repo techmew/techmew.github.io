@@ -30,16 +30,16 @@ const el=(...args)=>element(...args);
 const makeBtn=(label,handler,cl)=>{const node=el("button",cl,label);node.handler=handler;return node};
 function scenario(error){
  const body=el("div","squad-gacha-body"),root=el("section","squad-gacha"),info=el("p");
- let saved=0,updates=0,dispatched=0;
+ let saved=0,updates=0,dispatched=0,savedRoster=[];
  const id="penguin-test-1";
  const chosen=[{id,species:"penguin",speciesName:"ペンギン",grade:"C",name:"ハルゾウ",
   iv:{hp:.67,attack:1.05,speed:.97,stamina:.92}}];
  const env={body,root,info,chosen,draw:{options:[{id}]},selected:id,
-  slotTarget:0,leader:null,refill:false,el,makeBtn,preview:()=>el("canvas","portrait"),
+  slotTarget:0,leader:null,refill:false,committing:false,activeConfirm:null,el,makeBtn,preview:()=>el("canvas","portrait"),
   OPERABLE:new Set(["penguin"]),nextSlot(){},confirmReset(){info.textContent="reset confirmation"},
   updateHome(){updates++},window:{WildBestiary:{recordAcquired(){}},dispatchEvent(){dispatched++}},
-  Event:function(){},core:{load(){return{members:[]}},newSquad(items){
-   saved++;if(error)throw Error(error);return{members:items};}}};
+  Event:function(){},core:{load(){return{members:savedRoster}},newSquad(items){
+   saved++;if(error)throw Error(error);savedRoster=items;return{members:items};}}};
  new Function("env","with(env){"+src.slice(begin,end)+"finish();}")(env);
  const top=new Function("env","with(env){"+src.slice(head,headEnd)+"return close;}")(env);
  return {env,top,get saved(){return saved},get updates(){return updates},get dispatched(){return dispatched}};
