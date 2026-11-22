@@ -1913,8 +1913,19 @@ function showCapturedPodiumCanvas(source){
     const half=halves[x<48?0:1];
     half.opaque++;half.low=Math.min(half.low,l);half.high=Math.max(half.high,l);
    }
-   if(opaque<4665||high-low<45||
-      halves.some(h=>h.opaque<2200||h.high-h.low<20))
+   // A valid podium may contain similarly bright but differently coloured
+   // subjects (white runner, pale animal, blue track). Luminance-only checks
+   // reject these real 3D captures on some Android GPUs.
+   let minR=255,maxR=0,minG=255,maxG=0,minB=255,maxB=0;
+   for(let p=0;p<rgba.length;p+=4){
+    if(rgba[p+3]<240)continue;
+    minR=Math.min(minR,rgba[p]);maxR=Math.max(maxR,rgba[p]);
+    minG=Math.min(minG,rgba[p+1]);maxG=Math.max(maxG,rgba[p+1]);
+    minB=Math.min(minB,rgba[p+2]);maxB=Math.max(maxB,rgba[p+2]);
+   }
+   const colourRange=Math.max(maxR-minR,maxG-minG,maxB-minB);
+   if(opaque<4665||Math.max(high-low,colourRange)<45||
+      halves.some(h=>h.opaque<2200))
     throw Error('Blank or partially copied podium snapshot');
    clearCapturedPodiumCanvas();
    view.appendChild(snapshot);
