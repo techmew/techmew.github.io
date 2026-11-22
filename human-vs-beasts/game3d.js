@@ -2323,18 +2323,21 @@ function capturePodiumFromGPU(ctx,w,h,lowMemory=false){
   ceremonyStage.scene.updateMatrixWorld(true);
   ceremonyStage.camera.updateMatrixWorld(true);
   renderer.setRenderTarget(target);
-  // Reject incomplete Android render targets before rendering or reading pixels.
-  // Some WebViews silently allocate an incomplete depth attachment and return
-  // a flat grey photo without raising a JavaScript exception.
-  const framebufferGL=renderer.getContext();
-  const framebufferStatus=framebufferGL.checkFramebufferStatus(framebufferGL.FRAMEBUFFER);
-  if(framebufferStatus!==framebufferGL.FRAMEBUFFER_COMPLETE){
-   throw Error('Podium framebuffer incomplete: '+framebufferStatus);
-  }
+  // Three.js initializes the render target lazily. Inspect the actual bound
+  // target after rendering, not a stale/default framebuffer before allocation.
   renderer.autoClear=true;
   renderer.setClearColor(0x657783,1);
   renderer.clear(true,true,true);
   renderer.render(ceremonyStage.scene,ceremonyStage.camera);
+  // Rebind the real capture target: rendering may change GL bindings.
+  // Android drivers can report a complete default framebuffer even when
+  // the offscreen depth/color attachments are incomplete.
+  renderer.setRenderTarget(target);
+  const framebufferGL=renderer.getContext();
+  const framebufferStatus=framebufferGL.checkFramebufferStatus(framebufferGL.FRAMEBUFFER);
+  if(framebufferStatus!==framebufferGL.FRAMEBUFFER_COMPLETE){
+   throw Error('Podium render target incomplete: '+framebufferStatus);
+  }
   // Force the offscreen draw to complete before Android WebView readback.
   // Some tile-based mobile GPUs otherwise return the cleared target while
   // the live podium still renders correctly. Keep this inside the capture
