@@ -9171,7 +9171,10 @@ function syncHUD(hour){
   "青い「建物入口」から歩いて入れます（ボタン不要）");
 
  $("level").textContent="LV "+String(P.level).padStart(2,"0");setBar("xp-bar",P.xp/P.nextXp*100);
- const zone=regionAt(P.x,P.y);$("district-tag").textContent="AREA "+String(zone+1).padStart(2,"0")+" / 08";const waterLabel=nearbyWaterLabel(P);$("district").textContent=districts[zone]+(waterLabel?"｜"+waterLabel:"");
+ const zone=regionAt(P.x,P.y);$("district-tag").textContent="AREA "+String(zone+1).padStart(2,"0")+" / 08";const waterLabel=nearbyWaterLabel(P);
+ const track=window.WildEastExpedition?.readTrack?.(P,elapsed);
+ const trackLabel=track?(species[track.type]?.prey?"獲物の足跡":"危険な動物の足跡"):"";
+ $("district").textContent=[districts[zone],waterLabel,trackLabel].filter(Boolean).join("｜");
   const windArrow=["→","↘","↓","↙","←","↖","↑","↗"][Math.round(((windDirection%(Math.PI*2)+Math.PI*2)%(Math.PI*2))/(Math.PI/4))%8];
   $("day-label").textContent="YEAR "+String(Math.floor(elapsed/120)).padStart(3,"0");
  const moon=moonlightProfile(elapsed,weather);
@@ -9337,35 +9340,52 @@ function toggleWorldMap(){
 }
 const MINI_SPANS=[1270,1905,2800],MINI_SCALE_NAMES=["標準","遠目","広域"];
 let miniScaleIndex=0;
+let miniBase=null;
+function drawMiniBase(w,h,span){
+ const pad=32,scale=w/span;
+ const dx=miniBase?(P.x-miniBase.x)*scale:0,dy=miniBase?(P.y-miniBase.y)*scale:0;
+ if(miniBase&&miniBase.w===w&&miniBase.h===h&&miniBase.span===span&&miniBase.buildings===buildings&&miniBase.count===buildings.length&&Math.abs(dx)<pad-1&&Math.abs(dy)<pad-1){
+  mc.drawImage(miniBase.canvas,pad+dx,pad+dy,w,h,0,0,w,h);return;
+ }
+ const canvas=miniBase?.canvas||document.createElement("canvas");
+ canvas.width=w+2*pad;canvas.height=h+2*pad;
+ const base=canvas.getContext("2d"),centerX=P.x,centerY=P.y;
+ const X=x=>w/2+(x-centerX)*scale,Y=y=>h/2+(y-centerY)*scale;
+ const reach=Math.hypot(w/2+pad,h/2+pad)/scale+span;
+ base.translate(pad,pad);
+ base.fillStyle="#19332e";base.fillRect(-pad,-pad,w+pad*2,h+pad*2);
+ if(MOUNTAIN&&centerX+reach>=MOUNTAIN.WEST){
+  base.fillStyle="#35523b";base.fillRect(X(MOUNTAIN.WEST),-pad,w*(MOUNTAIN.EAST-MOUNTAIN.WEST)/span,h+pad*2);
+  base.fillStyle="#759364";
+  for(let x=10620;x<=11530;x+=65){const cy=MOUNTAIN.center(x),reach=MOUNTAIN.southReach(x);
+   base.fillRect(X(x),Y(cy+620),Math.max(1,65/span*w),Math.max(0,(reach-650)/span*w));
+  }
+  base.strokeStyle="#c5ad83";base.lineWidth=2;base.beginPath();
+  for(let x=10380;x<=11360;x+=60){if(x===10380)base.moveTo(X(x),Y(MOUNTAIN.meadowTrail(x)));else base.lineTo(X(x),Y(MOUNTAIN.meadowTrail(x)));}base.stroke();
+  base.strokeStyle="#b1a27a";base.lineWidth=3;base.beginPath();
+  for(let x=MOUNTAIN.WEST;x<=MOUNTAIN.EAST;x+=70){
+   const px=X(x),py=Y(MOUNTAIN.trail(x));
+   if(x===MOUNTAIN.WEST)base.moveTo(px,py);else base.lineTo(px,py);
+  }base.stroke();
+ }
+  base.fillStyle="#465553";
+ for(const x of roadsX)if(Math.abs(x-centerX)<reach)base.fillRect(X(x-75),-pad,w*150/span,h+pad*2);
+ for(const y of roadsY)if(Math.abs(y-centerY)<reach)base.fillRect(X(0),Y(y-75),CITY_WIDTH*w/span,w*150/span);
+ for(const seg of WATER_RIBBONS){if(Math.abs(seg.cx-centerX)>reach||Math.abs(seg.cy-centerY)>reach)continue;base.fillStyle=seg.kind==="river"?"#4897a7":"#387f9a";base.beginPath();seg.pts.forEach((p,i)=>i?base.lineTo(X(p[0]),Y(p[1])):base.moveTo(X(p[0]),Y(p[1])));base.closePath();base.fill();}
+ base.fillStyle="#344d45";
+ for(const b of buildings)if(Math.hypot(b.x+b.w/2-centerX,b.y+b.h/2-centerY)<reach){
+  base.fillStyle=b.interior?"#b7d9a5":"#344d45";
+  base.fillRect(X(b.x),Y(b.y),Math.max(2,b.w/span*w),Math.max(2,b.h/span*w));
+  if(b.interior){base.fillStyle="#152d29";base.fillRect(X(b.x+16),Y(b.y+16),Math.max(2,(b.w-32)/span*w),Math.max(2,(b.h-32)/span*w))}
+ }
+ miniBase={canvas,x:centerX,y:centerY,w,h,span,buildings,count:buildings.length};
+ mc.drawImage(canvas,pad,pad,w,h,0,0,w,h);
+}
 function drawMini(){
  if(!P)return;
  const w=mini.width,h=mini.height,span=MINI_SPANS[miniScaleIndex];
  const X=x=>(x-P.x+span/2)/span*w,Y=y=>(y-P.y+span*h/w/2)/span*w;
- mc.fillStyle="#19332e";mc.fillRect(0,0,w,h);
- if(MOUNTAIN&&P.x>7800){
-  mc.fillStyle="#35523b";mc.fillRect(X(MOUNTAIN.WEST),0,w*(MOUNTAIN.EAST-MOUNTAIN.WEST)/span,h);
-  mc.fillStyle="#759364";
-  for(let x=10620;x<=11530;x+=65){const cy=MOUNTAIN.center(x),reach=MOUNTAIN.southReach(x);
-   mc.fillRect(X(x),Y(cy+620),Math.max(1,65/span*w),Math.max(0,(reach-650)/span*w));
-  }
-  mc.strokeStyle="#c5ad83";mc.lineWidth=2;mc.beginPath();
-  for(let x=10380;x<=11360;x+=60){if(x===10380)mc.moveTo(X(x),Y(MOUNTAIN.meadowTrail(x)));else mc.lineTo(X(x),Y(MOUNTAIN.meadowTrail(x)));}mc.stroke();
-  mc.strokeStyle="#b1a27a";mc.lineWidth=3;mc.beginPath();
-  for(let x=MOUNTAIN.WEST;x<=MOUNTAIN.EAST;x+=70){
-   const px=X(x),py=Y(MOUNTAIN.trail(x));
-   if(x===MOUNTAIN.WEST)mc.moveTo(px,py);else mc.lineTo(px,py);
-  }mc.stroke();
- }
-  mc.fillStyle="#465553";
- for(const x of roadsX)if(Math.abs(x-P.x)<span)mc.fillRect(X(x-75),0,w*150/span,h);
- for(const y of roadsY)if(Math.abs(y-P.y)<span)mc.fillRect(X(0),Y(y-75),CITY_WIDTH*w/span,w*150/span);
- for(const seg of WATER_RIBBONS){if(Math.abs(seg.cx-P.x)>span||Math.abs(seg.cy-P.y)>span)continue;mc.fillStyle=seg.kind==="river"?"#4897a7":"#387f9a";mc.beginPath();seg.pts.forEach((p,i)=>i?mc.lineTo(X(p[0]),Y(p[1])):mc.moveTo(X(p[0]),Y(p[1])));mc.closePath();mc.fill();}
- mc.fillStyle="#344d45";
- for(const b of buildings)if(Math.hypot(b.x+b.w/2-P.x,b.y+b.h/2-P.y)<span){
-  mc.fillStyle=b.interior?"#b7d9a5":"#344d45";
-  mc.fillRect(X(b.x),Y(b.y),Math.max(2,b.w/span*w),Math.max(2,b.h/span*w));
-  if(b.interior){mc.fillStyle="#152d29";mc.fillRect(X(b.x+16),Y(b.y+16),Math.max(2,(b.w-32)/span*w),Math.max(2,(b.h-32)/span*w))}
- }
+ drawMiniBase(w,h,span);
  // Live flood boundaries are shown on the minimap, including their dry bypasses.
  for(const e of window.WildDisaster?.events?.()||[]){
   if(!["flood","wildfire"].includes(e.kind)||elapsed/120<e.year||elapsed/120-e.year>=e.duration)continue;
@@ -9424,6 +9444,15 @@ function drawMini(){
    mc.beginPath();mc.moveTo(0,-6);mc.lineTo(4,4);mc.lineTo(-4,4);mc.closePath();
   }else{mc.beginPath();mc.arc(0,0,4,0,TWO);}
   mc.fill();mc.stroke();mc.restore();
+ }
+ const track=window.WildEastExpedition?.readTrack?.(P,elapsed);
+ if(track){
+  const x=X(track.x),y=Y(track.y);
+  mc.save();mc.translate(x,y);mc.rotate(track.angle);
+  mc.lineWidth=4;mc.strokeStyle="#182324";mc.beginPath();
+  mc.moveTo(8,0);mc.lineTo(22,0);mc.lineTo(17,-4);mc.moveTo(22,0);mc.lineTo(17,4);
+  mc.stroke();mc.lineWidth=2;mc.strokeStyle=species[track.type]?.prey?"#a6efa6":"#ffb47e";mc.stroke();
+  mc.restore();
  }
  // Player position is only a yellow directional triangle.
  mc.save();mc.translate(w/2,h/2);mc.rotate((Number.isFinite(P.dir)?P.dir:0)+Math.PI/2);
@@ -10730,12 +10759,17 @@ function drawDeathVignette(){
  ctx.restore();
 }
 // Continuous world-coordinate snow in Canvas2D fallback; never square tiles.
+const snowTiles2D=new Map();
+let tileSnowAmount=-1;
 function drawWorldSnow2D(snow,viewX,viewY){
  const mountain=MOUNTAIN,step=64,margin=Math.max(vw,vh)*.92+125;
  const alpineInView=!!mountain?.snowCover&&viewX+vw+margin>=10100&&viewX-margin<=mountain.EAST&&viewY+vh+margin>=2600&&viewY-margin<=5100;
  if(snow<=.06&&!alpineInView)return;
  const sx=Math.max(0,Math.floor((viewX-margin)/step)*step),sy=Math.max(0,Math.floor((viewY-margin)/step)*step);
  const ex=Math.min(WORLD.w,viewX+vw+margin),ey=Math.min(WORLD.h,viewY+vh+margin);
+ if(tileSnowAmount!==snow){snowTiles2D.clear();tileSnowAmount=snow;}
+ const year=elapsed/120;
+ const floods=(window.WildDisaster?.events?.()||[]).filter(e=>e.kind==="flood"&&year>=e.year&&year<e.year+e.duration);
  const cache=new Map(),smooth=v=>v*v*(3-2*v);
  const blended=(px,py,scale)=>{
   const u=px/scale,v=py/scale,ix=Math.floor(u),iy=Math.floor(v),a=smooth(u-ix),b=smooth(v-iy);
@@ -10772,10 +10806,18 @@ function drawWorldSnow2D(snow,viewX,viewY){
  for(let x=sx;x<ex;x+=step)for(let y=sy;y<ey;y+=step){
   const x2=Math.min(x+step,WORLD.w),y2=Math.min(y+step,WORLD.h);
   if(!visible((x+x2)*.5,(y+y2)*.5,96))continue;
-  const points=[[x,y],[x2,y],[x2,y2],[x,y2]].map(([px,py])=>[px,py,mask(px,py)]);
-  for(const indices of [[0,1,2],[0,2,3]]){
-   const poly=clip(indices.map(i=>points[i]));
-   if(poly.length<3)continue;
+  const key=x*WORLD.h+y;
+  const volatile=floods.some(e=>x2>=e.x-e.radius&&x<=e.x+e.radius&&y2>=e.y-e.radius&&y<=e.y+e.radius);
+  let polygons=volatile?null:snowTiles2D.get(key);
+  if(!polygons){
+   const points=[[x,y],[x2,y],[x2,y2],[x,y2]].map(([px,py])=>[px,py,mask(px,py)]);
+   polygons=[[0,1,2],[0,2,3]].map(indices=>clip(indices.map(i=>points[i]))).filter(poly=>poly.length>=3);
+   if(!volatile){
+    if(snowTiles2D.size>=4096)snowTiles2D.delete(snowTiles2D.keys().next().value);
+    snowTiles2D.set(key,polygons);
+   }
+  }
+  for(const poly of polygons){
    ctx.beginPath();ctx.moveTo(poly[0][0],poly[0][1]);
    for(let i=1;i<poly.length;i++)ctx.lineTo(poly[i][0],poly[i][1]);
    ctx.closePath();ctx.fill();

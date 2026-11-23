@@ -1,6 +1,8 @@
 // WILD RECLAIM player-visible English translations; Japanese remains the source language.
 // Loaded before i18n.js. Keep gameplay/save keys unchanged.
 window.WildI18nPhrases = [
+ ["獲物の足跡","Prey tracks"],
+ ["危険な動物の足跡","Dangerous animal tracks"],
  ["前方に冠水","Flood ahead"],
  ["冠水・浅水","Shallow floodwater"],
  ["冠水・深水","Deep floodwater"],

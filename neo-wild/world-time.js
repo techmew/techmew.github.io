@@ -45,13 +45,16 @@
   const fair=hash(world.year,blockInYear,3);
   return fair<.63?"CLEAR":fair<.89?"CLOUDY":fair<.96?"WIND":"FOG";
  }
+ let cachedSnowBlock=-1,cachedSnow=0;
  function snowpackAt(seconds=0){
-  const now=finiteSeconds(seconds),world=at(now);
+  const now=finiteSeconds(seconds),block=Math.floor(now/5);
+  if(block===cachedSnowBlock)return cachedSnow;
+  cachedSnowBlock=block;cachedSnow=0;
+  const world=at(now);
   // World history is time-derived, never a resettable run counter. Ten recent
   // five-second blocks retain fallen snow; spring rapidly melts accumulated snow.
   if(world.seasonIndex!==0&&world.seasonIndex!==1)return 0;
   let cover=0;
-  const block=Math.floor(now/5);
   for(let k=9;k>=0;k--){
    const sample=Math.max(0,(block-k)*5+.1);
    const state=at(sample);
@@ -59,7 +62,8 @@
    else if(weatherAt(sample)==="SNOW")cover=Math.min(1,cover+.24);
    else cover=Math.max(0,cover-.032);
   }
-  return Math.round(cover*100)/100;
+  cachedSnow=Math.round(cover*100)/100;
+  return cachedSnow;
  }
  window.WildWorldClock=Object.freeze({
   YEAR_SECONDS,DAY_SECONDS,MONTH_SECONDS,EVENT_ERA_SCALE,eventYear,eventIntervalYears,at,snowpackAt,

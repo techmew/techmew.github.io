@@ -2742,8 +2742,9 @@ function render(o){
    &&snowAnchorX+vw+snowViewMargin>=10100&&snowAnchorX-snowViewMargin<=13600
    &&snowAnchorY+vh+snowViewMargin>=2600&&snowAnchorY-snowViewMargin<=5100;
   // Recheck water and disaster state every five seconds without recomputing per frame.
-  const snowKey=[snowCellX,snowCellY,vw,vh,VIEW.a,VIEW.b,VIEW.c,VIEW.d,
-   WORLD.w,WORLD.h,snow.toFixed(3),alpineInView?1:0,Math.floor(elapsed/5)].join(":");
+  const flood=(o.disasterEvents||[]).find(e=>e.kind==="flood"&&elapsed/120>=e.year&&elapsed/120<e.year+e.duration);
+  const snowKey=[snowCellX,snowCellY,vw,vh,Math.round(VIEW.a*8),Math.round(VIEW.b*8),Math.round(VIEW.c*8),Math.round(VIEW.d*8),
+   WORLD.w,WORLD.h,snow.toFixed(3),alpineInView?1:0,flood?Math.floor(elapsed/5):-1,flood?.x,flood?.y].join(":");
   if(snowKey!==snowCacheKey){
    const snowDataStart=meshLength;
    if(snow>.06||alpineInView){

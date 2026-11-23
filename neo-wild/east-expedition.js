@@ -497,9 +497,17 @@
    const side=last?-last.side:1,angle=Math.atan2(m.vy,m.vx),size=Math.min(9,Math.max(4,m.r*.25));
    lastTrack.set(m,{x:m.x,y:m.y,side});
    tracks.push({x:m.x-Math.sin(angle)*size*side,y:m.y+Math.cos(angle)*size*side,
-    angle,size,hoof:hoofed.has(m.type),at:clock,life:weather==="THUNDER"||weather==="RAIN"?4:12});
+    type:m.type,wild:!m.companion&&!m.releasedIndividualId,angle,size,hoof:hoofed.has(m.type),at:clock,life:weather==="THUNDER"||weather==="RAIN"?4:12});
    if(tracks.length>48)tracks.shift();
   }
+ }
+ function readTrack(player,clock){
+  if(player.x<8200||Math.hypot(player.vx||0,player.vy||0)>22)return null;
+  for(let i=tracks.length-1;i>=0;i--){
+   const t=tracks[i],age=clock-t.at;
+   if(t.wild&&age>=0&&age<t.life&&Math.hypot(t.x-player.x,t.y-player.y)<=80)return t;
+  }
+  return null;
  }
  function eachTrack(clock,draw){
   for(const t of tracks){
@@ -567,6 +575,6 @@
   return {alerted,fleeing};
  }
  global.WildEastExpedition=Object.freeze({stops:STOPS,walkway:WALKWAY,waterStations,bridgeEscape,
-  resetTracks,updateTracks,eachTrack,fordStones,surfaceDepth,streamBank,streamCurrent,eachRapid,disturbBrush,brushMotion,waterRibbons,channelDepth,aquaticDepth,waterNodes,aquaticNetworkStep,
+  resetTracks,updateTracks,readTrack,eachTrack,fordStones,surfaceDepth,streamBank,streamCurrent,eachRapid,disturbBrush,brushMotion,waterRibbons,channelDepth,aquaticDepth,waterNodes,aquaticNetworkStep,
   cleanWaterMask,waterVisited,waterArrival,waterReplenishable,all:ALL,cleanMask,visited,count,near,arrival,next,replenishable,navigation,aquaticStep,routePosition,groundGuide,habitat,biomes:BIOMES,biomeAt,fieldStatus,wildlifeResponse,aquaticEncounter,drawMap,drawPost2D});
 })(window);

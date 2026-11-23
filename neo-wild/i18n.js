@@ -294,9 +294,16 @@ function syncControls(){
  document.title=document.body?.dataset?.page==="gacha-rates"?(locale==="en"?"Gacha Drop Rates | WILD RECLAIM":"ガチャ排出確率一覧｜WILD RECLAIM"):(locale==="en"?"WILD RECLAIM | Survival in a Lost City":"WILD RECLAIM | 廃都生存記");
 }
 function refresh(){walk(document.body);syncControls()}
+let translationObserver=null;
+function observeLanguage(){
+ if(!translationObserver)return;
+ translationObserver.disconnect();
+ if(locale==="en")translationObserver.observe(document.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:["aria-label","title","placeholder"]});
+}
 function setLanguage(next){
  if(next!=="en"&&next!=="ja")return false;
  locale=next;
+ observeLanguage();
  try{localStorage.setItem(KEY,locale)}catch(_){}
  refresh();return true;
 }
@@ -316,7 +323,7 @@ function flush(){
  for(const node of nodes)walk(node);
 }
 if(typeof MutationObserver!=="undefined"){
- const observer=new MutationObserver(changes=>{
+ translationObserver=new MutationObserver(changes=>{
   if(locale!=="en")return;
   for(const m of changes){
    if(m.type==="characterData"||m.type==="attributes")pending.add(m.target);
@@ -326,7 +333,7 @@ if(typeof MutationObserver!=="undefined"){
   // during the 55ms timer used by the previous implementation.
   if(pending.size)flush();
  });
- observer.observe(document.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:["aria-label","title","placeholder"]});
+ observeLanguage();
 }
 refresh();
 // On-demand visible-string audit for translators and regression tests.
