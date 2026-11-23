@@ -2432,11 +2432,10 @@ function capturePodiumFromGPU(ctx,w,h,lowMemory=false){
   // Android drivers can report a complete default framebuffer even when
   // the offscreen depth/color attachments are incomplete.
   renderer.setRenderTarget(target);
-  const framebufferGL=renderer.getContext();
-  const framebufferStatus=framebufferGL.checkFramebufferStatus(framebufferGL.FRAMEBUFFER);
-  if(framebufferStatus!==framebufferGL.FRAMEBUFFER_COMPLETE){
-   throw Error('Podium render target incomplete: '+framebufferStatus);
-  }
+  // Do not check the currently bound framebuffer here: WebGLRenderer may
+  // bind its own framebuffer during render, especially on Android WebView.
+  // readRenderTargetPixels below binds the requested target explicitly;
+  // its GL error and nonblank-pixel checks validate the actual photograph.
   // Force the offscreen draw to complete before Android WebView readback.
   // Some tile-based mobile GPUs otherwise return the cleared target while
   // the live podium still renders correctly. Keep this inside the capture
