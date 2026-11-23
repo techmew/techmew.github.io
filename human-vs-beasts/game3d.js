@@ -3881,6 +3881,7 @@ renderer.domElement.addEventListener('webglcontextrestored',()=>{
  }else initResize();
 },false);
 let humanGait=0,beastGait=0;let raceTimeDebt=0;
+let beastShowcaseKind='',beastShowcaseDistance=0,beastShowcaseHold=0;
 function frame(){requestAnimationFrame(frame);
  // Keep visual animation capped at 65ms, but advance race physics using the
  // actual elapsed frame time in bounded substeps. Low-FPS Android devices
@@ -3918,11 +3919,29 @@ function frame(){requestAnimationFrame(frame);
 // A moderate preview speed keeps heavy beasts weighty and small beasts lively.
  const previewKind=animals[save.chosen]?.kind;
  const previewGait=GAIT_MAP[previewKind];
+ // Run a complete, looping virtual 100m showcase for each selected animal.
+ // This changes only the preview pose, never race progress or saved records.
+ if(mode==='beasts'){
+  if(previewKind!==beastShowcaseKind){
+   beastShowcaseKind=previewKind;beastShowcaseDistance=0;beastShowcaseHold=0;beastGait=0;
+  }
+  const showcaseSpeed=['heavyTrot','giantBiped','giantQuad'].includes(previewGait)?5.4:
+   ['kangarooHop','bound','pronk'].includes(previewGait)?8.2:10;
+  if(beastShowcaseHold>0){
+   beastShowcaseHold=Math.max(0,beastShowcaseHold-dt);
+   if(beastShowcaseHold===0){beastShowcaseDistance=0;beastGait=0}
+  }else{
+   beastShowcaseDistance+=dt*showcaseSpeed*2.3;
+   if(beastShowcaseDistance>=100){beastShowcaseDistance=100;beastShowcaseHold=.65}
+  }
+ }else if(beastShowcaseKind){
+  beastShowcaseKind='';beastShowcaseDistance=0;beastShowcaseHold=0;
+ }
  const previewSpeed=mode==='beasts'?(previewGait==='heavyTrot'||previewGait==='giantBiped'||previewGait==='giantQuad'?5.4:previewGait==='kangarooHop'||previewGait==='bound'||previewGait==='pronk'?8.2:previewGait==='mechanicalRun'?6.5:10):0;
  const espeed=visualSky?(race.pegasusFlightSpeed||22):mode==='race'&&race?.phase==='running'&&race.eFinish===null?(race.enemyV||0):previewSpeed;
  if(hspeed>.13)humanGait+=dt*(6.8+clamp(hspeed/8,0,1.7)*4.3);if(espeed>.13)beastGait+=dt*animalGaitRate(animals[Number.isInteger(race?.opponentIndex)?race.opponentIndex:save.chosen].kind,espeed);human.animate(humanGait,hspeed,mode==='race'?race.stamina:1,mode==='race'?race.legTaps:null,mode==='race'?race.time:0,dt);
  
- const hasLanded=opponent.animate(beastGait,espeed,mode==='beasts'?0:visualSky?(race.pegasusBeyond??race.enemyD):race?.enemyD||0);
+ const hasLanded=opponent.animate(beastGait,espeed,mode==='beasts'?beastShowcaseDistance:visualSky?(race.pegasusBeyond??race.enemyD):race?.enemyD||0);
  if(hasLanded&&mode==='race'&&race?.phase==='running'&&race.eFinish===null&&espeed>2){
   const kind=animals[Number.isInteger(race?.opponentIndex)?race.opponentIndex:save.chosen].kind,gait=GAIT_MAP[kind];
   const gap=['heavyTrot','heavyBiped','mechanicalRun'].includes(gait)?.22:gait==='kangarooHop'||gait==='bound'?.26:.13;
@@ -3937,7 +3956,13 @@ function frame(){requestAnimationFrame(frame);
  if(mode!=='race'){human.root.position.z=0;opponent.root.position.z=0;opponent.root.position.y=.13;opponent.root.visible=true;human.root.rotation.y=(mode==='custom')?Math.sin(sceneTime*.3)*.03:0;
   // A slight turn in the collection makes leg/wing movement readable in 3D,
   // without moving the model out of the selection camera.
-  opponent.root.rotation.y=mode==='beasts'?.14*Math.sin(sceneTime*.72):0}
+  opponent.root.rotation.y=mode==='beasts'?.14*Math.sin(sceneTime*.72):0;
+  // A flying showcase must remain within the selection camera's view.
+  if(mode==='beasts'&&isSkyRunner(previewKind)&&opponent.flight>.01){
+   const lift=Math.min(6.2,opponent.bodyGroup.position.y*opponent.root.scale.y*.48);
+   opponent.root.position.y=.13-lift;
+  }
+ }
  dust.forEach(x=>{if(x.life>0){x.life-=dt;x.mesh.scale.multiplyScalar(1+dt*1.55);x.mesh.position.y+=dt*.16;x.mesh.material.opacity=Math.max(0,.20*x.life/x.max);if(x.life<=0)x.mesh.visible=false}});
  scuffs.forEach(x=>{if(x.life>0){x.life-=dt;x.mesh.material.opacity=Math.max(0,.13*x.life/x.max);if(x.life<=0)x.mesh.visible=false}});
  adaptQuality(dt);updateCam(dt);sun.position.z=(mode==='race'?race.humanD:0)+24;sun.target.position.z=mode==='race'?race.humanD:0;sun.target.updateMatrixWorld();
