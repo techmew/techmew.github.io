@@ -2507,8 +2507,11 @@ function capturePodiumFromGPU(ctx,w,h,lowMemory=false){
   // fall back to the context's own ImageData allocation only when necessary.
   const clamped=new Uint8ClampedArray(pixels.buffer);
   let frame;
-  if(typeof ImageData==='function')frame=new ImageData(clamped,w,h);
-  else{frame=ctx.createImageData(w,h);frame.data.set(clamped)}
+  if(typeof ImageData==='function'){
+    try{frame=new ImageData(clamped,w,h)}
+    catch(error){console.warn('Podium ImageData constructor unavailable; using canvas allocation',error)}
+   }
+   if(!frame){frame=ctx.createImageData(w,h);frame.data.set(clamped)}
   ctx.putImageData(frame,0,0);
   return;
 
