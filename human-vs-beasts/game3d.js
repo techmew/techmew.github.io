@@ -3840,12 +3840,18 @@ function frame(){requestAnimationFrame(frame);
  // actual elapsed frame time in bounded substeps. Low-FPS Android devices
  // must not make the 100m clock and countdown run in slow motion.
  const elapsed=clock.getDelta(),dt=Math.min(.065,elapsed);
+ // Pause WebGL and post-finish flight when Android WebView is inactive.
+ // Consume the stale frame delta without advancing race or animation.
+ if(document.hidden||(mode==='race'&&race?.inputSuspended)){
+  raceTimeDebt=0;
+  return;
+ }
  // Preserve race time across dropped Android frames. A capped frame delta used
  // to discard real elapsed time, making low-FPS rivals and countdowns slower.
  // Bound catch-up to prevent a long background-tab pause from ending a race.
  // Never bank hidden-tab or resume time: a stopped player cannot tap while
  // the rival is simulated. Keep the same 250ms ceiling as updateRace().
- const raceActive=mode==='race'&&race?.phase!=='results'&&!webglUnavailable&&!document.hidden;
+ const raceActive=mode==='race'&&race?.phase!=='results'&&!webglUnavailable&&!document.hidden&&!race?.inputSuspended;
  if(!raceActive||race?.skipResumeFrame)raceTimeDebt=0;
  else raceTimeDebt=Math.min(.25,raceTimeDebt+Math.max(0,elapsed));
  const raceDt=raceTimeDebt;
