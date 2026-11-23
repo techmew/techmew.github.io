@@ -1120,7 +1120,7 @@ const GAIT_MAP={
  zebra:'horseGallop',boar:'heavyTrot',ostrich:'birdRun',kangaroo:'kangarooHop',moa:'birdRun',
  horse:'horseGallop',wolf:'canter',giantsloth:'heavyBiped',lion:'flexGallop',
  deer:'pronk',smilodon:'flexGallop',gazelle:'pronk',pronghorn:'horseGallop',tiger:'flexGallop',
- unicorn:'horseGallop',cheetah:'flexGallop',gorilla:'knuckleRun',elephant:'heavyTrot',
+ unicorn:'skyGallop',cheetah:'flexGallop',gorilla:'knuckleRun',elephant:'heavyTrot',
  hippo:'heavyTrot',rhino:'heavyTrot',mammoth:'heavyTrot',woollyrhino:'heavyTrot',
  direwolf:'canter',terrorbird:'birdRun',cavebear:'heavyTrot',
  triceratops:'heavyTrot',stegosaurus:'heavyTrot',ankylosaurus:'heavyTrot',
@@ -1136,12 +1136,12 @@ const GAIT_LABELS={
  birdRun:'二足で交互に疾走',horseGallop:'四足のギャロップ',flexGallop:'背中をしならせた疾走',
  canter:'四足で駆ける',heavyTrot:'重量級の踏み込み',heavyBiped:'重い二足歩行',
  knuckleRun:'腕で体を支える走り',mechanicalRun:'機械の脚で走る',springRun:'軽い跳躍走',
- giantBiped:'巨体の二足踏み込み',giantQuad:'巨体の四足踏み込み',wingFlight:'助走・羽ばたき飛行・着地'
+ giantBiped:'巨体の二足踏み込み',giantQuad:'巨体の四足踏み込み',skyGallop:'離陸・空中疾走・飛び去り',wingFlight:'助走・羽ばたき飛行・着地'
 };
 function animalGaitRate(kind,speed){
  // Contact phase advances by ground distance / species stride length.
  if(KAIJU_SPECS[kind]){const spec=KAIJU_SPECS[kind];return (spec.form==='quad'?Math.PI/2:Math.PI)*Math.max(0,speed)/spec.strideM;}
- if(kind==='pegasus')return 2.7+clamp(speed,0,38)*.10;
+ if(kind==='pegasus'||kind==='unicorn')return 2.7+clamp(speed,0,38)*.10;
  const gait=GAIT_MAP[kind]||'canter';
  const clamped=clamp(speed,0,45);
  const stride={
@@ -1158,27 +1158,28 @@ function animalGaitRate(kind,speed){
 // These are stylized character performances, not claims about real animal biology.
 function speciesMotion(kind,rig,phase,effort){
  const body=rig.bodyGroup,legs=rig.legs||[],arms=rig.arms||[],tail=rig.tail,wings=rig.wings||[];
- const a=Math.min(1.35,effort),s=Math.sin(phase),c=Math.cos(phase);
+ // Exaggerate every species-specific signature without altering race physics.
+  const a=Math.min(1.85,effort*1.48),s=Math.sin(phase),c=Math.cos(phase);
  const f=Math.sin(phase*2.3),g=Math.cos(phase*1.3),q=Math.sin(phase*.43);
  const yaw=(n)=>{body.rotation.y+=n*a};
  const roll=(n)=>{body.rotation.z+=n*a};
  const pitch=(n)=>{body.rotation.x+=n*a};
- const bounce=(n)=>{body.position.y+=Math.max(0,n)*a};
+ const bounce=(n)=>{body.position.y+=Math.max(0,n)*a*1.24};
  const tailWag=(n)=>{if(tail)tail.rotation.y+=n*a};
  const tailPitch=(n)=>{if(tail)tail.rotation.x+=n*a};
  const armSwing=(n)=>{for(const [i,p] of arms.entries())if(p.sh)p.sh.rotation.x+=(i%2?-1:1)*n*a};
  const wingFlap=(n)=>{for(const p of wings)p.wing.rotation.z+=p.side*n*a};
  switch(kind){
   case 'dog':          roll(.10*f);tailWag(.36*Math.sin(phase*2.6));break; // happy tail & excited zig
-  case 'cat':          pitch(-.13*c);body.scale.z*=1+.085*s;tailWag(.25*Math.sin(phase*1.9));break; // springy arched back
+  case 'cat': pitch(-.21*c);body.scale.z*=1+.14*s;tailWag(.37*Math.sin(phase*1.9));break; // springy arched back
   case 'fox':          yaw(.095*s);tailWag(.40*g);bounce(.04*(1+c));break; // tail-led sidestep
-  case 'dodo':         roll(.23*s);pitch(.09*f);bounce(.05*(1+f));break; // drunken waddling
-  case 'rabbit':       pitch(.12*c);legs.forEach(p=>{if(p.front<0)p.knee.rotation.x+=.22*a*Math.max(0,s)});body.rotation.z+=.025*f*a;break; // double hind tuck and airborne balance
+  case 'dodo': roll(.34*s);pitch(.16*f);bounce(.095*(1+f));break; // drunken waddling
+  case 'rabbit': pitch(.23*c);legs.forEach(p=>{if(p.front<0)p.knee.rotation.x+=.44*a*Math.max(0,s)});body.rotation.z+=.055*f*a;break; // double hind tuck and airborne balance
   case 'greyhound':    pitch(-.085*s);body.scale.z*=1+.14*c;tailWag(.10*g);break; // overextended sprint
-  case 'zebra':        yaw(.07*f);roll(.065*c);tailWag(.26*f);break; // energetic stamping
+  case 'zebra': yaw(.12*f);roll(.12*c);tailWag(.43*f);break; // energetic stamping
   case 'boar':         pitch(-.14*Math.abs(s));roll(.12*f);tailWag(.18*s);break; // head-first shuffle
-  case 'ostrich':      roll(.12*g);pitch(.12*s);bounce(.06*(1+c));break; // high-neck sway
-  case 'kangaroo':     pitch(.10*s);tailPitch(-.31*c);tailWag(.12*g);break; // tail as a rudder
+  case 'ostrich': roll(.21*g);pitch(.20*s);bounce(.095*(1+c));break; // high-neck sway
+  case 'kangaroo': pitch(.18*s);tailPitch(-.55*c);tailWag(.23*g);break; // tail as a rudder
   case 'moa':          roll(.16*Math.sin(phase*.8));pitch(.14*f);break; // towering wobbly strides
   case 'horse':        pitch(.09*s);body.scale.z*=1+.048*c;tailWag(.25*f);break; // exaggerated thoroughbred
   case 'wolf':         pitch(-.105*(1+c));tailWag(.16*q);roll(.044*f);break; // low pack-leader prowl
@@ -1189,13 +1190,13 @@ function speciesMotion(kind,rig,phase,effort){
   case 'gazelle':      roll(.10*Math.sin(phase*.7));yaw(.105*f);bounce(.10*(1+s));break; // corkscrew pronk
   case 'pronghorn':    yaw(.16*Math.sin(phase*.93));roll(.045*f);tailWag(.09*s);break; // slalom dash
   case 'tiger':        roll(.115*Math.sin(phase*1.7));pitch(-.10*s);tailWag(.31*Math.sin(phase*.72));break; // stalking shoulder rolls
-  case 'unicorn':      pitch(.19*Math.max(0,s));roll(.065*f);tailWag(.20*Math.sin(phase*1.1));break; // proud head toss
-  case 'cheetah':      body.scale.z*=1+.19*s;pitch(.095*c);tailWag(.24*g);break; // extreme spinal extension
+  case 'unicorn': pitch(-.31*Math.max(0,c));roll(.17*Math.sin(phase*.72));yaw(.11*Math.sin(phase*.49));tailWag(.47*Math.sin(phase*.82));break; // proud head toss
+  case 'cheetah': body.scale.z*=1+.27*s;pitch(.15*c);tailWag(.37*g);break; // extreme spinal extension
   case 'gorilla':      roll(.16*s);pitch(.18*Math.max(0,c));armSwing(.30*f);break; // alternating knuckle smash
   case 'elephant':     roll(.060*Math.sin(phase*.68));pitch(.035*c);tailWag(.21*Math.sin(phase*.64));break; // lumbering trunk-like sway
   case 'hippo':        roll(.16*Math.sin(phase*1.37));bounce(.035*(1+f));pitch(.075*s);break; // barrel wobble
   case 'rhino':        pitch(-.18*Math.max(0,s));yaw(.06*f);roll(.035*c);break; // horn-first bulldozer
-  case 'mammoth':      roll(.055*g);pitch(.065*s);tailWag(.13*Math.sin(phase*.55));break; // swinging tusk silhouette
+  case 'mammoth': roll(.095*g);pitch(.11*s);tailWag(.22*Math.sin(phase*.55));break; // swinging tusk silhouette
   case 'woollyrhino':  pitch(-.10*Math.abs(c));roll(.090*f);tailWag(.075*g);break; // woolly shoulder shake
   case 'direwolf':     pitch(-.065*c);body.scale.z*=1+.074*s;tailWag(.28*Math.sin(phase*1.32));break; // enormous canine stride
   case 'terrorbird':   pitch(.22*Math.sin(phase*1.12));roll(.09*f);bounce(.048*(1+c));break; // fast pecking gait
@@ -1204,20 +1205,20 @@ function speciesMotion(kind,rig,phase,effort){
   case 'stegosaurus':  roll(.075*g);tailWag(.46*Math.sin(phase*.83));pitch(.04*f);break; // dramatic tail sweep
   case 'ankylosaurus': tailWag(.68*Math.sin(phase*.63));roll(.075*Math.sin(phase*.63));break; // club-tail windup
   case 'parasaurolophus':yaw(.14*Math.sin(phase*.95));pitch(.125*s);tailWag(.11*c);break; // crest-like head dance
-  case 'gallimimus':   roll(.13*f);pitch(.10*c);armSwing(.21*Math.sin(phase*2.1));break; // nervous bird-arm paddles
+  case 'gallimimus': roll(.22*f);pitch(.17*c);armSwing(.37*Math.sin(phase*2.1));break; // nervous bird-arm paddles
   case 'velociraptor':yaw(.19*Math.sin(phase*1.1));roll(.115*f);tailWag(-.25*s);break; // evasive raptor jig
   case 'deinonychus':  pitch(.13*c);armSwing(.33*Math.sin(phase*1.7));tailWag(.20*Math.sin(phase*.98));break; // sickle-claw reach
   case 'carnotaurus':  roll(.10*Math.sin(phase*2.0));pitch(-.145*Math.max(0,s));armSwing(.40*f);break; // tiny furious arms
-  case 'trex':         pitch(-.135*Math.max(0,c));armSwing(.42*Math.sin(phase*2.1));tailWag(.115*g);break; // ridiculous micro-arm sprint
+  case 'trex': pitch(-.22*Math.max(0,c));armSwing(.70*Math.sin(phase*2.1));tailWag(.17*g);break; // ridiculous micro-arm sprint
   case 'spinosaurus':  roll(.083*Math.sin(phase*.62));pitch(.13*s);tailWag(.29*Math.sin(phase*.57));break; // sailboat-like rocking
-  case 'pegasus':      wingFlap(-.29*Math.sin(phase*.58));pitch(-.06*Math.max(0,s));tailWag(.10*q);break; // broad wing strokes
+  case 'pegasus': wingFlap(-.49*Math.sin(phase*.58));pitch(-.11*Math.max(0,s));tailWag(.16*q);break; // broad wing strokes
   case 'cerberus':     yaw(.20*Math.sin(phase*.84));roll(.090*Math.cos(phase*2.2));tailWag(.31*f);break; // three-head scan
   case 'griffin':      wingFlap(-.37*Math.sin(phase*.90));roll(.17*Math.sin(phase*.71));pitch(-.07*c);break; // banking wing-beast
   case 'minotaur':     yaw(.095*f);pitch(-.20*Math.max(0,s));armSwing(.28*Math.sin(phase*1.61));break; // bull-like shoulder feint
-  case 'dragon':       wingFlap(-.45*Math.sin(phase*.68));roll(.14*Math.sin(phase*.42));tailWag(.29*Math.sin(phase*.42));break; // broad-winged sway
+  case 'dragon': wingFlap(-.75*Math.sin(phase*.68));roll(.21*Math.sin(phase*.42));tailWag(.38*Math.sin(phase*.42));break; // broad-winged sway
   case 'golem':        roll(.10*Math.sign(s)*Math.abs(s));bounce(.035*(1+f));armSwing(.12*c);break; // loose masonry stomp
-  case 'giantrobot':   pitch(.095*Math.sin(phase*1.15));roll(.062*Math.sign(f));armSwing(.28*Math.sign(s));break; // angular mechanical joints
-  case 'alien':        body.scale.x*=1+.12*Math.sin(phase*1.7);body.scale.y*=1+.078*Math.sin(phase*.81);yaw(.15*f);break; // elastic extraterrestrial shuffle
+  case 'giantrobot': pitch(.18*Math.sin(phase*1.15));roll(.12*Math.sign(f));armSwing(.42*Math.sign(s));break; // angular mechanical joints
+  case 'alien': body.scale.x*=1+.21*Math.sin(phase*1.7);body.scale.y*=1+.13*Math.sin(phase*.81);yaw(.22*f);break; // elastic extraterrestrial shuffle
   case 'kaiju':        roll(.09*Math.sin(phase*.42));pitch(-.10*Math.max(0,s));tailWag(.20*Math.sin(phase*.41));break; // geological wobble
   case 'spinetitan':   roll(.10*Math.sin(phase*.34));pitch(.09*Math.sin(phase*.49));tailWag(.08*f);break; // drifting giant dorsal plates
   case 'velka':        yaw(.145*Math.sin(phase*1.47));pitch(-.09*s);tailWag(.32*Math.sin(phase*1.34));break; // agile titan switchback
@@ -1302,7 +1303,27 @@ function withSpeciesLocomotion(data,rig){
    body.rotation.x=.068*cos*effort;
    for(const leg of legs){leg.hip.rotation.x=(-.20-.49*lift)*effort;leg.knee.rotation.x=(.16+.64*lift)*effort}
    if(tail)tail.rotation.y=.12*s*effort;
-  }else if(gait==='wingFlight'){
+  }else if(gait==='skyGallop'){
+    // Unicorn takes off into an exaggerated suspended aerial gallop.
+    // Only the visual pose flies; the official 100m distance is unchanged.
+    const up=clamp((distance-8)/22,0,1);
+    const flight=up*up*(3-2*up);
+    rig.flight=flight;
+    const scale=Math.max(.0001,rig.root.scale.y);
+    const spring=Math.pow(Math.max(0,Math.sin(phase*.53)),1.5);
+    const climb=(5.8+Math.max(0,Math.min(distance,100)-30)*.055)*flight;
+    body.position.y=(climb+1.05*spring*(1-flight*.52))/scale;
+    body.rotation.x=(-.19*flight+.16*Math.cos(phase*.53))*Math.min(1.1,effort);
+    body.rotation.z=.17*Math.sin(phase*.31)*flight;
+    body.rotation.y=.12*Math.sin(phase*.39)*flight;
+    body.scale.z=scaleZ*(1+.11*Math.cos(phase*.53)*Math.min(1.1,effort));
+    for(const leg of legs){
+     const lead=leg.front>0,step=Math.sin(phase*.80+(lead?1.5:0)+(leg.side>0?.28:0));
+     leg.hip.rotation.x=(step*.58-(lead?.16:.38)*flight)*effort;
+     leg.knee.rotation.x=(.14+Math.max(0,-step)*.64+flight*.25)*effort;
+    }
+    if(tail){tail.rotation.y=.36*Math.sin(phase*.56)*effort;tail.rotation.x=.18*Math.cos(phase*.53)*effort}
+   }else if(gait==='wingFlight'){
    // Pegasus takes off after the approach and NEVER lands within the race.
    // Keep flapping beyond 100m while the animal recedes over the horizon.
    const up=clamp((distance-7)/14,0,1);
@@ -1409,7 +1430,7 @@ function withSpeciesLocomotion(data,rig){
   // normalization alone cannot compensate for the articulated knee/hip swing.
   // Sample only the four hoof assemblies, not tails, manes or other ornaments.
   // Throttle the expensive bounds sampling on low-end Android GPUs.
-  if(['horse','zebra','unicorn','gazelle','pronghorn','deer'].includes(kind)&&legs.length>=4&&rig.root.visible){
+  if(['horse','zebra','gazelle','pronghorn','deer'].includes(kind)&&legs.length>=4&&rig.root.visible){
    const contact=rig.userDataHoofContact||(rig.userDataHoofContact={lastPhase:-999,offset:0});
    if(phase-contact.lastPhase>.18||phase<contact.lastPhase){
     contact.lastPhase=phase;
@@ -1439,7 +1460,7 @@ function withSpeciesLocomotion(data,rig){
   const landed=impactIndex>lastImpact;lastImpact=impactIndex;
   if(isKangaroo)return landed&&body.position.y<.04;
   if(isBound||isPronk)return landed;
-  return gait==='wingFlight'&&rig.flight>.35?false:landed;
+  return (gait==='wingFlight'||gait==='skyGallop')&&rig.flight>.35?false:landed;
  };
  return rig;
 }
@@ -3074,9 +3095,10 @@ function makeRacePhoto(){
 
 // Race distance and finish time remain locked at 100m. The visual Pegasus
 // travels farther, climbs and vanishes without changing awards or save state.
+function isSkyRunner(kind){return kind==='pegasus'||kind==='unicorn'}
 function advancePegasusFlight(dt){
  const r=race;
- if(!r||animals[r.opponentIndex]?.kind!=='pegasus'||(r.phase!=='pegasusExit'&&r.eFinish===null))return;
+ if(!r||!isSkyRunner(animals[r.opponentIndex]?.kind)||(r.phase!=='pegasusExit'&&r.eFinish===null))return;
  const step=Math.min(.065,Math.max(0,dt));
  if(r.pegasusBeyond==null)r.pegasusBeyond=r.enemyD;
  if(r.pegasusCruiseTime==null)r.pegasusCruiseTime=0;
@@ -3092,7 +3114,7 @@ function advancePegasusFlight(dt){
  opponent.root.visible=r.pegasusBeyond<520;
  if(r.phase==='pegasusExit'){
   r.pegasusExitWait=(r.pegasusExitWait||0)+step;
-  if(!opponent.root.visible||r.pegasusExitWait>=8.5){
+  if(!opponent.root.visible||r.pegasusExitWait>=(animals[r.opponentIndex]?.kind==='unicorn'?5.8:8.5)){
    // A missing render frame cannot trap the player in the farewell sequence.
    opponent.root.visible=false;
    r.pegasusExitDone=true;
@@ -3107,7 +3129,7 @@ function finishRace(){
  const opponent=animals[opponentIndex];
  // Pegasus must visibly continue flying beyond the finish before the result UI
  // switches WebGL over to the podium. The official race time is already fixed.
- if(opponent.kind==='pegasus'&&!r.pegasusExitDone&&(r.pegasusBeyond??r.enemyD)<520){
+ if(isSkyRunner(opponent.kind)&&!r.pegasusExitDone&&(r.pegasusBeyond??r.enemyD)<520){
   if(r.phase!=='pegasusExit'){
    r.phase='pegasusExit';r.pegasusExitWait=0;r.pegasusBeyond=r.pegasusBeyond??r.enemyD;
    r.pegasusCruiseTime=r.pegasusCruiseTime||0;r.pegasusCruiseSpeed=Math.max(22,r.pegasusCruiseSpeed||r.enemyV||22);
@@ -3239,7 +3261,7 @@ function updateRaceStep(dt){const r=race;if(!r)return;if(r.phase==='countdown'){
  // Repeated left input moves toward the rival (positive X) and can shoulder-bump it.
  human.root.position.set(r.lateral,.13,r.humanD);human.root.rotation.y=clamp(-r.lateralVelocity*.045,-.13,.13);
  // Official opponent distance stops at 100m; the post-finish flight is visual only.
- if(a.kind!=='pegasus'||r.eFinish===null)opponent.root.position.set(r.enemyLateral,.13,r.enemyD);
+ if(!isSkyRunner(a.kind)||r.eFinish===null)opponent.root.position.set(r.enemyLateral,.13,r.enemyD);
  if(offCourse&&!r.offTrack){r.offTrack=true}
  else if(!offCourse)r.offTrack=false;
  // Shoulder contact depends on rival size and mass, not a universal hitbox.
@@ -3253,7 +3275,7 @@ function updateRaceStep(dt){const r=race;if(!r)return;if(r.phase==='countdown'){
  // Only the airborne half of the actual hop is protected; landing is hittable.
  const hopPhase=r.rivalStridePhase||0;
  const airborne=a.profile==='hopper'&&Math.sin(hopPhase)>.55;
- const flying=['pegasus','griffin','dragon'].includes(a.kind)&&opponent.flight>.4;
+ const flying=['pegasus','unicorn','griffin','dragon'].includes(a.kind)&&opponent.flight>.4;
  if(r.bumpCooldown===0&&r.hFinish===null&&r.eFinish===null&&!airborne&&!flying
   &&Math.abs(r.lateral-r.enemyLateral)<collisionWidth
   &&Math.abs(r.humanD-r.enemyD)<collisionDepth){
@@ -3886,15 +3908,15 @@ function frame(){requestAnimationFrame(frame);
  if(mode==='race'&&race?.phase==='pegasusExit')advancePegasusFlight(dt);
  else if(mode==='race')updateRace(raceDt);
  if(mode==='race'&&race?.phase==='pegasusExit'&&race.pegasusExitWait===0)advancePegasusFlight(dt);
- if(mode==='race'&&race?.phase==='running'&&race.eFinish!==null&&animals[race.opponentIndex]?.kind==='pegasus')advancePegasusFlight(dt);
+ if(mode==='race'&&race?.phase==='running'&&race.eFinish!==null&&isSkyRunner(animals[race.opponentIndex]?.kind))advancePegasusFlight(dt);
  if(mode==='race'&&race?.phase==='results'){renderCeremonyFrame();return}
  // Visual animations use actual runner and opponent speeds
  const hspeed=mode==='race'&&race?.phase==='running'&&race.hFinish===null?(race.humanV||0):0;
- const visualPegasus=mode==='race'&&animals[race?.opponentIndex]?.kind==='pegasus'&&(race?.phase==='pegasusExit'||race?.eFinish!==null);
- const espeed=visualPegasus?(race.pegasusFlightSpeed||22):mode==='race'&&race?.phase==='running'&&race.eFinish===null?(race.enemyV||0):mode==='beasts'&&animals[save.chosen]?.kind==='pegasus'?6:0;
+ const visualSky=mode==='race'&&isSkyRunner(animals[race?.opponentIndex]?.kind)&&(race?.phase==='pegasusExit'||race?.eFinish!==null);
+ const espeed=visualSky?(race.pegasusFlightSpeed||22):mode==='race'&&race?.phase==='running'&&race.eFinish===null?(race.enemyV||0):mode==='beasts'&&isSkyRunner(animals[save.chosen]?.kind)?6:0;
  if(hspeed>.13)humanGait+=dt*(6.8+clamp(hspeed/8,0,1.7)*4.3);if(espeed>.13)beastGait+=dt*animalGaitRate(animals[Number.isInteger(race?.opponentIndex)?race.opponentIndex:save.chosen].kind,espeed);human.animate(humanGait,hspeed,mode==='race'?race.stamina:1,mode==='race'?race.legTaps:null,mode==='race'?race.time:0,dt);
  
- const hasLanded=opponent.animate(beastGait,espeed,mode==='beasts'?40:visualPegasus?(race.pegasusBeyond??race.enemyD):race?.enemyD||0);
+ const hasLanded=opponent.animate(beastGait,espeed,mode==='beasts'?(animals[save.chosen]?.kind==='unicorn'?0:40):visualSky?(race.pegasusBeyond??race.enemyD):race?.enemyD||0);
  if(hasLanded&&mode==='race'&&race?.phase==='running'&&race.eFinish===null&&espeed>2){
   const kind=animals[Number.isInteger(race?.opponentIndex)?race.opponentIndex:save.chosen].kind,gait=GAIT_MAP[kind];
   const gap=['heavyTrot','heavyBiped','mechanicalRun'].includes(gait)?.22:gait==='kangarooHop'||gait==='bound'?.26:.13;
