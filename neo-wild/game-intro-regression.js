@@ -20,7 +20,7 @@ const record=new Map(),env={
  TUTORIAL_STAGES:[0,1,2,4],tutorialLessonsSeenEver:new Set(),rememberTutorialStage:()=>{throw Error("forced lesson")},
  clamp:(n,a,b)=>Math.min(b,Math.max(a,n)),resetControls:()=>{},syncHUD:()=>{},saveAuto:()=>true,
  objectiveBannerTime:0,GAME_INTRO_SEEN_KEY:"wild-reclaim-purpose-briefing-v1",
- gameIntroSeen:false,gameIntroPending:false,missionComplete:false,
+ firstStepsPending:false,gameIntroSeen:false,gameIntroPending:false,missionComplete:false,
  localStorage:{getItem:k=>record.get(k)||null,setItem:(k,v)=>record.set(k,String(v))}
 };
 const goal=part("const GUIDE_GOALS=[","function announceObjective(){");
@@ -30,9 +30,9 @@ equal(env.mode,"play","auto tutorial doesn't pause");
 equal(ui.openTutorial(0,false),true,"manual or first-game explanation");
 equal(env.mode,"guide","briefing pauses play");
 check(nodes["tutorial-what"].textContent.includes("この世の終わり"),"endgame objective shown");
-check(nodes["tutorial-how"].textContent.includes("右側")&&nodes["tutorial-how"].textContent.includes("保管庫"),"weapon loop explained");
+check(nodes["tutorial-how"].textContent.includes("右側")&&nodes["tutorial-how"].textContent.includes("武器を装備"),"weapon loop explained");
 check(nodes["tutorial-permadeath"].textContent.includes("永久")&&nodes["tutorial-permadeath"].textContent.includes("○"),"permadeath and controls explained");
-equal(nodes["tutorial-close"].textContent,"ゲームを始める","clear start button");
+equal(nodes["tutorial-close"].textContent,"冒険を始める","clear start button");
 check(!record.has(env.GAME_INTRO_SEEN_KEY),"not prematurely marked seen");
 ui.closeTutorial();equal(env.mode,"play","play resumes after briefing");
 equal(record.get(env.GAME_INTRO_SEEN_KEY),"1","once-only persisted on close");

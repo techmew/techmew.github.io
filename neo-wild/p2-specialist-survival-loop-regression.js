@@ -5,7 +5,7 @@ const fs=require("node:fs"),path=require("node:path"),assert=require("node:asser
 const source=fs.readFileSync(path.join(__dirname,"game.js"),"utf8");new Function(source);
 function part(a,b){const i=source.indexOf(a),j=source.indexOf(b,i+a.length);assert(i>=0&&j>i,"missing "+a);return source.slice(i,j);}
 assert(source.includes("SPECIALIST_HUNTERS.has(m.type))&&updateFoodThief(m,dt,d)"),"NPC not wired");
-const f=new Function("w","with(w){"+part("const SPECIALIST_CONTEST_FIELDS=","const RUSH_COST")+part("function carryFood(){","function inheritStrongTrait(")+part("function eatFromDen(kind){","function stockpileStep()")+";return {contextAction,carryFood,eat,eatFromDen};}");
+const f=new Function("w","with(w){"+part("const SPECIALIST_CONTEST_FIELDS=","function putDownFood(")+part("function contextAction(","const RUSH_COST")+part("function carryFood(){","function inheritStrongTrait(")+part("function eatFromDen(kind){","function stockpileStep()")+";return {contextAction,carryFood,eat,eatFromDen};}");
 let checks=0;
 function eq(a,b,m){assert.strictEqual(a,b,m);checks++}
 function ok(a,m){assert(a,m);checks++}
@@ -16,7 +16,7 @@ for(const type of ["manul","tibetanFox","shoebill","penguin"]){
   const w={mode:"play",elapsed:100,meals:0,mission:0,SPECIALIST_HUNTERS:new Set(["manul","tibetanFox","shoebill","penguin"]),
    mobs:[mob],carcasses:[meat],species:{rat:{food:30},[type]:{name:type}},P:{type,x:100,y:100,r:20,level:1,hp:40,maxHp:100,hunger:20,sp:90,eatCD:0,groundZ:0,jumpHeight:0},
    denStores:{meat:0,berries:0,legacy:0},denMeatLots:[],denStash:0,nearDen:false,fail:false,
-   window:{WildFloodRescue:{tryBegin:()=>false}},isControlBlocked:()=>false,tryReleaseCaveSeal:()=>false,markTerritory:()=>false,
+   window:{WildFloodRescue:{tryBegin:()=>false}},isControlBlocked:()=>false,pickWeaponScrap:()=>false,tryEastTrailSupplies:()=>false,tryReleaseCaveSeal:()=>false,markTerritory:()=>false,
    atDen:()=>w.nearDen,dist:(a,b)=>Math.hypot(a.x-b.x,a.y-b.y),lineBlocked:()=>false,isPlayerConcealed:()=>false,foodAtActorLevel:()=>true,
    clamp:(x,a,b)=>Math.max(a,Math.min(b,x)),denCapacity:()=>200,normalizeMeatLots:(lots)=>lots,
    foodName:()=>"肉",foodBalance:()=>({stash:1.5,satiety:1.5,healing:.5}),meatSizeName:()=>"中",carriedFoodBurden:()=>0,

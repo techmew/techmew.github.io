@@ -18,6 +18,10 @@ function record(kind,year,x,y){sightings.push({kind,year,x:Math.round(x),y:Math.
 function summon(x,y,year=50/3){if(!Number.isFinite(x)||!Number.isFinite(y))return false;
  ghost={x,y,originX:x,originY:y,t:0,stage:"wander",seed:Math.random()*6.28,fear:0,kind:["stalker","mimic","wraith"][Math.floor(Math.random()*3)],pulse:0};
  nextYear=Math.max(nextYear,year+eventDelay(6));save();return true}
+function wildTarget(m){
+ return m&&m.hp>0&&!m.dead&&!m.companion&&!m.ownedId&&!m.releasedId&&!m.wildReleaseId&&
+  !m.squadIndividualId&&!m.releasedIndividualId&&!m.bossIndividualId&&!m.strongBoss;
+}
 function tick(dt,w){
  if(!w||!w.P||w.mode!=="play"||!Number.isFinite(dt)||dt<=0)return;
  const {P,mobs}=w,year=Math.max(0,finite(w.worldYear??w.elapsed/120));
@@ -148,7 +152,7 @@ function tick(dt,w){
   }
   // A wraith haunts one ordinary wild animal. Owned/released individuals are protected.
   if(g.kind==="wraith"&&g.pulse<=0){
-   const candidates=(mobs||[]).filter(m=>m&&m.hp>0&&!m.dead&&!m.companion&&!m.ownedId&&!m.releasedId&&!m.wildReleaseId&&!m.strongBoss&&distance(m,g)<125);
+   const candidates=(mobs||[]).filter(m=>wildTarget(m)&&distance(m,g)<125);
    candidates.sort((a,b)=>distance(a,g)-distance(b,g));
    const victim=candidates[0];
    if(victim&&!w.lineBlocked?.(victim,g)){
@@ -183,7 +187,7 @@ function tick(dt,w){
   // while strong bosses and owned/released animals remain unaffected.
   if(g.kind==="mimic"&&g.stage==="manifest"&&g.pulse>0&&g.pulse<4.8){
    for(const m of mobs||[]){
-    if(!m||!Number.isFinite(m.x)||!Number.isFinite(m.y)||!(m.hp>0)||m.dead||m.companion||m.ownedId||m.releasedId||m.wildReleaseId||m.strongBoss)continue;
+    if(!wildTarget(m)||!Number.isFinite(m.x)||!Number.isFinite(m.y))continue;
     const d=distance(m,g);if(d>230||w.lineBlocked?.(m,g))continue;
     m.flee=Math.max(finite(m.flee),2.4);
     m.alert=Math.max(finite(m.alert),2.4);
@@ -194,7 +198,7 @@ function tick(dt,w){
   for(const m of mobs||[]){
    // Never override the movement of owned, permanently released, or boss animals.
    // Walls also block the panic stimulus, consistent with the possession rules.
-   if(!m||!Number.isFinite(m.x)||!Number.isFinite(m.y)||!(m.hp>0)||m.dead||m.companion||m.ownedId||m.releasedId||m.wildReleaseId||m.strongBoss||distance(m,g)>150||w.lineBlocked?.(m,g))continue;
+   if(!wildTarget(m)||!Number.isFinite(m.x)||!Number.isFinite(m.y)||distance(m,g)>150||w.lineBlocked?.(m,g))continue;
    const a=Math.atan2(m.y-g.y,m.x-g.x);
    m.flee=Math.max(finite(m.flee),1.6);m.alert=Math.max(finite(m.alert),1.5);
    m.lastX=g.x;m.lastY=g.y;m.wander=0;
@@ -272,7 +276,12 @@ function draw(ctx,project,w){
  }
  if(g.stage==="manifest"){
   ctx.globalAlpha=alpha;ctx.textAlign="center";ctx.font="bold 12px sans-serif";ctx.fillStyle="#effaff";
-  ctx.fillText(g.kind==="wraith"?"憑依霊":g.kind==="mimic"?"幻惑霊":"亡霊",0,-65+bob);
+  if(g.fear>0){
+   const progress=Math.min(1,g.fear/1.15);
+   ctx.fillStyle="#24313f";ctx.fillRect(-21,-83+bob,42,5);
+   ctx.fillStyle=progress>.7?"#ffb093":"#b9e6ff";ctx.fillRect(-21,-83+bob,42*progress,5);
+  }
+  ctx.fillStyle="#effaff";ctx.fillText(g.kind==="wraith"?"憑依霊":g.kind==="mimic"?"幻惑霊":"亡霊",0,-65+bob);
  }
  ctx.restore();
 }

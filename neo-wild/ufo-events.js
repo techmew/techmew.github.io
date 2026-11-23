@@ -6,8 +6,12 @@ let event=null, cooldown=0, history=[], traces=[], alienSites=[], encounterClock
 const MAX_HISTORY=80;
 const eraYear=y=>window.WildWorldClock?.eventYear?.(y)??y*3;
 const fleetChance=era=>era>=260?.82:era>=180?.56:era>=100?.30:0;
-const fleetEscorts=era=>era>=180?3:era>=100?2:0;
+const fleetEscorts=era=>era>=260?4:era>=180?3:era>=100?2:0;
 const fleetPace=era=>era>=260?2.5:era>=180?2:era>=100?1.5:1;
+function playerLockTime(event){
+ const active=1+(event.wingmen||[]).filter(wing=>!(wing.disabled>0)).length;
+ return active>=5?1:active>=3?2:3;
+}
 const wingmenForEra=era=>Array.from({length:fleetEscorts(era)},(_,i)=>{
  const n=fleetEscorts(era),angle=i*Math.PI*2/n+Math.PI/4;
  return {dx:Math.round(Math.cos(angle)*155),dy:Math.round(Math.sin(angle)*137),victim:null,beam:0,playerBeam:0,cooldown:0};
@@ -537,7 +541,7 @@ function tick(dt,world){
     if(inRange){
      wing.playerBeam=Math.min(5,(Number(wing.playerBeam)||0)+dt);
      wing.beam=0;wing.victim=null;
-     if(wing.playerBeam>=Math.max(1,3-Math.max(0,(e.wingmen?.length||0))*.5)&&beginLift(e,P,spot,true)){
+     if(wing.playerBeam>=playerLockTime(e)&&beginLift(e,P,spot,true)){
       wing.playerBeam=0;
       world.onPlayerAbductionStart?.();
       world.notify?.("UFO子機の吸引光線に捕まった！ 遮蔽物へ逃げろ");
@@ -626,8 +630,7 @@ function tick(dt,world){
     world.notify?.("UFOの重力光線！ 逃げないと吸い上げられる！");
     world.onEvent?.("ufo-player-harass",{year,x:P.x,y:P.y});
    }
-   const activeCraft=1+(Array.isArray(e.wingmen)?e.wingmen.filter(w=>(Number(w.disabled)||0)<=0).length:0);
-   const fullLock=activeCraft>=5?1:activeCraft>=3?2:3;
+   const fullLock=playerLockTime(e);
    if(e.beam>=fullLock&&beginLift(e,P,{x:e.x,y:e.y},true)){
     e.beam=0;
     world.onPlayerAbductionStart?.();
@@ -849,9 +852,23 @@ function draw(ctx,project,world){
  renderSaucer(ctx,p.x,p.y-110-skyDrop-(e.stage==="depart"?(e.departRise||0):0),41*(e.stage==="depart"?Math.max(.18,1-e.t*.29):1),e.t,"main");
  if(e.stage==="scan"&&(e.beam>0||e.npcBeam>0)){
   ctx.fillStyle=e.groupBeamStrength>1?"#ffbcee":"#fce6aa";
-   ctx.fillRect(p.x-37,p.y-150,74*Math.min(1,Math.max(e.beam/(Number(e.era)>=100?2.2:2.85),(e.npcBeam||0)/UFO_NPC_LOCK_TIME)),4);
+   ctx.fillRect(p.x-37,p.y-150,74*Math.min(1,Math.max(e.beam/playerLockTime(e),(e.npcBeam||0)/UFO_NPC_LOCK_TIME)),4);
    if(e.groupBeamStrength>1){ctx.font="bold 12px sans-serif";ctx.textAlign="center";
     ctx.fillText("編隊吸引 ×"+e.groupBeamStrength.toFixed(1),p.x,p.y-156);}
+ }
+ if(e.stage==="scan"&&world.P&&!e.lifts?.some(lift=>lift.player)){
+  const lock=Math.max(e.beam||0,...(e.wingmen||[]).map(w=>w.disabled>0?0:w.playerBeam||0));
+  if(lock>0){
+   const at=project(world.P.x,world.P.y);
+   if(at&&Number.isFinite(at.x)&&Number.isFinite(at.y)){
+    const progress=Math.min(1,lock/playerLockTime(e));
+    const y=at.y-40;
+    ctx.lineWidth=5;ctx.strokeStyle="#17232d";ctx.beginPath();
+    ctx.arc(at.x,y,12,0,Math.PI*2);ctx.stroke();
+    ctx.lineWidth=3;ctx.strokeStyle=progress>.7?"#ff846b":"#ffe8a2";ctx.beginPath();
+    ctx.arc(at.x,y,12,-Math.PI/2,-Math.PI/2+progress*Math.PI*2);ctx.stroke();
+   }
+  }
  }
  ctx.restore();
 }

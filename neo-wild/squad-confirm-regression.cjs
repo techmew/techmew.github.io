@@ -28,21 +28,23 @@ function element(tag,cl,value){return{tag,className:cl||"",textContent:value||""
  } }}
 const el=(...args)=>element(...args);
 const makeBtn=(label,handler,cl)=>{const node=el("button",cl,label);node.handler=handler;return node};
-function scenario(error){
+function scenario(error,refill=false){
+ const acquired=[];
  const body=el("div","squad-gacha-body"),root=el("section","squad-gacha"),info=el("p");
- let saved=0,updates=0,dispatched=0,savedRoster=[];
+ let saved=0,updates=0,dispatched=0,savedRoster=refill?[{id:"first",species:"cat"}]:[];
  const id="penguin-test-1";
  const chosen=[{id,species:"penguin",speciesName:"ペンギン",grade:"C",name:"ハルゾウ",
   iv:{hp:.67,attack:1.05,speed:.97,stamina:.92}}];
  const env={body,root,info,chosen,draw:{options:[{id}]},selected:id,
-  slotTarget:0,leader:null,refill:false,committing:false,activeConfirm:null,el,makeBtn,preview:()=>el("canvas","portrait"),
+  slotTarget:0,leader:null,refill,MAX_OWNED:3,$:()=>null,committing:false,activeConfirm:null,el,makeBtn,preview:()=>el("canvas","portrait"),
   OPERABLE:new Set(["penguin"]),nextSlot(){},confirmReset(){info.textContent="reset confirmation"},
-  updateHome(){updates++},window:{WildBestiary:{recordAcquired(){}},dispatchEvent(){dispatched++}},
-  Event:function(){},core:{load(){return{members:savedRoster}},newSquad(items){
+  updateHome(){updates++},window:{WildBestiary:{recordAcquired(species){acquired.push(species)}},dispatchEvent(){dispatched++}},
+  Event:function(){},CustomEvent:function(){},core:{fillVacancy(item){
+   saved++;if(error)throw Error(error);savedRoster.push(item);return {ok:true};},load(){return{members:savedRoster}},newSquad(items){
    saved++;if(error)throw Error(error);savedRoster=items;return{members:items};}}};
  new Function("env","with(env){"+src.slice(begin,end)+"finish();}")(env);
  const top=new Function("env","with(env){"+src.slice(head,headEnd)+"return close;}")(env);
- return {env,top,get saved(){return saved},get updates(){return updates},get dispatched(){return dispatched}};
+ return {env,top,acquired,get saved(){return saved},get updates(){return updates},get dispatched(){return dispatched}};
 }
 let a=scenario();ok(!!a.env.body.querySelector(".squad-gacha-actions .squad-adopt"),"bottom action");
 a.top.click();ok(a.saved===1&&a.env.root.hidden&&a.updates===1&&a.dispatched===1,"header commits roster");
@@ -55,4 +57,12 @@ reset.click();ok(a.env.info.textContent==="reset confirmation","reset never sile
 a=scenario("編成の保存を確認できません。端末の保存容量を確認してください");
 a.top.click();ok(!a.env.root.hidden&&a.env.info.textContent.includes("保存"),"visible save failure");
 ok(src.includes("if(!(Math.max(0,3-(rights?.initialGachaUsed||0))+(rights?.gachaTickets||0)))"),"checks credits before drawing");
+for(const refill of [false,true]){
+ const success=scenario(null,refill);
+ success.top.click();success.top.click();
+ assert.deepEqual(success.acquired,["penguin"]);
+ const failed=scenario("保存失敗",refill);
+ failed.top.click();
+ assert.deepEqual(failed.acquired,[]);
+}
 console.log("SQUAD CONFIRM PASS "+checks+" source-backed V8 DOM checks (not browser/Android)");

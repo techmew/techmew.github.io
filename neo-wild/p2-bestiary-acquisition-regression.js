@@ -31,6 +31,9 @@ b.recordKill("penguin");
 assert.strictEqual(JSON.parse(storage.getItem("wild-reclaim-bestiary-v1")).penguin,1);
 b=boot([]);
 for(const id of Object.keys(models))assert(b.isKnown(id),"acquired species lost on reload: "+id);
-assert(ui.includes('WildBestiary?.recordAcquired?.(chosen[0].species)'),"refill hook disconnected");
-assert(ui.includes('for(const member of chosen)window.WildBestiary?.recordAcquired?.(member.species)'),"new squad hook disconnected");
+const commit=ui.slice(ui.indexOf("const staged=chosen[0]"),ui.indexOf('new CustomEvent("wild-squad-refilled"'));
+for(const branch of ["core.fillVacancy(staged)","core.newSquad(chosen,leader)"]){
+ const registration=commit.indexOf("for(const member of chosen)window.WildBestiary?.recordAcquired?.(member.species)");
+ assert(commit.includes(branch)&&registration>commit.indexOf(branch),"registration follows "+branch);
+}
 console.log("PASS: bestiary four species, migration, gacha hooks, persistence, separate kill counts");

@@ -6735,7 +6735,7 @@ function getObjective(){
    if(gap>=limit||!foodAtActorLevel(food)||lineBlocked(P,food)||!routeClear(P,food,P.r))continue;
    limit=gap;nearest=food;
   }
-  if(nearest)return {x:nearest.x,y:nearest.y,label:foodName(nearest)+(limit<65?"｜○で食べる":"｜近づいて食べる")};
+  if(nearest)return {x:nearest.x,y:nearest.y,food:true,label:foodName(nearest)+(limit<65?"｜○で食べる":"｜近づいて食べる")};
  }
  // Eastern random starts need the real live P3 objective before tutorial
  // completion; keep the original western tutorial and title untouched.
@@ -9120,7 +9120,7 @@ function syncHUD(hour){
   const prefix=mission>=7?fieldQuestInfo().summary:aquatic?"水中探索":"東部遠征";
   const progress=aquatic?"水中補給 "+cleared+"/4":"東部踏破 "+cleared+"/8";
   $("survival-goal").textContent=prefix+"｜"+progress+
-   (objective?.eastTrail?"｜"+objective.label:aquatic&&cleared===4?"｜全水域踏破・次の補給は"+(Math.min(...eastWaterSupplyYears)+3)+"年目":"")+
+   ((objective?.eastTrail||objective?.food)?"｜"+objective.label:aquatic&&cleared===4?"｜全水域踏破・次の補給は"+(Math.min(...eastWaterSupplyYears)+3)+"年目":"")+
    (status?.dangerous?"｜"+status.message:"");
  }
 
@@ -10909,7 +10909,7 @@ function drawScene(){
  }
 
  if(mode!=="dying"){
-  window.WildUFO?.draw?.(ctx,project,{mode,
+  window.WildUFO?.draw?.(ctx,project,{mode,P,
    drawAbductee:(c,actor,sx,sy,scale,isPlayer)=>{
     const drawable=isPlayer?P:actor;
     if(!drawable||!Number.isFinite(sx)||!Number.isFinite(sy))return;

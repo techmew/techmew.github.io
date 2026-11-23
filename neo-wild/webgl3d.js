@@ -1796,10 +1796,10 @@ function animal(m,player,clock){
  for(const s of [-1,1])for(const k of [-1,1]){
   const front=k>0,lead=cat?(s<0?1:.60):fox?.9:large?.53:.65;
   const dx=k*r*.57+(front?(foreDrive(s,attackReach*lead)-attackPrep*.21)*r:(rushPose===4?-attackReach*r*(cat?.75:fox?.48:.28):0))+(k===s?1:-1)*gait*r*(cat?.34:fox?.34:wolf?.27:.22)+(chargePose&&front?-r*.15:0);
-  const dy=s*r*.45+(front&&cat?attackReach*s*r*.08:0);
+  const dy=s*r*(.45+crouch*.24)+(front&&cat?attackReach*s*r*.08:0);
   const bob=Math.max(0,gait*(k===s?1:-1))*r*.29*moving+(player&&m.jumpTime>0?r*.18:0)+(front&&kickPose>0?(s<0?1:.35)*r*.48*kickPose:0);
   const pawLift=front?foreDrive(s,attackReach)*r*(cat?.34:fox?.20:.13):(rushPose===4?attackReach*r*.27:0);
-  const legHeight=(fox?r*.51:cat?r*.45:rabbit?(front?r*.35:r*.46):r*.38)*(resting?.55:1)*(1-collapse*.68);
+  const legHeight=(fox?r*.51:cat?r*.45:rabbit?(front?r*.35:r*.46):r*.38)*(resting?.55:1)*(1-collapse*.68)*(1-crouch*.72);
   // Separate upper joints and moving paws replace stiff single-piece legs.
   const jointFlex=Math.max(0,Math.sin(phase+(front?s:-s)*.6))*r*.10*moving;
   ellipsoid(fx(dx*.78-k*r*.08,dy*.89),fy(dx*.78-k*r*.08,dy*.89),
