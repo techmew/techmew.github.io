@@ -2493,9 +2493,26 @@ function capturePodiumFromGPU(ctx,w,h,lowMemory=false){
   // WebGL readPixels is synchronous. Check the target framebuffer after
   // Three.js binds it, rather than sampling the default Android framebuffer.
   // A partial/unsupported target must not be accepted as a saved photograph.
-  renderer.readRenderTargetPixels(target,0,0,w,h,pixels);
-  const readError=gl.getError();
-  if(readError!==gl.NO_ERROR)throw Error('Podium GPU readback error '+readError);
+  // Android tile GPUs can reject a large read even when the real 3D podium
+  // rendered correctly. Retry bounded strips from the SAME render target.
+  let readError=gl.NO_ERROR,wholeReadOK=false;
+  try{
+   renderer.readRenderTargetPixels(target,0,0,w,h,pixels);
+   readError=gl.getError();
+   wholeReadOK=readError===gl.NO_ERROR;
+  }catch(error){console.warn('Full podium readback unavailable; trying strips',error)}
+  if(!wholeReadOK){
+   for(let n=0;n<8&&gl.getError()!==gl.NO_ERROR;n++){}
+   const stripRows=Math.max(1,Math.min(h,Math.floor(65536/Math.max(1,w*4))));
+   for(let y=0;y<h;y+=stripRows){
+    const rows=Math.min(stripRows,h-y);
+    const part=new Uint8Array(w*rows*4);
+    renderer.readRenderTargetPixels(target,0,y,w,rows,part);
+    readError=gl.getError();
+    if(readError!==gl.NO_ERROR)throw Error('Podium strip readback error '+readError+' at '+y);
+    pixels.set(part,y*w*4);
+   }
+  }
   // Reject cleared / partial readback before copying or encoding it.
   // A coloured runner or animal can have almost uniform luminance. Reject
   // truly blank GPU readbacks using RGB range as well as brightness, matching
