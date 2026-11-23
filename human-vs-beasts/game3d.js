@@ -3819,8 +3819,23 @@ function renderCeremonyFrame(){
  if(ceremonyStage.photoCaptured){
   const photo=$('resultPhoto'),view=$('result3DWindow');
   const snapshot=view?.querySelector('canvas[data-podium-snapshot]');
-  if((photo&&!photo.hidden&&photo.naturalWidth>0)||
-     (view&&!view.hidden&&snapshot&&snapshot.width>0&&snapshot.height>0))return;
+  const photoVisible=photo&&!photo.hidden&&photo.naturalWidth>0&&photo.naturalHeight>0;
+  const canvasVisible=view&&!view.hidden&&snapshot&&snapshot.width>0&&snapshot.height>0;
+  if(photoVisible||canvasVisible)return;
+  // Android may evict an IMG or detach the snapshot after returning from Share.
+  // Recover already-validated 3D pixels before asking the GPU to recapture.
+  if(racePicture?.width>0&&racePicture?.height>0){
+   try{if(showCapturedPodiumCanvas(racePicture))return}
+   catch(error){console.warn('Podium snapshot restore failed',error)}
+  }
+  // Without resetting this flag, the capture retry path is never reached
+  // and the result remains an empty grey canvas indefinitely.
+  ceremonyStage.photoCaptured=false;
+  podiumRetryAttempts=0;
+  podiumRetryFrame=0;
+  $('resultPhoto').hidden=true;
+  if(view)view.hidden=false;
+  $('shareHelp').textContent='3D表彰台の表示を復旧しています。';
  }
  try{
   renderer.setRenderTarget(null);
