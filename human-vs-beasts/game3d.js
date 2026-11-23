@@ -2594,8 +2594,11 @@ function captureCeremonyPhoto(){
    console.warn('Podium photo deferred: WebGL context lost');
    return false;
   }
-  maxTexture=gl.getParameter(gl.MAX_TEXTURE_SIZE)||2048;
-  maxRenderbuffer=gl.getParameter(gl.MAX_RENDERBUFFER_SIZE)||2048;
+  // Broken Android WebViews sometimes return zero, NaN or implausible limits.
+  // Never allocate an oversized framebuffer based on an invalid capability.
+  const safeLimit=value=>Number.isFinite(value)&&value>=64?Math.floor(value):512;
+  maxTexture=safeLimit(gl.getParameter(gl.MAX_TEXTURE_SIZE));
+  maxRenderbuffer=safeLimit(gl.getParameter(gl.MAX_RENDERBUFFER_SIZE));
  }catch(error){
   // Some Android WebViews reject capability queries even with a usable
   // WebGL context. Attempt a conservative real-3D framebuffer instead of
@@ -2604,8 +2607,10 @@ function captureCeremonyPhoto(){
   maxTexture=512;
   maxRenderbuffer=512;
  }
- const maxWidth=Math.max(1,Math.min(maxTexture,maxRenderbuffer,
-  Math.floor(Math.min(maxTexture,maxRenderbuffer)*16/9)));
+ // A 16:9 target must fit BOTH the texture width and framebuffer height.
+ // Preserve the full-size portrait where possible; avoid impossible GPU sizes.
+ const maxWidth=Math.max(16,Math.floor(Math.min(maxTexture,maxRenderbuffer,
+  maxTexture*16/9,maxRenderbuffer*16/9)/16)*16);
  const widths=(mobile?[640,512,384,256]:[960,768,576,384])
   .filter(width=>width<=maxWidth);
  // A device below the standard capture size still gets a real 3D photo.
