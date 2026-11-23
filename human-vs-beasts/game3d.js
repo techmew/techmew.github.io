@@ -3162,7 +3162,7 @@ function rivalStridePace(kind,phase,distance){
 // Limit visible-frame catch-up to 250ms to prevent a stalled Android WebView
 // from advancing the rival through a large portion of the race at once.
 function updateRace(dt){
- if(!race||!Number.isFinite(dt)||dt<=0||document.hidden)return;
+ if(!race||!Number.isFinite(dt)||dt<=0||document.hidden||race.inputSuspended)return;
  // A resumed WebView may deliver one stale animation delta. Discard it
  // completely rather than gifting the rival 250ms while the runner is stopped.
  if(race.skipResumeFrame){race.skipResumeFrame=false;return;}
@@ -3391,9 +3391,11 @@ function releaseAllFootPointers(){
  }
 }
 document.addEventListener('visibilitychange',()=>{
- if(document.hidden){releaseAllFootPointers();if(race)race.skipResumeFrame=true;}
+ if(document.hidden){releaseAllFootPointers();if(race){race.skipResumeFrame=true;race.inputSuspended=true;}}
+ else if(document.hasFocus()){if(race){race.inputSuspended=false;race.skipResumeFrame=true;}}
 });
-window.addEventListener('blur',()=>{releaseAllFootPointers();if(race)race.skipResumeFrame=true;});
+window.addEventListener('blur',()=>{releaseAllFootPointers();if(race){race.skipResumeFrame=true;race.inputSuspended=true;}});
+window.addEventListener('focus',()=>{if(race&&!document.hidden){race.inputSuspended=false;race.skipResumeFrame=true;}});
 
 for(const [side,id] of [['L','leftTap'],['R','rightTap']]){
  const el=$(id);
