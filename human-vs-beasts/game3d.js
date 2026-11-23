@@ -3913,10 +3913,16 @@ function frame(){requestAnimationFrame(frame);
  // Visual animations use actual runner and opponent speeds
  const hspeed=mode==='race'&&race?.phase==='running'&&race.hFinish===null?(race.humanV||0):0;
  const visualSky=mode==='race'&&isSkyRunner(animals[race?.opponentIndex]?.kind)&&(race?.phase==='pegasusExit'||race?.eFinish!==null);
- const espeed=visualSky?(race.pegasusFlightSpeed||22):mode==='race'&&race?.phase==='running'&&race.eFinish===null?(race.enemyV||0):mode==='beasts'&&isSkyRunner(animals[save.chosen]?.kind)?6:0;
+ // Every animal performs its actual signature gait in the collection preview.
+// Previously only Pegasus/unicorn moved; 51 other models were frozen.
+// A moderate preview speed keeps heavy beasts weighty and small beasts lively.
+ const previewKind=animals[save.chosen]?.kind;
+ const previewGait=GAIT_MAP[previewKind];
+ const previewSpeed=mode==='beasts'?(previewGait==='heavyTrot'||previewGait==='giantBiped'||previewGait==='giantQuad'?5.4:previewGait==='kangarooHop'||previewGait==='bound'||previewGait==='pronk'?8.2:previewGait==='mechanicalRun'?6.5:10):0;
+ const espeed=visualSky?(race.pegasusFlightSpeed||22):mode==='race'&&race?.phase==='running'&&race.eFinish===null?(race.enemyV||0):previewSpeed;
  if(hspeed>.13)humanGait+=dt*(6.8+clamp(hspeed/8,0,1.7)*4.3);if(espeed>.13)beastGait+=dt*animalGaitRate(animals[Number.isInteger(race?.opponentIndex)?race.opponentIndex:save.chosen].kind,espeed);human.animate(humanGait,hspeed,mode==='race'?race.stamina:1,mode==='race'?race.legTaps:null,mode==='race'?race.time:0,dt);
  
- const hasLanded=opponent.animate(beastGait,espeed,mode==='beasts'?(animals[save.chosen]?.kind==='unicorn'?0:40):visualSky?(race.pegasusBeyond??race.enemyD):race?.enemyD||0);
+ const hasLanded=opponent.animate(beastGait,espeed,mode==='beasts'?0:visualSky?(race.pegasusBeyond??race.enemyD):race?.enemyD||0);
  if(hasLanded&&mode==='race'&&race?.phase==='running'&&race.eFinish===null&&espeed>2){
   const kind=animals[Number.isInteger(race?.opponentIndex)?race.opponentIndex:save.chosen].kind,gait=GAIT_MAP[kind];
   const gap=['heavyTrot','heavyBiped','mechanicalRun'].includes(gait)?.22:gait==='kangarooHop'||gait==='bound'?.26:.13;
@@ -3928,7 +3934,10 @@ function frame(){requestAnimationFrame(frame);
     kickDust(race.enemyLateral+.36,race.enemyD-.30,espeed);
   }
  }
- if(mode!=='race'){human.root.position.z=0;opponent.root.position.z=0;opponent.root.position.y=.13;opponent.root.visible=true;human.root.rotation.y=(mode==='custom')?Math.sin(sceneTime*.3)*.03:0;opponent.root.rotation.y=0}
+ if(mode!=='race'){human.root.position.z=0;opponent.root.position.z=0;opponent.root.position.y=.13;opponent.root.visible=true;human.root.rotation.y=(mode==='custom')?Math.sin(sceneTime*.3)*.03:0;
+  // A slight turn in the collection makes leg/wing movement readable in 3D,
+  // without moving the model out of the selection camera.
+  opponent.root.rotation.y=mode==='beasts'?.14*Math.sin(sceneTime*.72):0}
  dust.forEach(x=>{if(x.life>0){x.life-=dt;x.mesh.scale.multiplyScalar(1+dt*1.55);x.mesh.position.y+=dt*.16;x.mesh.material.opacity=Math.max(0,.20*x.life/x.max);if(x.life<=0)x.mesh.visible=false}});
  scuffs.forEach(x=>{if(x.life>0){x.life-=dt;x.mesh.material.opacity=Math.max(0,.13*x.life/x.max);if(x.life<=0)x.mesh.visible=false}});
  adaptQuality(dt);updateCam(dt);sun.position.z=(mode==='race'?race.humanD:0)+24;sun.target.position.z=mode==='race'?race.humanD:0;sun.target.updateMatrixWorld();
