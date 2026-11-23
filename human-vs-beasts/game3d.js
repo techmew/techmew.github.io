@@ -176,7 +176,24 @@ const defaultAvatar={
  sleeveLength:45,neckline:50,topPattern:0,pantsLength:65,sole:0,shoeSize:50,wristband:0
 };
 const defaultSave={money:170,stats:{speed:2,power:1,stamina:1,technique:1},best:null,won:[],chosen:0,avatar:defaultAvatar,races:0,runnerName:'ランナー',bestByBeast:{}};
-let save=(()=>{try{const v=JSON.parse(localStorage.getItem('animal100m_v4'));if(v&&typeof v==='object')return {...defaultSave,...v,stats:{...defaultSave.stats,...v.stats},avatar:{...defaultAvatar,...v.avatar},won:Array.isArray(v.won)?v.won:[],bestByBeast:v.bestByBeast||{}}}catch(e){}return JSON.parse(JSON.stringify(defaultSave))})();
+// Recover malformed/partial saves without losing valid career progress.
+const plainObject=v=>v!==null&&typeof v==='object'&&!Array.isArray(v);
+const finiteSaveNumber=(v,fallback,min=0,max=1e9)=>typeof v==='number'&&Number.isFinite(v)?clamp(v,min,max):fallback;
+function restoreCareer(v){
+ if(!plainObject(v))return JSON.parse(JSON.stringify(defaultSave));
+ const stats=plainObject(v.stats)?v.stats:{},avatar=plainObject(v.avatar)?v.avatar:{};
+ const restored={...defaultSave,...v};
+ restored.stats=Object.fromEntries(Object.entries(defaultSave.stats).map(([k,n])=>[k,finiteSaveNumber(stats[k],n,0,10000)]));
+ restored.avatar=Object.fromEntries(Object.entries(defaultAvatar).map(([k,n])=>[k,finiteSaveNumber(avatar[k],n,0,100)]));
+ restored.money=finiteSaveNumber(v.money,defaultSave.money,0,1e9);
+ restored.races=finiteSaveNumber(v.races,0,0,1e7);
+ restored.chosen=finiteSaveNumber(v.chosen,0,0,animals.length-1);
+ restored.won=Array.isArray(v.won)?[...new Set(v.won.filter(id=>typeof id==='string'&&animals.some(a=>a.id===id)))]:[];
+ restored.bestByBeast=plainObject(v.bestByBeast)?Object.fromEntries(Object.entries(v.bestByBeast).filter(([id,time])=>animals.some(a=>a.id===id)&&typeof time==='number'&&Number.isFinite(time)&&time>0)):{};
+ restored.runnerName=typeof v.runnerName==='string'?v.runnerName.slice(0,40):defaultSave.runnerName;
+ return restored;
+}
+let save=(()=>{try{return restoreCareer(JSON.parse(localStorage.getItem('animal100m_v4')))}catch(e){return restoreCareer(null)}})();
 let debugMode=false;
 // Debug runs operate on a temporary in-memory save and never rewrite the real career.
 const store=()=>{if(debugMode)return;try{localStorage.setItem('animal100m_v4',JSON.stringify(save))}catch(e){}};
