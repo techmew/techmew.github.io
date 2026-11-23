@@ -3161,7 +3161,7 @@ function rivalStridePace(kind,phase,distance){
 // Limit visible-frame catch-up to 250ms to prevent a stalled Android WebView
 // from advancing the rival through a large portion of the race at once.
 function updateRace(dt){
- if(!race||!Number.isFinite(dt)||dt<=0||document.hidden||race.inputSuspended)return;
+ if(!race||!Number.isFinite(dt)||dt<=0||document.hidden||race.inputSuspended||webglUnavailable)return;
  // A resumed WebView may deliver one stale animation delta. Discard it
  // completely rather than gifting the rival 250ms while the runner is stopped.
  if(race.skipResumeFrame){race.skipResumeFrame=false;return;}
@@ -3251,7 +3251,7 @@ function updateRaceStep(dt){const r=race;if(!r)return;if(r.phase==='countdown'){
   }
  /* Rival dust is generated only by actual animated foot contact in frame(). */
  if(noticeTime>0){noticeTime-=dtSafe;if(noticeTime<=0)$('raceMsg').style.display='none'}
- if(r.hFinish===null&&r.time>35){r.hFinish=Infinity;r.dnf=true;r.humanV=0;r.drive=0;}// The player's finish is decisive: do not keep the race running while the rival completes 100m.
+ if(r.hFinish===null&&r.time>=35){r.hFinish=Infinity;r.dnf=true;r.humanV=0;r.drive=0;r.combo=0;r.burstLeft=0;}// The player's finish is decisive: do not keep the race running while the rival completes 100m.
  // If the rival finished first, the player can continue until finishing or the 35s limit.
  if(r.hFinish!==null){finishRace();return}lastHUD+=dtSafe;if(lastHUD>.055){lastHUD=0;updateHud()}}
 function updateHud(force=false){if(!race)return;const r=race;$('dist').textContent=r.humanD.toFixed(1);$('enemyDist').textContent=r.enemyD.toFixed(1);$('timer').textContent=r.time.toFixed(2);$('speedDisplay').innerHTML=(r.humanV*3.6).toFixed(1)+' <small>km/h</small>';$('comboDisplay').textContent=r.combo>=2?'交互 '+r.combo+'連続':r.taps===0?'READY':r.time-r.lastTap>.7?'—':r.lastFoot==='L'?'L':'R';$('humanProgress').style.width=r.humanD+'%';$('enemyProgress').style.width=r.enemyD+'%';$('staminaBar').style.width=r.stamina*100+'%';$('burstPercent').textContent=Math.round(r.burstCharge);$('burstBar').style.width=r.burstCharge+'%';const diff=r.humanD-r.enemyD;$('diffLabel').textContent=diff>=0?'+'+diff.toFixed(1)+'m':'−'+Math.abs(diff).toFixed(1)+'m';$('diffLabel').style.color=diff>=0?'#dcff62':'#ffb678';$('burstTxt').textContent=r.burstLeft>0?'スパート中':r.burstCharge>=99?'使用できます':'ためる'}
@@ -3838,7 +3838,7 @@ function frame(){requestAnimationFrame(frame);
  // Keep visual animation capped at 65ms, but advance race physics using the
  // actual elapsed frame time in bounded substeps. Low-FPS Android devices
  // must not make the 100m clock and countdown run in slow motion.
- const elapsed=clock.getDelta(),dt=Math.min(.065,elapsed);
+ const elapsed=clock.getDelta(),dt=Math.min(.065,Math.max(0,Number.isFinite(elapsed)?elapsed:0));
  // Pause WebGL and post-finish flight when Android WebView is inactive.
  // Consume the stale frame delta without advancing race or animation.
  if(document.hidden||(mode==='race'&&race?.inputSuspended)){
