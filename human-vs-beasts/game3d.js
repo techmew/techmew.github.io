@@ -2582,17 +2582,21 @@ function podiumPixelsValid(ctx,w,h,rgbaPixels=null){
   const a=pixelIndex(x,y),b=pixelIndex(nx,ny);
   return Math.max(Math.abs(data[a]-data[b]),Math.abs(data[a+1]-data[b+1]),Math.abs(data[a+2]-data[b+2]));
  };
- let total=0,bright=0,dark=0,min=255,max=0;
+ // Low-memory Android captures can contain valid subjects without both
+ // near-white and near-black pixels. Check RGB range plus subject-region edges.
+ let total=0,min=255,max=0,minR=255,maxR=0,minG=255,maxG=0,minB=255,maxB=0;
  const step=Math.max(2,Math.floor(Math.min(w,h)/45));
  for(let y=0;y<h;y+=step)for(let x=0;x<w;x+=step){
   const p=(y*w+x)*4;
   if(data[p+3]<245)continue;
   const l=luminance(x,y);total++;
   min=Math.min(min,l);max=Math.max(max,l);
-  if(l>160)bright++;
-  if(l<85)dark++;
+  minR=Math.min(minR,data[p]);maxR=Math.max(maxR,data[p]);
+  minG=Math.min(minG,data[p+1]);maxG=Math.max(maxG,data[p+1]);
+  minB=Math.min(minB,data[p+2]);maxB=Math.max(maxB,data[p+2]);
  }
- if(!(total>100&&max-min>75&&bright>total*.008&&dark>total*.008))return false;
+ const colourRange=Math.max(maxR-minR,maxG-minG,maxB-minB);
+ if(!(total>100&&Math.max(max-min,colourRange)>45))return false;
  // Compare local contrast in the two expected character positions.
  // Large 3D models and podiums must create edges across these regions.
  // The left and center crops exclude the decorative stadium stands.
