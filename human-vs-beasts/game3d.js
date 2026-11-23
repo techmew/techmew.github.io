@@ -2702,9 +2702,13 @@ function captureCeremonyPhoto(){
      const cropH=Math.max(1,Math.floor(Math.min(ph,pw/aspect)));
      if(cropW<16||cropH<9)throw Error('Default framebuffer too small');
      const rx=Math.floor((pw-cropW)/2),ry=Math.floor((ph-cropH)/2);
+     // Keep strip allocations bounded even on high-DPI Android displays.
+     // Use the shared context fallback: WebView can THROW for 2D options.
+     // Capture at native GPU resolution, then downsample into the final
+     // real-3D photograph without ever allocating a full-size duplicate.
      const stripH=Math.max(1,Math.min(cropH,Math.floor((mobile?640*360:960*540)/cropW)));
      const scan=document.createElement('canvas');scan.width=cropW;scan.height=stripH;
-     const scanCtx=scan.getContext('2d',{alpha:false,willReadFrequently:true})||scan.getContext('2d');
+     const scanCtx=podiumCanvas2D(scan);
      if(!scanCtx)throw Error('Readback canvas unavailable');
      const raw=new Uint8Array(cropW*stripH*4);
      const stride=cropW*4,swap=new Uint8Array(stride);
@@ -2720,6 +2724,9 @@ function captureCeremonyPhoto(){
        raw.copyWithin(top,bottom,bottom+stride);
        raw.set(swap,bottom);
       }
+      // Some WebViews reject createImageData after a GPU memory warning.
+      // A failed strip must not leave partially copied pixels classified as
+      // a valid photo; the outer catch clears them before the next fallback.
       const frame=scanCtx.createImageData(cropW,rows);
       frame.data.set(raw.subarray(0,rows*stride));
       scanCtx.putImageData(frame,0,0);
