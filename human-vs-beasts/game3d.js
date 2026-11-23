@@ -3401,6 +3401,14 @@ for(const [side,id] of [['L','leftTap'],['R','rightTap']]){
  el.addEventListener('pointerdown',e=>{
   e.preventDefault();
   if(heldFootPointers.has(e.pointerId))return;
+  // Android WebView may restore visibility without firing window focus.
+  // A deliberate new foot press resumes input; it never grants free movement.
+  if(race?.inputSuspended&&!document.hidden&&!webglUnavailable){
+   race.inputSuspended=false;
+   race.skipResumeFrame=true;
+   race.lastTap=-999;
+   race.lastAcceptedTap=-999;
+  }
   const overlap=Array.from(heldFootPointers.values()).some(v=>v!==side);
   heldFootPointers.set(e.pointerId,side);
   try{el.setPointerCapture(e.pointerId)}catch(_){}
