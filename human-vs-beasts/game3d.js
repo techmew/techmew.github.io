@@ -2757,8 +2757,17 @@ function captureCeremonyPhoto(){
       // Some WebViews reject createImageData after a GPU memory warning.
       // A failed strip must not leave partially copied pixels classified as
       // a valid photo; the outer catch clears them before the next fallback.
-      const frame=scanCtx.createImageData(cropW,rows);
-      frame.data.set(raw.subarray(0,rows*stride));
+      // Android WebView may reject createImageData while the WebGL readback
+      // itself is valid. Try the independent ImageData constructor before
+      // abandoning the real 3D framebuffer and showing a blank portrait.
+      let frame;
+      try{
+       frame=scanCtx.createImageData(cropW,rows);
+       frame.data.set(raw.subarray(0,rows*stride));
+      }catch(imageDataError){
+       if(typeof ImageData!=='function')throw imageDataError;
+       frame=new ImageData(new Uint8ClampedArray(raw.subarray(0,rows*stride)),cropW,rows);
+      }
       scanCtx.putImageData(frame,0,0);
       // GPU rows run bottom-up. Place each flipped strip at its correct
       // vertical location, preserving the entire podium and both models.
