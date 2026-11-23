@@ -2609,12 +2609,20 @@ function captureCeremonyPhoto(){
  }
  // A 16:9 target must fit BOTH the texture width and framebuffer height.
  // Preserve the full-size portrait where possible; avoid impossible GPU sizes.
- const maxWidth=Math.max(16,Math.floor(Math.min(maxTexture,maxRenderbuffer,
-  maxTexture*16/9,maxRenderbuffer*16/9)/16)*16);
+ // A 16:9 colour attachment is width x height; the depth attachment
+ // has the same dimensions. Respect each GPU axis separately rather than
+ // incorrectly capping the width at the renderbuffer's height limit.
+ // In particular, a 512px depth limit can still support a 640x360 portrait.
+ const maxWidth=Math.floor(Math.min(maxTexture,maxRenderbuffer,
+  maxTexture*16/9,maxRenderbuffer*16/9)/16)*16;
+ if(maxWidth<64){
+  console.warn('Podium GPU limits too small for a verified 3D photograph');
+  return false;
+ }
  const widths=(mobile?[640,512,384,256]:[960,768,576,384])
   .filter(width=>width<=maxWidth);
- // A device below the standard capture size still gets a real 3D photo.
- if(!widths.length)widths.push(Math.max(64,Math.floor(maxWidth/16)*16));
+ // Never allocate a fallback larger than the reported GPU limit.
+ if(!widths.length)widths.push(Math.floor(maxWidth/16)*16);
  const w=widths[Math.min(podiumRetryAttempts,widths.length-1)],h=Math.round(w*9/16);
  const photo=document.createElement('canvas');photo.width=w;photo.height=h;
  try{
