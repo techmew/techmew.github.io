@@ -9,7 +9,7 @@ const fleetChance=era=>era>=260?.82:era>=180?.56:era>=100?.30:0;
 const fleetEscorts=era=>era>=260?4:era>=180?3:era>=100?2:0;
 const fleetPace=era=>era>=260?2.5:era>=180?2:era>=100?1.5:1;
 function playerLockTime(event){
- const active=1+(event.wingmen||[]).filter(wing=>!(wing.disabled>0)).length;
+ const active=event.playerBeamCount||0;
  return active>=5?1:active>=3?2:3;
 }
 const wingmenForEra=era=>Array.from({length:fleetEscorts(era)},(_,i)=>{
@@ -534,11 +534,17 @@ function tick(dt,world){
   if(!e.lifts.length)moveEscorts(e,world,nearWildlife,dt);
    // Every physical escort has an independent, cover-gated player tractor beam.
    // Capture is serialized by beginLift to protect the permanent-death flow.
-   if(Array.isArray(e.wingmen))for(const wing of e.wingmen){
+  const motherInRange=playerSeen&&!e.lifts.length&&distance(P,e)<playerBeamRange&&!safeBlocked(world,P,e);
+  e.playerBeamCount=motherInRange?1:0;
+  for(const wing of e.wingmen||[]){
+   const spot=escortPosition(e,wing);
+   wing.trackingPlayer=presentEra>=100&&!(wing.disabled>0)&&!e.lifts.length&&P.hp>0&&!P._ufoAbducting&&!concealed&&
+    distance(P,spot)<playerBeamRange&&!safeBlocked(world,P,spot);
+   if(wing.trackingPlayer)e.playerBeamCount++;
+  }
+  for(const wing of e.wingmen||[]){
     const spot=escortPosition(e,wing);
-    const inRange=presentEra>=100&&(Number(wing.disabled)||0)<=0&&!e.lifts.length&&P.hp>0&&!P._ufoAbducting&&!concealed&&
-      distance(P,spot)<playerBeamRange&&!safeBlocked(world,P,spot);
-    if(inRange){
+    if(wing.trackingPlayer&&!e.lifts.length){
      wing.playerBeam=Math.min(5,(Number(wing.playerBeam)||0)+dt);
      wing.beam=0;wing.victim=null;
      if(wing.playerBeam>=playerLockTime(e)&&beginLift(e,P,spot,true)){

@@ -57,10 +57,14 @@ for(const o of [{hidden:true},{blocked:true},{hideAt:83}]){
  assert(!sample.events.includes("capture"),"Cover must interrupt UFO's tractor-beam lock");
 }
 const fleet=run("ufo-events",{seconds:0});
-for(const [era,formation,disabled,seconds] of [[0,false,0,3],[100,true,0,2],[260,true,0,1],[260,true,1,2],[260,true,3,3]]){
+for(const [era,formation,disabled,seconds,distant=0] of [[0,false,0,3],[100,true,0,2],[260,true,0,1],[260,true,1,2],[260,true,3,3],[260,true,0,3,3]]){
  const event=fleet.api.summon(3000,3000,formation,era);
- Object.assign(event,{stage:"scan",beam:.75});
+ Object.assign(event,{stage:"scan",t:6});
+ for(const wing of event.wingmen)Object.assign(wing,{x:3000,y:3000});
+ for(const wing of event.wingmen.slice(0,distant))wing.x=3600;
  for(const wing of event.wingmen.slice(0,disabled))wing.disabled=1;
+ fleet.api.tick(.01,{P:fleet.P,mobs:[],elapsed:11000,mode:"play",notify(){}});
+ event.beam=.75;
  const arcs=[];
  const ctx=new Proxy({arc(x,y,r,start,end){if(x===3000&&y===2960&&r===12)arcs.push(end-start);}},
   {get:(obj,key)=>obj[key]??(key==="createLinearGradient"||key==="createRadialGradient"?()=>({addColorStop(){}}):()=>{})});
