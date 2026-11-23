@@ -461,6 +461,13 @@ function draw2D(ctx,visible){
   ctx.fillStyle="#b3a17c";for(let x=gx-76;x<gx+79;x+=16)ctx.fillRect(x,gy-154,11,308);
   ctx.strokeStyle="#d1c4a0";ctx.lineWidth=6;
   for(const side of [-1,1]){ctx.beginPath();ctx.moveTo(gx-85,gy+side*164);ctx.lineTo(gx+85,gy+side*164);ctx.stroke();}
+  for(const side of [-1,1]){
+   const y=gy+side*164;
+   ctx.fillStyle="#79624c";
+   for(const dx of [-74,74])ctx.fillRect(gx+dx-5,y-31,10,34);
+   ctx.beginPath();ctx.moveTo(gx-74,y-30);ctx.quadraticCurveTo(gx,y+5,gx+74,y-30);
+   ctx.strokeStyle="#c1ab85";ctx.lineWidth=3;ctx.stroke();
+  }
   // Cave floor and stone flanks use the same centerline as blocked().
   ctx.fillStyle="#343c39";ctx.beginPath();
   for(let x=CAVE_START;x<=CAVE_END;x+=20){const y=center(x)-CAVE_HALF;if(x===CAVE_START)ctx.moveTo(x,y);else ctx.lineTo(x,y);}
@@ -547,6 +554,11 @@ function draw2D(ctx,visible){
   for(const p of [...alpineRocks,...caveStones]){if(!visible(p.x,p.y,90))continue;
    ctx.fillStyle="#737b75";ctx.beginPath();ctx.ellipse(p.x,p.y,p.r,p.r*.72,0,0,Math.PI*2);ctx.fill();
    ctx.strokeStyle="#a3a89d";ctx.lineWidth=2;ctx.stroke();
+   if(p.x>=SUMMIT_START&&p.x<CAVE_START){
+    ctx.fillStyle="#dae7e1";ctx.beginPath();ctx.moveTo(p.x-p.r*.86,p.y);
+    ctx.lineTo(p.x-p.r*.25,p.y-p.r*.68);ctx.lineTo(p.x+p.r*.66,p.y-p.r*.27);
+    ctx.lineTo(p.x+p.r*.19,p.y+p.r*.09);ctx.lineTo(p.x-p.r*.13,p.y-p.r*.08);ctx.fill();
+   }
   }
   for(const t of alpinePines){if(!visible(t.x,t.y,115))continue;
    ctx.fillStyle="#5b594a";ctx.fillRect(t.x-5,t.y-6,10,22);ctx.fillStyle="#365a50";

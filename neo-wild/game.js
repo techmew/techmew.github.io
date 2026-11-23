@@ -4238,17 +4238,18 @@ function combatMotion(type,step=1,ultimate=false){
  const seq=ATTACK_MOTION[type]||ATTACK_MOTION.cat;
  return ultimate?seq[5]:seq[Math.max(0,Math.min(4,(step|0)-1))];
 }
-function emitCombatFX(stage,type,kind,x,y,dir,power=1,step=0,bodyRadius=18){
+function emitCombatFX(stage,type,kind,x,y,dir,power=1,step=0,bodyRadius=18,groundZ=0){
  if(!Number.isFinite(x)||!Number.isFinite(y))return;
- const motion=stage==="stomp"?"foot":stage==="hit"?"contact":
+ const motion=stage==="stomp"?"foot":stage==="hit"?"contact":kind==="aerial"?"paw":
    combatMotion(type,step||1,stage==="special"||stage==="charge");
  const side=step===1?-1:step===2?1:step===4?-1:step===5?0:
    type==="zebra"&&motion==="hind"?-1:0;
  const life=stage==="charge"?.22:stage==="normal"?.25:stage==="hit"?.23:stage==="stomp"?.36:.49;
- combatFX.push({stage,type,kind,motion,x,y,dir:Number.isFinite(dir)?dir:0,
+ const surface=stage==="hit"?(groundZ>0?"stone":waterDepth(x,y)>0?"water":weather==="SNOW"||currentSnowpack()>.55?"snow":"dust"):null;
+ combatFX.push({stage,type,kind,motion,x,y,groundZ,surface,dir:Number.isFinite(dir)?dir:0,
   power:Math.max(.45,Math.min(1.6,power)),bodyRadius:Math.max(8,bodyRadius),
   // Keep the physical trail attached to the animal as it lunges or turns.
-  anchor:stage==="normal"||stage==="charge"||stage==="special"?P:null,
+  anchor:stage==="ready"||stage==="normal"||stage==="charge"||stage==="special"?P:null,
   side,step,time:0,last:life});
  if(combatFX.length>24)combatFX.splice(0,combatFX.length-24);
 }
@@ -4268,7 +4269,7 @@ function drawCombatFX(){
   const u=Math.max(0,Math.min(1,fx.time/fx.last)),fade=Math.pow(1-u,1.2);
   if(fade<=.02)continue;
   const r=fx.bodyRadius*Math.min(1.85,fx.power*(fx.stage==="special"?1.35:1));
-  const left=fx.side||1,front=fx.step===4?-.54:.65;
+  const left=fx.side||1,front=fx.motion==="hind"?-.54:.65;
   const actor=fx.anchor&&fx.anchor.hp>0?fx.anchor:fx;
   const angle=Number.isFinite(actor.dir)?actor.dir:fx.dir;
   const cosine=Math.cos(angle),sine=Math.sin(angle);
@@ -4277,7 +4278,7 @@ function drawCombatFX(){
    const p=project(x,y);
    if(!p||!Number.isFinite(p.x)||!Number.isFinite(p.y))return null;
    // Same terrain elevation + animation offset as the actual actor model.
-   const elevation=(window.WildMountain?.height?.(x,y)||0)+Math.max(0,Number(actor.groundZ)||0)+height;
+   const elevation=(window.WildMountain?.height?.(x,y)||0)+Math.max(0,Number(actor.groundZ)||0,Number(actor.jumpHeight)||0)+height;
    return {x:p.x,y:p.y-elevation*.93*zoom};
   }
   function trace(points,width,color,opacity=1){
@@ -4300,23 +4301,26 @@ function drawCombatFX(){
   const heavy=fx.stage==="special",normal=fx.stage==="normal";
   const width=heavy?6:normal?3.5:2.5;
   // Windup = brief limb recoil at the anatomical attachment point, NOT light rings.
-  if(fx.stage==="charge"){
-   const root=pt(r*.42,left*r*.34,r*.48),back=pt(r*.19,left*r*.46,r*.42);
+  if(fx.stage==="ready"&&!actor.pendingStrike)continue;
+  if(fx.stage==="charge"||fx.stage==="ready"){
+   const facing=fx.motion==="hind"?-1:1;
+   const root=pt(facing*r*.42,left*r*.34,r*.48),back=pt(facing*r*.19,left*r*.46,r*.42);
    trace([root,back],3,color,.45);
    continue;
   }
   if(fx.stage==="hit"){
-   // Contact-only dust / claw impact on the actual enemy position.
-   const p=pt(0,0),a=pt(-r*.19,-r*.10),b=pt(r*.17,r*.11);
-   if(fx.type==="elephant"||fx.type==="gorilla"){
-     oval(p,r*.34,r*.15,"#a79e8f",.72);
-     for(let k=-2;k<=2;k++)trace([pt(-r*.15,k*r*.12),pt(-r*.30,k*r*.16)],2.0,"#b6a28e",.65);
-    }else if(fx.type==="crocodile"){
-     for(let k=-2;k<=2;k++)trace([pt(-r*.18,k*r*.11),pt(r*.18,k*r*.17)],2.0,"#a4bfbb",.68);
-    }else if(fx.type==="rhino")trace([a,p,b],3.4,"#c6b8a8",.78);
-    else if(fx.type==="penguin")for(let k=-1;k<=1;k++)trace([pt(-r*.20,k*r*.19),pt(r*.20,k*r*.19)],2,"#d5d8c9",.67);
-    else trace([a,p,b],2.7,color,.60);
-   if(!["macaque","gorilla","elephant","crocodile","rhino","penguin"].includes(fx.type))oval(p,r*.20,r*.09,"#b3a28a",.53);
+   const water=fx.surface==="water",snow=fx.surface==="snow",guard=fx.kind==="guard";
+   const tint=guard?"#eee6c6":water?"#adede5":snow?"#f4fafb":"#c7a27e";
+   const spread=1-Math.pow(1-u,2);
+   if(water)oval(pt(0,0),r*(.32+spread),r*(.13+spread*.38),tint,.82);
+   for(let k=0;k<5;k++){
+    const ray=(k-2)*.53,travel=r*(.16+spread*(k%2?.78:1.18));
+    const lift=r*(.28+Math.sin(u*Math.PI)*(water?.91:snow?.70:.48));
+    const dx=Math.cos(ray)*travel,dy=Math.sin(ray)*travel;
+    trace([pt(dx*.73,dy*.73,lift),pt(dx,dy,lift+r*(guard?.22:.10))],
+     guard?2.8:water?2.2:3.1,tint,.9);
+   }
+   if(guard)curve(pt(0,-r*.44,r*.35),pt(-r*.35,0,r*.9),pt(0,r*.44,r*.35),3,tint,.9);
    continue;
   }
   if(fx.stage==="stomp"){
@@ -4342,7 +4346,7 @@ function drawCombatFX(){
     break;
    }
    case "paw":case "fist":case "hoof":case "foot":case "hind":{
-    const backwards=fx.motion==="hind"||fx.step===4;
+    const backwards=fx.motion==="hind";
     const start=backwards?-r*.54:baseF;
     const end=backwards?-r*.54-reach:tipF;
     const height=fx.motion==="fist"?r*.48:footHeight;
@@ -4820,12 +4824,12 @@ function instinct(){
  playEffect(spec.kind==="roar"?"howl":"attack",{volume:.2});
 }
 
-function combatAim(maxTurn=.56,maxRange=105){
+function combatAim(maxTurn=.56,maxRange=105,offset=0){
  let best=null,bestScore=Infinity,aim=P.dir;
  for(const m of mobs){
   if(m.hp<=0||m.companion||dist(P,m)>P.r+m.r+maxRange||lineBlocked(P,m))continue;
   const angle=Math.atan2(m.y-P.y,m.x-P.x);
-  const diff=Math.atan2(Math.sin(angle-P.dir),Math.cos(angle-P.dir));
+  const diff=Math.atan2(Math.sin(angle-P.dir-offset),Math.cos(angle-P.dir-offset));
   if(Math.abs(diff)>1.28)continue;
   const score=dist(P,m)+(huntTarget===m?-24:0)+Math.abs(diff)*28;
   if(score<bestScore){best=m;bestScore=score;aim=P.dir+clamp(diff,-maxTurn,maxTurn)}
@@ -5636,7 +5640,7 @@ function attack(){
  if(P.type==="giantTreeFrog"||P.type==="pacmanFrog")P.frogTonguePose=Math.max(P.frogTonguePose||0,step===5?.66:.48);
  if(P.type==="rhino")P.hornCharge=step===5?.47:.23;
  if(P.type==="badger"&&step===5)P.badgerDigPose=.65;
- emitCombatFX("normal",P.type,"melee",P.x,P.y,P.dir,step===5?1.3:1.0,step,P.r);
+ emitCombatFX("ready",P.type,"melee",P.x,P.y,P.dir,1,step,P.r);
  window.WildAudio?.playAnimal?.(P.type,{ultimate:false});P.rushActiveStep=step;P.rushQueued=false;
   P.atk=(P.type==="penguin"?.26:P.rate)*(step===5?1.15:step===4?1.08:1);P.rushWindow=P.atk+.45;
  P.windup=Math.min(step===5?.20:.15,P.rate*(step===5?.46:.38));P.pendingStrike=true;
@@ -5648,7 +5652,7 @@ function attack(){
   P.jumpDive=P.jumpTime>0;
   const concealed=(P.hidden&&P.revealTimer<=0)||(P.jumpDive&&P.jumpAmbush);
   if(P.jumpDive)P.windup=Math.max(P.windup,P.jumpTime);
- const target=combatAim(P.type==="cat"?.72:P.type==="wolf"?.32:P.type==="shoebill"?.30:P.type==="tibetanFox"?.72:.55,P.type==="shoebill"?145:105);
+ const target=combatAim(P.type==="cat"?.72:P.type==="wolf"?.32:P.type==="shoebill"?.30:P.type==="tibetanFox"?.72:.55,P.type==="shoebill"?145:105,!P.jumpDive&&combatMotion(P.type,step)==="hind"?Math.PI:0);
   ambushTarget=concealed&&target&&unawareOfPlayer(target)?target:null;
   P.ambushStrike=!!ambushTarget;
  if((P.type==="fox"||P.type==="tibetanFox")&&P.abilityTime>0&&target&&!P.jumpDive){
@@ -5715,19 +5719,38 @@ function resolveBoarDashImpact(x0,y0,x1,y1,isCharging){
  }
  return count;
 }
+function meleeContacts(aerialContact,motion){
+ const rear=motion==="hind"&&!P.jumpDive;
+ const precise=["beak","tongue","jaw"].includes(motion);
+ const facing=P.dir+(rear?Math.PI:0);
+ const contacts=[];
+ const wolfCharge=P.type==="wolf"&&P.chargeStrike;
+   const reach=(P.type==="wolf"?55:P.type==="cat"?39:P.type==="manul"?37:P.type==="tibetanFox"?57:P.type==="shoebill"?96:P.type==="giantTreeFrog"?89:P.type==="pacmanFrog"?50:P.type==="macaque"?68:P.type==="gorilla"?94:P.type==="crocodile"?100:P.type==="lion"?92:P.type==="elephant"?128:P.type==="penguin"?45:P.type==="rhino"?112:51)+(P.rushActiveStep===5?18:0)+(wolfCharge?34:0);
+  const arc=P.type==="wolf"?1.18:P.type==="cat"?.95:P.type==="shoebill"?.68:P.type==="giantTreeFrog"?.68:P.type==="pacmanFrog"?.80:P.type==="manul"?.91:P.type==="elephant"?1.25:P.type==="gorilla"?1.28:P.type==="crocodile"?.70:P.type==="rhino"?.72:P.type==="penguin"?.87:1.03;
+ for(const m of mobs){
+  if(m.hp<=0||m.companion)continue;
+  const d=dist(P,m);
+  if(d>=P.r+m.r+reach)continue;
+  const theta=d>.001?Math.atan2(m.y-P.y,m.x-P.x):facing;
+  const angle=Math.atan2(Math.sin(theta-facing),Math.cos(theta-facing));
+  const overlap=hitboxesOverlap(P,m,d);
+  if((rear||!overlap)&&Math.abs(angle)>=arc)continue;
+  const crowPreyDive=P.type==="crow"&&P.flying&&P.flightAltitude<=48&&["rat","rabbit"].includes(m.type)&&!m.strongBoss&&Math.abs((P.groundZ||0)-(m.groundZ||0))<22;
+  const diveContact=aerialContact===m&&P.jumpTime>0&&P.jumpDive&&Math.abs((P.groundZ||0)-(m.groundZ||0))<22;
+  if(!diveContact&&!crowPreyDive&&Math.abs((P.jumpHeight||0)-(m.groundZ||0))>=22)continue;
+  if(!(overlap&&P.groundZ>0&&P.groundZ===m.groundZ)&&lineBlocked(P,m))continue;
+  contacts.push({m,theta,crowPreyDive,gap:Math.max(0,d-m.r)});
+ }
+ if(!precise||contacts.length<2)return contacts;
+ return [contacts.find(c=>c.m===aerialContact)||contacts.reduce((a,b)=>a.gap<=b.gap?a:b)];
+}
 function resolveAttack(aerialContact=null){
  if(mode!=="play"||!P.pendingStrike)return;
  P.pendingStrike=false;P.swing=.18;let hit=0;const stealthHit=P.ambushStrike;P.ambushStrike=false;
- mobs.forEach(m=>{
-  if(m.hp<=0||m.companion)return;
-  const d=dist(P,m),overlap=hitboxesOverlap(P,m,d),theta=d>.001?Math.atan2(m.y-P.y,m.x-P.x):P.dir,angle=Math.atan2(Math.sin(theta-P.dir),Math.cos(theta-P.dir));
-  const wolfCharge=P.type==="wolf"&&P.chargeStrike;
-   const reach=(P.type==="wolf"?55:P.type==="cat"?39:P.type==="manul"?37:P.type==="tibetanFox"?57:P.type==="shoebill"?96:P.type==="giantTreeFrog"?89:P.type==="pacmanFrog"?50:P.type==="macaque"?68:P.type==="gorilla"?94:P.type==="crocodile"?100:P.type==="lion"?92:P.type==="elephant"?128:P.type==="penguin"?45:P.type==="rhino"?112:51)+(P.rushActiveStep===5?18:0)+(wolfCharge?34:0);
-  const arc=P.type==="wolf"?1.18:P.type==="cat"?.95:P.type==="shoebill"?.68:P.type==="giantTreeFrog"?.68:P.type==="pacmanFrog"?.80:P.type==="manul"?.91:P.type==="elephant"?1.25:P.type==="gorilla"?1.28:P.type==="crocodile"?.70:P.type==="rhino"?.72:P.type==="penguin"?.87:1.03;
-  const crowPreyDive=P.type==="crow"&&P.flying&&P.flightAltitude<=48&&["rat","rabbit"].includes(m.type)&&!m.strongBoss&&Math.abs((P.groundZ||0)-(m.groundZ||0))<22;
-  const diveContact=aerialContact===m&&P.jumpTime>0&&P.jumpDive&&Math.abs((P.groundZ||0)-(m.groundZ||0))<22;
-  if(d<P.r+m.r+reach&&(overlap||Math.abs(angle)<arc)&&
-   (diveContact||crowPreyDive||Math.abs((P.jumpHeight||0)-(m.groundZ||0))<22)&&(overlap||!lineBlocked(P,m))){
+ const step=P.rushActiveStep||1,motion=combatMotion(P.type,step);
+ const wolfCharge=P.type==="wolf"&&P.chargeStrike;
+ emitCombatFX("normal",P.type,P.jumpDive&&motion==="hind"?"aerial":"melee",P.x,P.y,P.dir,step===5?1.3:1,step,P.r);
+ for(const {m,theta,crowPreyDive} of meleeContacts(aerialContact,motion)){
    const foxBurst=P.type==="fox"&&P.abilityTime>0;
    const dive=P.jumpDive;
     const silentHit=stealthHit&&ambushTarget===m;
@@ -5803,6 +5826,10 @@ function resolveAttack(aerialContact=null){
      if(recovery!==null&&recovery!==undefined)m.attack=Math.min(m.attack||0,recovery);
     }
     hit++;
+    const guarded=armored||shellGuard||quillGuard;
+    const contactX=m.x-Math.cos(theta)*m.r*.58,contactY=m.y-Math.sin(theta)*m.r*.58;
+    emitCombatFX("hit",P.type,guarded?"guard":"melee",contactX,contactY,theta,heavy?1.25:.86,step,m.r,m.groundZ||0);
+    m.hitBearing=theta;m.hitRecoilUntil=elapsed+.16;
    
     if(species[m.type].prey&&m.hp>0)provokePreyAfterPlayerHit(m);
      if(silentHit){showHuntCinematic(m.hp<=0);label(m.x,m.y-m.r-37,downwindStrike?"風下からの奇襲！":"奇襲成功！","#bdf9c7");blood(m.x,m.y,"#c7f3b7",8,90);if(downwindStrike&&m.hp<=0)m.windStalkReward=true;}
@@ -5824,9 +5851,12 @@ function resolveAttack(aerialContact=null){
      syncHUD();saveAuto();
     }
    }
-  }
- });
- if(hit){emitCombatFX("hit",P.type,"melee",P.x+Math.cos(P.dir)*P.r*1.35,P.y+Math.sin(P.dir)*P.r*1.35,P.dir,.68,P.rushActiveStep||1,P.r);shake=P.jumpDive?6:4;playEffect("bite");playEffect("impact",{volume:.18})}else{playEffect("attack",{volume:.15})}
+ }
+ if(hit){
+  shake=Math.max(shake,P.jumpDive||step===5?6:motion==="beak"||motion==="tongue"?2:4);
+  const sound=motion==="jaw"?"bite":motion==="claw"?"rake":motion==="beak"||motion==="tongue"?"tapStrike":"impact";
+  playEffect(sound,{volume:.14,rate:step===5?.87:1});
+ }else{playEffect("attack",{volume:.15})}
  const aerial=aerialPounceState.get(P);
  if(aerial?.active){aerial.active=false;aerial.spent=true;}
  P.jumpDive=false;P.jumpAmbush=false;P.chargeStrike=false;P.beakStrike=false;ambushTarget=null;
@@ -9363,8 +9393,12 @@ function roadDraw(){
  ctx.save();ctx.setLineDash([24,22]);ctx.strokeStyle="#b1a98357";ctx.lineWidth=3;
  for(const y of roadsY){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(CITY_WIDTH,y);ctx.stroke()}
  for(const x of roadsX){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,WORLD.h);ctx.stroke()}ctx.restore();
- for(const x of roadsX)for(const y of roadsY){ctx.strokeStyle="#a6ab9b38";ctx.lineWidth=5;
-  for(let k=-3;k<=3;k++){ctx.beginPath();ctx.moveTo(x-110+k*24,y-98);ctx.lineTo(x-110+k*24,y-82);ctx.stroke();ctx.beginPath();ctx.moveTo(x+82,y-110+k*24);ctx.lineTo(x+98,y-110+k*24);ctx.stroke()}
+ for(const x of roadsX)for(const y of roadsY){if(!visible(x,y,240))continue;ctx.strokeStyle="#b9bdab";ctx.lineWidth=9;
+  for(const side of [-1,1])for(let i=-3;i<=3;i++){
+   const off=i*18,edge=side*101,len=24+noise(i+7,x+y)*7;
+   ctx.beginPath();ctx.moveTo(x+off,y+edge);ctx.lineTo(x+off,y+edge+len);
+   ctx.moveTo(x+edge,y+off);ctx.lineTo(x+edge+len,y+off);ctx.stroke();
+  }
  }
  ctx.save();ctx.lineWidth=1.4;
  for(const y of roadsY)for(let i=0;i<35;i++){
@@ -10047,6 +10081,10 @@ function drawWorldEnd2D(o){
  ctx.restore();
 }
 function drawCreature(o,isPlayer){
+ if(!isPlayer&&o.hitRecoilUntil>elapsed&&Number.isFinite(o.hitBearing)){
+  const kick=Math.sin(Math.PI*clamp((o.hitRecoilUntil-elapsed)/.16,0,1))*Math.min(5,o.r*.22);
+  o={...o,x:o.x+Math.cos(o.hitBearing)*kick,y:o.y+Math.sin(o.hitBearing)*kick};
+ }
  if(o.type==="worldEnd"){drawWorldEnd2D(o);return;}
  const s=isPlayer?P.base:species[o.type],r=o.r;
  const t=!isPlayer&&o.type==="strayCat"?"cat":!isPlayer&&o.type==="wildFox"?"fox":o.type;

@@ -32,7 +32,8 @@ void main(){
  vec3 sun=normalize(vec3(-0.55,-0.7,1.2));
  float bright=max(0.0,dot(n,sun));
  vShade=0.34+0.65*bright;
- vColor=aColor*uTint*(1.08-uNight*.91);
+ vec3 skylight=mix(vec3(.86,.95,1.10),vec3(1.10,1.035,.94),bright);
+ vColor=aColor*skylight*uTint*(1.08-uNight*.91);
  vWorldXY=aPosition.xy;
 }
 `;
@@ -84,7 +85,17 @@ try{initializeGPU()}catch(err){console.warn("Wild3D shader unavailable; 2D fallb
 const TAU=Math.PI*2,clamp=(x,a,b)=>Math.max(a,Math.min(b,x)),cache=new Map();
 function color(hex){if(Array.isArray(hex))return hex;let c=cache.get(hex);if(c)return c;const raw=(hex||"#777777").replace("#","").slice(0,6),n=parseInt(raw,16);c=[(n>>16&255)/255,(n>>8&255)/255,(n&255)/255];cache.set(hex,c);return c;}
 function tone(hex,s){const c=color(hex);return c.map(v=>Math.min(1,v*s));}
-let data=[];
+let meshData=new Float32Array(65536),meshLength=0;
+function reserveTriangle(){
+ if(meshLength+27<=meshData.length)return;
+ const larger=new Float32Array(meshData.length*2);
+ larger.set(meshData);meshData=larger;
+}
+function writeVertex(p,nx,ny,nz,t){
+ meshData[meshLength++]=p[0];meshData[meshLength++]=p[1];meshData[meshLength++]=p[2];
+ meshData[meshLength++]=nx;meshData[meshLength++]=ny;meshData[meshLength++]=nz;
+ meshData[meshLength++]=t[0];meshData[meshLength++]=t[1];meshData[meshLength++]=t[2];
+}
  // Static district geometry is rebuilt only when the camera enters a new region.
  // Animal and vegetation animation still update every frame.
  let staticBuffer=gl.createBuffer(),snowBuffer=gl.createBuffer();
@@ -94,7 +105,7 @@ function triangle(a,b,c,t){
  const ux=b[0]-a[0],uy=b[1]-a[1],uz=b[2]-a[2],vx=c[0]-a[0],vy=c[1]-a[1],vz=c[2]-a[2];
  let nx=uy*vz-uz*vy,ny=uz*vx-ux*vz,nz=ux*vy-uy*vx;
  const len=Math.hypot(nx,ny,nz)||1;nx/=len;ny/=len;nz/=len;
- for(const p of [a,b,c])data.push(p[0],p[1],p[2],nx,ny,nz,t[0],t[1],t[2]);
+ reserveTriangle();writeVertex(a,nx,ny,nz,t);writeVertex(b,nx,ny,nz,t);writeVertex(c,nx,ny,nz,t);
 }
 function quad(a,b,c,d,t){triangle(a,b,c,t);triangle(a,c,d,t)}
 function box(x,y,z,w,h,height,col,roofCol=col){
@@ -120,24 +131,32 @@ function pyramid(x,y,z,rx,ry,h,col){z+=animalLift;
  const base=[[x-rx,y-ry,z],[x+rx,y-ry,z],[x+rx,y+ry,z],[x-rx,y+ry,z]],top=[x,y,z+h],c=color(col);
  for(let i=0;i<4;i++)triangle(collapseVertex(base[i]),collapseVertex(base[(i+1)%4]),collapseVertex(top),c);
 }
+// A sphere grid is shared by every limb with the same tessellation.
+const sphereGrids=new Map();
 function ellipsoid(x,y,z,rx,ry,rz,col,heading=0,segments=9,rings=5){z+=animalLift;
- const c=color(col),cos=Math.cos(heading),sin=Math.sin(heading);
- const point=(phi,theta)=>{
-  const lx=rx*Math.cos(phi)*Math.cos(theta),ly=ry*Math.cos(phi)*Math.sin(theta),lz=rz*Math.sin(phi);
-  return collapseVertex([x+lx*cos-ly*sin,y+lx*sin+ly*cos,z+lz]);
- };
- for(let j=0;j<rings;j++){
-  const a=-Math.PI/2+j*Math.PI/rings,b=-Math.PI/2+(j+1)*Math.PI/rings;
-  for(let i=0;i<segments;i++){
-   const t=i*TAU/segments,u=(i+1)*TAU/segments;
-   const p=point(a,t),q=point(a,u),r=point(b,u),s=point(b,t);
-   if(j>0)triangle(p,q,r,c);
-   triangle(p,r,s,c);
+ const key=segments*256+rings;
+ let grid=sphereGrids.get(key);
+ if(!grid){
+  grid={unit:[],world:[]};
+  for(let j=0;j<=rings;j++)for(let i=0;i<=segments;i++){
+   const phi=-Math.PI/2+j*Math.PI/rings,theta=i*TAU/segments;
+   grid.unit.push([Math.cos(phi),Math.cos(theta),Math.sin(theta),Math.sin(phi)]);
+   grid.world.push([0,0,0]);
   }
+  sphereGrids.set(key,grid);
+ }
+ const c=color(col),cos=Math.cos(heading),sin=Math.sin(heading),points=grid.world;
+ for(let i=0;i<points.length;i++){
+  const unit=grid.unit[i],v=points[i],lx=rx*unit[0]*unit[1],ly=ry*unit[0]*unit[2];
+  v[0]=x+lx*cos-ly*sin;v[1]=y+lx*sin+ly*cos;v[2]=z+rz*unit[3];
+  if(animalCollapseTransform)points[i]=collapseVertex(v);
+ }
+ for(let j=0;j<rings;j++)for(let i=0;i<segments;i++){
+  const a=j*(segments+1)+i,b=a+segments+1;
+  if(j>0)triangle(points[a],points[a+1],points[b+1],c);
+  triangle(points[a],points[b+1],points[b],c);
  }
 }
-
-
 
 function standingGiantTreeMesh(t){
  const x=t.x,y=t.y,seed=Math.sin(x*.037+y*.021)*19.37;
@@ -2230,6 +2249,17 @@ function mountainTerrain(isVisible){
      box(gorgeX+along-4,railY-4,z-9,8,8,36,"#50483d","#a79574");
      box(gorgeX+along-5,railY-5,z+20,10,10,3,"#79674e","#c3a77a");
     }
+    for(const end of [-74,74]){
+     box(gorgeX+end-7,railY-7,z+19,14,14,45,"#58483a","#c6ae82");
+     box(gorgeX+end-10,railY-10,z+58,20,20,6,"#754e38","#c39762");
+    }
+    for(let i=0;i<8;i++){
+     const left=-74+i*18.5,right=left+18.5;
+     const start=z+36+26*(left/74)**2,finish=z+36+26*(right/74)**2;
+     quad([gorgeX+left,railY,start],[gorgeX+right,railY,finish],
+      [gorgeX+right,railY,finish+3],[gorgeX+left,railY,start+3],color("#b6a085"));
+     if(i%2)box(gorgeX+left-1,railY-1,z+20,2,2,start-z-20,"#81705d");
+    }
     box(gorgeX-81,railY-3,z+16,162,6,5,"#676453","#b8aa85");
    }
   }
@@ -2277,10 +2307,18 @@ function mountainTerrain(isVisible){
   }
   for(const t of m.alpinePines){if(!isVisible(t.x,t.y,190))continue;
    box(t.x-5,t.y-5,t.z,10,10,59,"#605b4c","#827b66");
-   for(let k=0;k<3;k++)pyramid(t.x,t.y,t.z+18+k*23,t.r*(1.08-k*.18),t.r*(.96-k*.17),53-k*6,"#315c50");
+   for(let k=0;k<3;k++){
+    const base=t.z+18+k*23,rx=t.r*(1.08-k*.18),ry=t.r*(.96-k*.17),h=53-k*6;
+    pyramid(t.x,t.y,base,rx,ry,h,k===0?"#244c48":"#356656");
+    if(t.x>=m.SUMMIT_START)pyramid(t.x-.04*rx,t.y,base+h*.32,rx*.73,ry*.71,h*.72,"#d5e6dc");
+   }
   }
   for(const r of [...m.alpineRocks,...m.caveStones]){if(!isVisible(r.x,r.y,120))continue;
-   pyramid(r.x,r.y,r.z,r.r,r.r*.81,r.r*.92,"#767c76");
+   pyramid(r.x,r.y,r.z,r.r,r.r*.81,r.r*.92,"#65767b");
+   if(r.x>=m.SUMMIT_START&&r.x<m.cave.start){
+    pyramid(r.x-r.r*.03,r.y,r.z+r.r*.31,r.r*.72,r.r*.59,r.r*.65,"#d8e6e2");
+    pyramid(r.x+r.r*.63,r.y+r.r*.16,r.z,r.r*.43,r.r*.47,r.r*.46,"#89999a");
+   }
   }
   for(const hut of [...m.ruins,...m.ridgeHuts]){
   if(!isVisible(hut.x+hut.w/2,hut.y+hut.h/2,240))continue;
@@ -2412,6 +2450,16 @@ function terrain(w,roadsX,roadsY,isVisible,buildings=[]){
    if(detailNoise(x+y)>.45)pyramid(x+84,y+82,2,13,11,16,"#536e54");
   }
  }
+ // Faded crossings use four vertices per paint stripe and live in the static mesh.
+ for(const x of roadsX)for(const y of roadsY){
+  if(!isVisible(x,y,420))continue;
+  for(const side of [-1,1])for(let i=-3;i<=3;i++){
+   const wear=detailNoise(x+y+i*43+side),paint=color(wear>.32?"#aeb4a2":"#777f74");
+   const off=i*18,edge=side*101,len=21+wear*10;
+   quad([x+off,y+edge,2.4],[x+off+9,y+edge,2.4],[x+off+9,y+edge+len,2.4],[x+off,y+edge+len-3,2.4],paint);
+   quad([x+edge,y+off,2.4],[x+edge+len,y+off,2.4],[x+edge+len-2,y+off+9,2.4],[x+edge,y+off+9,2.4],paint);
+  }
+ }
  // Deterministic, low-poly district landmarks across the whole region, not only at the six quest pins.
  const styles=[
  [0,0,1400,2600,"barrier"],[1400,0,1400,2600,"rail"],[2800,0,1400,2600,"ivy"],[4200,0,2100,2600,"cage"],
@@ -2500,7 +2548,7 @@ function render(o){
      .map(e=>[Math.round(e.x),Math.round(e.y),Math.round(e.year*100),Math.round(e.rx||68),Math.round(e.ry||41)].join(",")).join(";"),
    WORLD.w,WORLD.h,interiorReveal].join(":");
   if(regionKey!==staticKey){
-   data=[];terrain(WORLD,o.roadsX||[530,1410,2320,3270],o.roadsY||[465,1170,1890],isVisible,buildings);
+   meshLength=0;terrain(WORLD,o.roadsX||[530,1410,2320,3270],o.roadsY||[465,1170,1890],isVisible,buildings);
    mountainTerrain(isVisible);
    for(const site of o.landmarks||[])if(isVisible(site.x,site.y,600))landmarkMesh(site);
    // Light decorative rewilding; keep it out of physics and saved plants[].
@@ -2576,6 +2624,15 @@ function render(o){
      box(xx-13,b.y-.8,h*(.23+k*.18),26,2,15,"#192829","#273a3a");
     }
    }
+   // Faded canvas over the ground-floor shopfront, with a sloping sunlit face.
+   if(b.w>105&&b.h>80&&b.kind%3!==0){
+    const face=b.y+b.h,left=b.x+b.w*.13,panel=b.w*.74/7;
+    for(let i=0;i<7;i++){
+     const x=left+i*panel,cloth=i%2?"#cec4a8":b.kind%2?"#8e5143":"#547f79";
+     quad([x,face,42],[x+panel,face,42],[x+panel,face+17,33],[x,face+17,33],color(cloth));
+     quad([x,face+17,26],[x+panel,face+17,26],[x+panel,face+17,33],[x,face+17,33],tone(cloth,.83));
+    }
+   }
    // Air conditioning and roof ducts
    box(b.x+b.w*.16,b.y+b.h*.2,h+.8,28,35,28,"#586767","#9da39a");
    box(b.x+b.w*.72,b.y+b.h*.64,h+.8,36,25,19,"#546667","#8e9992");
@@ -2644,13 +2701,13 @@ function render(o){
      box(x-13,y-3,28,26,6,19,"#67817a","#a2aca0");
     }
    }
-   const staticVertices=new Float32Array(data);
+   const staticVertices=meshData.subarray(0,meshLength);
    gl.bindBuffer(gl.ARRAY_BUFFER,staticBuffer);
    gl.bufferData(gl.ARRAY_BUFFER,staticVertices,gl.STATIC_DRAW);
    staticCount=staticVertices.length/9;
    staticKey=regionKey;staticRebuilds++;
   }
-  data=[];
+  meshLength=0;
   window.WildEastExpedition?.eachRapid?.(P,elapsed,weather,(x,y,xx,yy)=>{
    if(!isVisible(x,y,55))return;
    const z=(window.WildMountain?.height(x,y)||0)+3;
@@ -2684,7 +2741,7 @@ function render(o){
   const snowKey=[snowCellX,snowCellY,vw,vh,VIEW.a,VIEW.b,VIEW.c,VIEW.d,
    WORLD.w,WORLD.h,snow.toFixed(3),alpineInView?1:0,Math.floor(elapsed/5)].join(":");
   if(snowKey!==snowCacheKey){
-   const snowDataStart=data.length;
+   const snowDataStart=meshLength;
    if(snow>.06||alpineInView){
    const step=48,margin=snowViewMargin;
    const firstX=Math.max(snow>.06?0:8300,Math.floor((snowAnchorX-margin)/step)*step);
@@ -2803,8 +2860,8 @@ function render(o){
    // Preserve animated animals, vegetation, and FX in their existing dynamic buffer.
    // Upload the snow only when its cache key changes; never mix stale geometry
    // into the next frame's dynamic mesh.
-   const snowVertices=new Float32Array(data.slice(snowDataStart));
-   data.length=snowDataStart;
+   const snowVertices=meshData.subarray(snowDataStart,meshLength);
+   meshLength=snowDataStart;
    gl.bindBuffer(gl.ARRAY_BUFFER,snowBuffer);
    gl.bufferData(gl.ARRAY_BUFFER,snowVertices,gl.STATIC_DRAW);
    snowCount=snowVertices.length/9;
@@ -2821,7 +2878,7 @@ function render(o){
     ellipsoid(a.x,a.y,.58,r,r*.68,.32,"#8fc1c2",a.dir||0,9,2);
    }
   }
-  const ghostStart=data.length/9; // Food and every animal; not vegetation.
+  const ghostStart=meshLength/9; // Food and every animal; not vegetation.
   for(const c of carcasses)if(isVisible(c.x,c.y,50))foodMesh(c,species);
   // Unknown right-side scrap: deliberately uncoloured by rarity until pickup.
   // All mesh positions use the same actual Mountain world Z as the 2D marker.
@@ -2879,7 +2936,9 @@ function render(o){
    const angle=Number.isFinite(m.dir)?m.dir:0;
    const dx=(Number(m.x)||0)-(Number(player?.x)||0),dy=(Number(m.y)||0)-(Number(player?.y)||0);
    const length=Math.hypot(dx,dy);
-   const nx=length>1?dx/length:Math.cos(angle),ny=length>1?dy/length:Math.sin(angle);
+   const bearing=m.hitRecoilUntil>elapsed&&Number.isFinite(m.hitBearing)?m.hitBearing:null;
+   const nx=bearing!==null?Math.cos(bearing):length>1?dx/length:Math.cos(angle);
+   const ny=bearing!==null?Math.sin(bearing):length>1?dy/length:Math.sin(angle);
    const offset=radius*(m.strongBoss?.065:.18)*impulse;
    return {x:m.x+nx*offset,y:m.y+ny*offset,
     dir:angle+Math.sin(Math.PI*2*phase)*(m.strongBoss?.035:.11)};
@@ -2924,7 +2983,7 @@ function render(o){
     ellipsoid(stone.x,stone.y,z+20,7,6,5,"#b3a999",0,8,4);
    }
   }
-  const playerFirst=data.length/9;
+  const playerFirst=meshLength/9;
   if(P&&!P._ufoAbducting&&!P._ufoAbducted){
    animal({...P,color:P.base.color,belly:P.base.belly},true,elapsed);
    carriedFoodMesh(P);
@@ -2945,9 +3004,9 @@ function render(o){
      py+dy*r*.23+side*dx*r*.17-2,z+3,4,4,7,grade.color);
    }
   }
-  const playerEnd=data.length/9;
+  const playerEnd=meshLength/9;
   const ghostEnd=playerEnd;
-  const vertices=new Float32Array(data);
+  const vertices=meshData.subarray(0,meshLength);
   gl.useProgram(program);
   // Screen-only quake offset: move the rendered world, not the camera used by
   // cached terrain and snow geometry. HUD and saved world positions stay fixed.
@@ -3052,8 +3111,8 @@ function bestiaryRender(m,target,yaw=0,zoom=1,tilt=0){
   gl.bindFramebuffer(gl.FRAMEBUFFER,bestiaryFrame.fb);gl.viewport(0,0,w,h);
   gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT|gl.STENCIL_BUFFER_BIT); // Transparent preview framebuffer.
   gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.depthMask(true);gl.disable(gl.BLEND);gl.disable(gl.STENCIL_TEST);
-  data=[];animal({...m,x:0,y:0,dir:yaw,vx:0,vy:0,step:0,steps:0,deathPose:0},false,0);
-  const vertices=new Float32Array(data);
+  meshLength=0;animal({...m,x:0,y:0,dir:yaw,vx:0,vy:0,step:0,steps:0,deathPose:0},false,0);
+  const vertices=meshData.subarray(0,meshLength);
   const r=Math.max(9,m.r||20),factor=Math.min(1.55,34/r)*Math.min(w/300,h/255)*clamp(zoom,.55,2.3);
   const elevation=clamp(.8+tilt*.45,.38,1.18);
   gl.useProgram(program);gl.uniform2f(ucenter,0,-r*.65);gl.uniform2f(usize,w,h);
