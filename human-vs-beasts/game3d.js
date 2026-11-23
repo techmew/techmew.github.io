@@ -1947,6 +1947,21 @@ function showCapturedPodiumCanvas(source){
    console.warn('Podium snapshot copy failed at scale '+scale,err);
   }
  }
+ // The original racePicture contains GPU pixels already validated by
+ // capturePodiumFromGPU/podiumPixelsValid. On memory-limited Android WebViews
+ // allocating a SECOND canvas or reading its pixels can fail even when the
+ // original portrait is intact. Display that original canvas directly instead
+ // of leaving the result blank. It remains the same real 3D race photograph.
+ if(source===racePicture&&ceremonyStage?.photoCaptured){
+  clearCapturedPodiumCanvas();
+  source.dataset.podiumSnapshot='1';
+  source.setAttribute('aria-label','3D表彰台の撮影画像');
+  source.style.cssText='position:absolute;inset:0;width:100%;height:100%;object-fit:contain;z-index:2;pointer-events:none';
+  view.appendChild(source);
+  $('resultPhoto').hidden=true;
+  view.hidden=false;
+  return true;
+ }
  // Never cover the live WebGL stage with an unverified blank canvas.
  clearCapturedPodiumCanvas();
  return false;
