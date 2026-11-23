@@ -1261,20 +1261,20 @@ function withSpeciesLocomotion(data,rig){
    // two-foot landing. Vertical travel is measured in world metres, not rig units.
    const jump=Math.pow(Math.max(0,Math.sin(phase*.5)),1.45);
    const stance=1-jump,worldScale=Math.max(.0001,rig.root.scale.y);
-   const clearance=(.62*jump*Math.min(1.3,effort)+.015*stance)/worldScale;
+   const clearance=(1.02*jump*Math.min(1.3,effort)+.012*stance)/worldScale;
    body.position.y=clearance;
-   body.rotation.x=(.11*Math.cos(phase*.5)-.065*jump)*effort;
-   body.scale.z=scaleZ*(1+.055*Math.cos(phase)*effort);
+   body.rotation.x=(.22*Math.cos(phase*.5)-.12*jump)*effort;
+   body.scale.z=scaleZ*(1+.105*Math.cos(phase)*effort);
    for(const leg of legs){
     // Both rear feet are synchronized, unlike a generic alternating run.
     const hind=leg.front<0||legs.length<=2;
-    leg.hip.rotation.x=(hind?-.24-.65*jump+.20*stance:-.15-.22*jump)*effort;
-    leg.knee.rotation.x=(hind?.13+.98*jump:.14+.24*jump)*effort;
+    leg.hip.rotation.x=(hind?-.36-1.02*jump+.34*stance:-.20-.36*jump)*effort;
+    leg.knee.rotation.x=(hind?.17+1.28*jump:.14+.42*jump)*effort;
    }
    for(const arm of arms)if(arm.sh)arm.sh.rotation.x=(-.18-.28*jump)*effort;
    if(tail){
-    tail.rotation.x=(.22*stance-.28*jump+.07*Math.cos(phase*.5))*effort;
-    tail.rotation.y=.075*Math.sin(phase*.25)*effort;
+    tail.rotation.x=(.38*stance-.52*jump+.12*Math.cos(phase*.5))*effort;
+    tail.rotation.y=.18*Math.sin(phase*.25)*effort;
    }
   }else if(isBound){
    // Rabbit: physically visible airborne phase, paired hind-foot push and
@@ -1282,20 +1282,20 @@ function withSpeciesLocomotion(data,rig){
    const jump=Math.pow(Math.max(0,Math.sin(phase)),1.06);
    const compression=Math.pow(Math.max(0,-Math.sin(phase)),.85);
    const worldScale=Math.max(.0001,rig.root.scale.y);
-   body.position.y=.49*jump*Math.min(1.22,effort)/worldScale;
-   body.rotation.x=(-.17*Math.cos(phase)+.045*compression)*Math.min(1.1,effort);
-   body.scale.z=scaleZ*(1+.105*jump-.065*compression);
-   body.scale.y=scaleY*(1-.055*compression);
+   body.position.y=.76*jump*Math.min(1.22,effort)/worldScale;
+   body.rotation.x=(-.29*Math.cos(phase)+.10*compression)*Math.min(1.1,effort);
+   body.scale.z=scaleZ*(1+.18*jump-.11*compression);
+   body.scale.y=scaleY*(1-.11*compression);
    for(const leg of legs){
     const hind=leg.front<0||legs.length===2;
-    leg.hip.rotation.x=(hind?(-.35-.78*jump+.30*compression):(.21+.56*jump-.19*compression))*effort;
-    leg.knee.rotation.x=(hind?(.27+.86*jump):(.08+.45*jump))*effort;
+    leg.hip.rotation.x=(hind?(-.45-1.05*jump+.42*compression):(.26+.75*jump-.28*compression))*effort;
+    leg.knee.rotation.x=(hind?(.35+1.14*jump):(.10+.62*jump))*effort;
    }
    for(const [i,ear] of rabbitEars.entries()){
-    ear.rotation.x=(-.20*jump+.12*compression)*effort;
+    ear.rotation.x=(-.42*jump+.23*compression)*effort;
     ear.rotation.z=(i%2?1:-1)*(.12+.075*compression);
    }
-   if(tail)tail.rotation.x=(.12*Math.cos(phase)-.11*jump)*effort;
+   if(tail)tail.rotation.x=(.22*Math.cos(phase)-.19*jump)*effort;
   }else if(isPronk){
    // Deer and gazelles move with synchronized suspended leaps, not a flat trot.
    const worldScale=Math.max(.0001,rig.root.scale.y);
@@ -1459,7 +1459,7 @@ function withSpeciesLocomotion(data,rig){
   if(lastImpact===null){lastImpact=impactIndex;return false}
   const landed=impactIndex>lastImpact;lastImpact=impactIndex;
   if(isKangaroo)return landed&&body.position.y<.04;
-  if(isBound||isPronk)return landed;
+  if(isBound||isPronk)return landed&&body.position.y<.06;
   return (gait==='wingFlight'||gait==='skyGallop')&&rig.flight>.35?false:landed;
  };
  return rig;
@@ -1991,6 +1991,8 @@ function showCapturedPodiumCanvas(source){
  // original portrait is intact. Display that original canvas directly instead
  // of leaving the result blank. It remains the same real 3D race photograph.
  if(source===racePicture&&ceremonyStage?.photoCaptured){
+  // The validated 3D photo remains the share/save source even if a second
+  // canvas allocation fails on Android. Never clear or resize its pixels.
   clearCapturedPodiumCanvas();
   source.dataset.podiumSnapshot='1';
   source.setAttribute('aria-label','3D表彰台の撮影画像');
