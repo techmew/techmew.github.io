@@ -2534,9 +2534,16 @@ function podiumPixelsValid(ctx,w,h,rgbaPixels=null){
  // The offscreen GPU path supplies vertically corrected raw RGBA pixels.
  // Other capture paths continue to validate their existing 2D canvas.
  const data=rgbaPixels||ctx.getImageData(0,0,w,h).data;
+ const pixelIndex=(x,y)=>(Math.min(h-1,Math.max(0,y))*w+Math.min(w-1,Math.max(0,x)))*4;
  const luminance=(x,y)=>{
-  const p=(Math.min(h-1,Math.max(0,y))*w+Math.min(w-1,Math.max(0,x)))*4;
+  const p=pixelIndex(x,y);
   return (data[p]*3+data[p+1]*6+data[p+2])/10;
+ };
+ // A bright white runner against a blue/green rival can have similar
+ // luminance. Include per-channel contrast to avoid rejecting real 3D photos.
+ const colourEdge=(x,y,nx,ny)=>{
+  const a=pixelIndex(x,y),b=pixelIndex(nx,ny);
+  return Math.max(Math.abs(data[a]-data[b]),Math.abs(data[a+1]-data[b+1]),Math.abs(data[a+2]-data[b+2]));
  };
  let total=0,bright=0,dark=0,min=255,max=0;
  const step=Math.max(2,Math.floor(Math.min(w,h)/45));
@@ -2568,7 +2575,8 @@ function podiumPixelsValid(ctx,w,h,rgbaPixels=null){
    for(let x=Math.round(w*left);x<Math.round(w*right);x+=dx){
     const l=luminance(x,y);
     const edge=Math.max(Math.abs(l-luminance(x+dx,y)),
-                        Math.abs(l-luminance(x,y+dy)));
+                        Math.abs(l-luminance(x,y+dy)),
+                        colourEdge(x,y,x+dx,y),colourEdge(x,y,x,y+dy));
     if(edge>24)strongEdges++;
     edgeSum+=edge;samples++;
    }
