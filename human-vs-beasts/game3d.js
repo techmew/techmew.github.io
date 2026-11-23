@@ -1901,12 +1901,14 @@ function showCapturedPodiumCanvas(source){
    snapshot.dataset.podiumSnapshot='1';
    snapshot.setAttribute('aria-label','3D表彰台の撮影画像');
    snapshot.style.cssText='position:absolute;inset:0;width:100%;height:100%;object-fit:contain;z-index:2;pointer-events:none';
-   const ctx=snapshot.getContext('2d',{alpha:false})||snapshot.getContext('2d');
+   // Android WebView can throw on optional getContext attributes; use the
+ // shared fallback for the visible copy and both pixel-verification canvases.
+ const ctx=podiumCanvas2D(snapshot);
    if(!ctx)throw Error('Podium snapshot context unavailable');
    ctx.drawImage(source,0,0,w,h);
    const probe=document.createElement('canvas');
    probe.width=96;probe.height=54;
-   const probeCtx=probe.getContext('2d',{willReadFrequently:true})||probe.getContext('2d');
+   const probeCtx=podiumCanvas2D(probe);
    if(!probeCtx)throw Error('Podium snapshot verification unavailable');
    probeCtx.drawImage(snapshot,0,0,96,54);
    const rgba=probeCtx.getImageData(0,0,96,54).data;
@@ -2012,7 +2014,7 @@ async function showAsyncPodiumPreview(canvas){
      // Sample the actual encoded image before it can replace the live 3D stage.
      const check=document.createElement('canvas');
      check.width=96;check.height=54;
-     const context=check.getContext('2d',{willReadFrequently:true});
+     const context=podiumCanvas2D(check);
      if(!context)throw Error('Podium encoded image verification unavailable');
      context.drawImage(probe,0,0,96,54);
      const pixels=context.getImageData(0,0,96,54).data;
