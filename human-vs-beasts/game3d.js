@@ -3813,7 +3813,15 @@ function renderCeremonyFrame(){
  // the hidden WebGL canvas at 60 fps after its image loads wastes GPU time,
  // drains mobile batteries and can trigger Android context loss.
  // Keep rendering while the async image encoder is still preparing the preview.
- if(ceremonyStage.photoCaptured&&!$('resultPhoto').hidden)return;
+ // Stop background WebGL draws after a verified real-3D image or canvas
+ // snapshot is visible. Repeated hidden draws can exhaust Android WebView GPU
+ // resources and replace the live result with a grey/context-lost frame.
+ if(ceremonyStage.photoCaptured){
+  const photo=$('resultPhoto'),view=$('result3DWindow');
+  const snapshot=view?.querySelector('canvas[data-podium-snapshot]');
+  if((photo&&!photo.hidden&&photo.naturalWidth>0)||
+     (view&&!view.hidden&&snapshot&&snapshot.width>0&&snapshot.height>0))return;
+ }
  try{
   renderer.setRenderTarget(null);
   // The character editor leaves a right-side scissor/viewport active. Results
