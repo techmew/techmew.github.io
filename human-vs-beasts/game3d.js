@@ -2577,8 +2577,12 @@ function captureCeremonyPhoto(){
   maxTexture=gl.getParameter(gl.MAX_TEXTURE_SIZE)||2048;
   maxRenderbuffer=gl.getParameter(gl.MAX_RENDERBUFFER_SIZE)||2048;
  }catch(error){
-  console.warn('Podium GPU limits unavailable; retry after WebGL recovery',error);
-  return false;
+  // Some Android WebViews reject capability queries even with a usable
+  // WebGL context. Attempt a conservative real-3D framebuffer instead of
+  // abandoning every capture path before the first render.
+  console.warn('Podium GPU limits unavailable; trying conservative 3D capture',error);
+  maxTexture=512;
+  maxRenderbuffer=512;
  }
  const maxWidth=Math.max(1,Math.min(maxTexture,maxRenderbuffer,
   Math.floor(Math.min(maxTexture,maxRenderbuffer)*16/9)));
