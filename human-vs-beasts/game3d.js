@@ -2609,10 +2609,9 @@ function captureCeremonyPhoto(){
  }
  // A 16:9 target must fit BOTH the texture width and framebuffer height.
  // Preserve the full-size portrait where possible; avoid impossible GPU sizes.
- // A 16:9 colour attachment is width x height; the depth attachment
- // has the same dimensions. Respect each GPU axis separately rather than
- // incorrectly capping the width at the renderbuffer's height limit.
- // In particular, a 512px depth limit can still support a 640x360 portrait.
+ // The colour and depth attachments share the same width and height.
+ // Both must fit their reported GPU limits; never round a tiny limit up
+ // to an allocation that the device has already reported as unsupported.
  const maxWidth=Math.floor(Math.min(maxTexture,maxRenderbuffer,
   maxTexture*16/9,maxRenderbuffer*16/9)/16)*16;
  if(maxWidth<64){
