@@ -2607,12 +2607,15 @@ function podiumPixelsValid(ctx,w,h,rgbaPixels=null){
  // Check BOTH subjects independently. A textured stadium or one visible
  // runner used to pass the combined edge test, producing an empty opponent
  // in the saved photo. Keep the scan proportional to the output resolution.
- const dx=Math.max(3,Math.round(w*.014)),dy=Math.max(3,Math.round(h*.025));
- const regions=[[.14,.50],[.50,.86]];
+ // The camera fits both small runners and enormous beasts dynamically.
+ // Overlapping foreground regions avoid rejecting valid real-3D photos when
+ // both models project close to the centre of a narrow Android viewport.
+ const dx=Math.max(2,Math.round(w*.012)),dy=Math.max(2,Math.round(h*.020));
+ const regions=[[.08,.61],[.39,.92]];
  let totalSamples=0,totalEdges=0;
  for(const [left,right] of regions){
   let strongEdges=0,edgeSum=0,samples=0;
-  for(let y=Math.round(h*.25);y<Math.round(h*.72);y+=dy){
+  for(let y=Math.round(h*.12);y<Math.round(h*.86);y+=dy){
    for(let x=Math.round(w*left);x<Math.round(w*right);x+=dx){
     const l=luminance(x,y);
     const edge=Math.max(Math.abs(l-luminance(x+dx,y)),
@@ -2622,10 +2625,10 @@ function podiumPixelsValid(ctx,w,h,rgbaPixels=null){
     edgeSum+=edge;samples++;
    }
   }
-  if(samples<35||strongEdges<Math.max(4,samples*.018)||edgeSum/samples<=4)return false;
+  if(samples<35||strongEdges<Math.max(5,samples*.012)||edgeSum/samples<=3)return false;
   totalSamples+=samples;totalEdges+=strongEdges;
  }
- return totalSamples>80&&totalEdges>=Math.max(9,totalSamples*.025);
+ return totalSamples>80&&totalEdges>=Math.max(12,totalSamples*.018);
 }
 function captureCeremonyPhoto(){
  if(!ceremonyStage)return false;
