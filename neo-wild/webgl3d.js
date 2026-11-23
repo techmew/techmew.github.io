@@ -2393,7 +2393,7 @@ function mountainTerrain(isVisible){
   }
  }
 }
-function terrain(w,roadsX,roadsY,isVisible,buildings=[]){
+function terrain(w,roadsX,roadsY,isVisible,buildings=[],cityWater=[],cityBridges=[]){
  // Raised road edges, lane paint and broken curbs give a consistent world-space scale.
  box(0,0,-6,w.w,w.h,6,"#26392f","#53634b");
  // Regional ground changes visibly without drawing every distant building.
@@ -2406,25 +2406,29 @@ function terrain(w,roadsX,roadsY,isVisible,buildings=[]){
  ];
  for(const [x,y,w,h,base,top] of regionalBases)box(x,y,-.4,w,h,.45,base,top);
  const river=y=>7505+68*Math.sin(y/390),canal=x=>5025+35*Math.sin(x/390);
- for(let y=0;y<2600;y+=125){
-  const y2=Math.min(2600,y+125),a=river(y),b=river(y2),h=133;
-  if(!isVisible((a+b)/2,(y+y2)/2,440))continue;
-  quad([a-h-22,y,.13],[a+h+22,y,.13],[b+h+22,y2,.13],[b-h-22,y2,.13],color("#a8af91"));
-  quad([a-h,y,.18],[a+h,y,.18],[b+h,y2,.18],[b-h,y2,.18],color("#34788b"));
-  box((a+b)/2-33,(y+y2)/2,.2,65,2,.10,"#72aab6","#a4d2ca");
+ for(const seg of cityWater){
+  if(!isVisible(seg.cx,seg.cy,440))continue;
+  const [a,b,c,d]=seg.pts;
+  const at=(p,q,t,z)=>[p[0]+(q[0]-p[0])*t,p[1]+(q[1]-p[1])*t,z];
+  for(const [from,to,tint] of [[0,.075,"#79a99c"],[.075,.925,"#316e83"],[.925,1,"#79a99c"]])
+   quad(at(a,d,from,3),at(b,c,from,3),at(b,c,to,3),at(a,d,to,3),color(tint));
+  const r=detailNoise(seg.cx+seg.cy)*.40+.26;
+  quad(at(a,d,r,3.3),at(b,c,r+.01,3.3),at(b,c,r+.018,3.3),at(a,d,r+.016,3.3),color("#72a9b0"));
  }
- for(let x=5600;x<8400;x+=125){
-  const x2=Math.min(8400,x+125),a=canal(x),b=canal(x2),h=100;
-  if(!isVisible((x+x2)/2,(a+b)/2,440))continue;
-  quad([x,a-h-23,.13],[x2,b-h-23,.13],[x2,b+h+23,.13],[x,a+h+23,.13],color("#929b91"));
-  quad([x,a-h,.18],[x2,b-h,.18],[x2,b+h,.18],[x,a+h,.18],color("#2c687f"));
-  box((x+x2)/2,(a+b)/2-28,.2,52,2,.10,"#64a0b0","#afc7c4");
+ for(const {x,y,kind,half} of cityBridges){
+  if(!isVisible(x,y,430))continue;
+  const slab=(a,b,w,h,z,rise,tint)=>kind==="river"?box(x+a,y+b,z,w,h,rise,tint):box(x+b,y+a,z,h,w,rise,tint);
+  slab(-half,-79,half*2,158,2,1,"#726e5c");
+  for(let a=-half+8;a<half-6;a+=37)slab(a,-2,19,4,3.1,.3,"#dcc890");
+  for(const side of [-1,1]){
+   slab(-half,side*76-2,half*2,4,3,7,"#bcb99d");
+   for(let a=-half;a<half;a+=32)slab(a,side*76-3,7,6,3,10,"#675e4b");
+  }
  }
-
  // Confluence vertices are shared with the 2D renderer and swim collision.
  for(const seg of window.WildEastExpedition?.waterRibbons||[]){
   if(!isVisible(seg.cx,seg.cy,250))continue;
-  const p=seg.pts,h=(x,y)=>(window.WildMountain?.height?.(x,y)||0)+.8;
+  const p=seg.pts,h=(x,y)=>(window.WildMountain?.height?.(x,y)||0)+3;
   quad([p[0][0],p[0][1],h(...p[0])],
    [p[1][0],p[1][1],h(...p[1])],
    [p[2][0],p[2][1],h(...p[2])],
@@ -2548,7 +2552,7 @@ function render(o){
      .map(e=>[Math.round(e.x),Math.round(e.y),Math.round(e.year*100),Math.round(e.rx||68),Math.round(e.ry||41)].join(",")).join(";"),
    WORLD.w,WORLD.h,interiorReveal].join(":");
   if(regionKey!==staticKey){
-   meshLength=0;terrain(WORLD,o.roadsX||[530,1410,2320,3270],o.roadsY||[465,1170,1890],isVisible,buildings);
+   meshLength=0;terrain(WORLD,o.roadsX||[530,1410,2320,3270],o.roadsY||[465,1170,1890],isVisible,buildings,o.cityWater,o.cityBridges);
    mountainTerrain(isVisible);
    for(const site of o.landmarks||[])if(isVisible(site.x,site.y,600))landmarkMesh(site);
    // Light decorative rewilding; keep it out of physics and saved plants[].

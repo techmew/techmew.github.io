@@ -126,6 +126,10 @@ function blocked(x,y,r,year){
   return dx*dx+dy*dy<Math.pow(Math.max(0,r)+radius,2);
  });
 }
+function floodStrength(e,year){
+ const age=Math.max(0,year-e.year),rate=e.paceVersion===PACE?1/PACE:1;
+ return 1.4*Math.min(1,(age+.10*rate)/(.28*rate),Math.max(0,(e.duration-age)/(.35*rate)));
+}
 function floodDepth(x,y,year){
  let depth=0;
  for(const e of events){
@@ -133,10 +137,7 @@ function floodDepth(x,y,year){
   const d=Math.hypot(x-e.x,y-e.y);
   if(d>=e.radius)continue;
   // Shallow inundation grows and recedes; a dry way around remains outside the limited circle.
-  const age=Math.max(0,year-e.year);
-  const rate=e.paceVersion===PACE?1/PACE:1;
-   const scale=Math.min(1,(age+.10*rate)/(.28*rate),Math.max(0,(e.duration-age)/(.35*rate)));
-  depth=Math.max(depth,Math.min(.85,(1-d/e.radius)*1.4*scale));
+  depth=Math.max(depth,Math.min(.85,(1-d/e.radius)*floodStrength(e,year)));
  }
  return depth;
 }
@@ -620,7 +621,45 @@ function tick(dt,api){
  }
  lastYear=year;
 }
-function draw(ctx,project,year,webglActive=false){
+// Reuse the shoreline samples. Only active, on-screen floods submit paths.
+const floodCircle=Array.from({length:40},(_,i)=>[Math.cos(i*Math.PI/20),Math.sin(i*Math.PI/20)]);
+function drawFlood(ctx,ground,e,year,width,height){
+ const center=ground(e.x,e.y),radius=e.radius,power=floodStrength(e,year);
+ if(!center||!(power>.0001))return;
+ const margin=radius*2.5+80;
+ if(center.x< -margin||center.x>width+margin||center.y< -margin||center.y>height+margin)return;
+ function contour(depth,fill){
+  const r=radius*(1-depth/power);
+  if(r<=0)return false;
+  ctx.beginPath();
+  for(let i=0;i<floodCircle.length;i++){
+   const [dx,dy]=floodCircle[i],q=ground(e.x+dx*r,e.y+dy*r);
+   if(i===0)ctx.moveTo(q.x,q.y);else ctx.lineTo(q.x,q.y);
+  }
+  ctx.closePath();ctx.fillStyle=fill;ctx.fill();return true;
+ }
+ ctx.save();ctx.lineJoin="round";ctx.lineCap="round";
+ contour(.0001,"rgba(38,128,152,.48)");
+ ctx.strokeStyle="rgba(12,45,60,.86)";ctx.lineWidth=4;ctx.stroke();
+ ctx.strokeStyle="#c2fcf2";ctx.lineWidth=1.6;ctx.stroke();
+ contour(.24,"rgba(18,87,122,.44)");
+ contour(.55,"rgba(12,63,98,.52)");
+ const phase=year*120;
+ ctx.beginPath();
+ for(let i=0;i<12;i++){
+  const angle=i*2.39996,r=radius*Math.sqrt((i+.5)/12)*.83;
+  const x=e.x+Math.cos(angle)*r,y=e.y+Math.sin(angle)*r;
+  const drift=Math.sin(phase*1.25+i)*4,len=5+radius*.037;
+  const a=ground(x-len+drift,y),b=ground(x+drift,y-3),c=ground(x+len+drift,y);
+  ctx.moveTo(a.x,a.y);ctx.quadraticCurveTo(b.x,b.y,c.x,c.y);
+ }
+ ctx.strokeStyle="rgba(204,250,244,.86)";ctx.lineWidth=1.6;ctx.stroke();
+ ctx.font="bold 12px sans-serif";ctx.textAlign="center";
+ ctx.fillStyle="rgba(9,38,49,.92)";ctx.fillRect(center.x-24,center.y-25,48,19);
+ ctx.fillStyle="#e4fff8";ctx.fillText("冠水",center.x,center.y-11);
+ ctx.restore();
+}
+function draw(ctx,project,year,webglActive=false,ground=project,width=Infinity,height=Infinity){
  // Weather-driven rubble is a real world-space obstacle, shared by WebGL and 2D.
  for(const e of events)if(e.kind==="landslide"&&active(e,year)){
   const p=project(e.x,e.y);if(!p)continue;
@@ -699,35 +738,7 @@ function draw(ctx,project,year,webglActive=false){
   ctx.font="bold 13px sans-serif";ctx.textAlign="center";ctx.fillStyle="#ffe6b3";
   ctx.fillText("煙の予兆・避難",p.x,p.y-54);ctx.restore();
  }}
- for(const e of events){if(e.kind!=="flood"||!active(e,year))continue;
-  const p=project(e.x,e.y);if(!p)continue;
-  // Flood is a world-space inundation, not a single screen-space blue oval.
-  // Sample the same radial footprint as floodDepth so water follows the camera
-  // projection (including mountain height) in Canvas and WebGL overlay modes.
-  const radius=Math.max(24,Number(e.radius)||100),phase=year*120;
-  ctx.save();ctx.lineJoin="round";
-  for(const scale of [1,.73,.43]){
-   const ring=[];for(let i=0;i<=48;i++){
-    const a=i*Math.PI/24,rr=radius*scale;
-    const q=project(e.x+Math.cos(a)*rr,e.y+Math.sin(a)*rr);
-    if(q&&Number.isFinite(q.x)&&Number.isFinite(q.y))ring.push(q);
-   }
-   if(ring.length<24)continue;
-   ctx.beginPath();ring.forEach((q,i)=>i?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y));ctx.closePath();
-   ctx.fillStyle=scale===1?"rgba(29,119,169,.30)":scale===.73?"rgba(38,148,193,.17)":"rgba(56,172,211,.13)";
-   ctx.strokeStyle=scale===1?"rgba(130,225,244,.86)":"rgba(128,211,235,.44)";
-   ctx.lineWidth=scale===1?2.5:1.2;ctx.fill();ctx.stroke();
-  }
-  for(let i=0;i<9;i++){
-   const a=i*2.39996+phase*.13,rr=radius*(.18+.065*(i%6));
-   const q=project(e.x+Math.cos(a)*rr,e.y+Math.sin(a)*rr);
-   if(!q)continue;
-   ctx.strokeStyle="rgba(196,243,251,.64)";ctx.lineWidth=1.5;
-   ctx.beginPath();ctx.arc(q.x,q.y,3+(phase*.8+i*3)%8,Math.PI*.12,Math.PI*.82);ctx.stroke();
-  }
-  ctx.fillStyle="#d5f6ff";ctx.font="bold 12px sans-serif";ctx.textAlign="center";
-  ctx.fillText("冠水・迂回",p.x,p.y-32);ctx.restore();
- }
+ for(const e of events)if(e.kind==="flood"&&active(e,year))drawFlood(ctx,ground,e,year,width,height);
  if(floodWarning){const p=project(floodWarning.x,floodWarning.y);if(p){
   ctx.save();ctx.strokeStyle="#7adaff";ctx.lineWidth=3;ctx.beginPath();ctx.arc(p.x,p.y,42,0,Math.PI*2);ctx.stroke();
   ctx.font="bold 14px sans-serif";ctx.fillStyle="#dff7ff";ctx.textAlign="center";

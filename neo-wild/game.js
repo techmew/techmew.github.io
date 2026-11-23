@@ -1582,15 +1582,29 @@ const BIOME_AREAS=[
  [2800,2600,2800,3400,"#554d48","factory"],[5600,2600,2800,3400,"#405960","dock"]
 ];
 const riverAxis=y=>7505+68*Math.sin(y/390),canalAxis=x=>5025+35*Math.sin(x/390);
-const WATER_RIBBONS=(()=>{
- const out=[];
- for(let y=0;y<2600;y+=125){const y2=Math.min(2600,y+125),a=riverAxis(y),b=riverAxis(y2);
-  out.push({kind:"river",cx:(a+b)/2,cy:(y+y2)/2,pts:[[a-133,y],[a+133,y],[b+133,y2],[b-133,y2]]});}
- for(let x=5600;x<8400;x+=125){const x2=Math.min(8400,x+125),a=canalAxis(x),b=canalAxis(x2);
-  out.push({kind:"canal",cx:(x+x2)/2,cy:(a+b)/2,pts:[[x,a-100],[x2,b-100],[x2,b+100],[x,a+100]]});}
- out.push(...(window.WildEastExpedition?.waterRibbons||[]));
- return out;
-})();
+// Cut river and canal geometry at the same 80-unit bridge edges used by land travel.
+const cityWater=[],cityBridges=[];
+function buildCityWater(kind,start,end,axis,half,roads){
+ const cuts=new Set([start,end]);
+ for(let v=start+60;v<end;v+=60)cuts.add(v);
+ for(const road of roads){
+  if(road<=start||road>=end)continue;
+  for(const edge of [road-80,road+80])cuts.add(Math.max(start,Math.min(end,edge)));
+  cityBridges.push({x:kind==="river"?axis(road):road,y:kind==="river"?road:axis(road),kind,half});
+ }
+ const edge=[...cuts].sort((a,b)=>a-b);
+ for(let i=1;i<edge.length;i++){
+  const a=edge[i-1],b=edge[i],mid=(a+b)*.5;
+  if(roads.some(v=>Math.abs(v-mid)<80))continue;
+  const pt=(v,side)=>kind==="river"?[axis(v)+side*half,v]:[v,axis(v)+side*half];
+  const side=kind==="river"?1:-1; // Both water surfaces face upward for WebGL lighting.
+  cityWater.push({kind,cx:kind==="river"?axis(mid):mid,cy:kind==="river"?mid:axis(mid),
+   pts:[pt(a,side),pt(b,side),pt(b,-side),pt(a,-side)]});
+ }
+}
+buildCityWater("river",0,2600,riverAxis,133,roadsY);
+buildCityWater("canal",5600,8400,canalAxis,100,roadsX);
+const WATER_RIBBONS=[...cityWater,...(window.WildEastExpedition?.waterRibbons||[])];
 let scenicProps=[];
 function buildScenicProps(){
  if(scenicProps.length)return;
@@ -1622,14 +1636,32 @@ function buildScenicProps(){
 function drawWater2D(){
  for(const seg of WATER_RIBBONS){
   if(!visible(seg.cx,seg.cy,270))continue;
-  const p=seg.pts;ctx.save();ctx.beginPath();ctx.moveTo(p[0][0],p[0][1]);
-  for(let j=1;j<4;j++)ctx.lineTo(p[j][0],p[j][1]);ctx.closePath();
+  const p=seg.pts;ctx.save();
   ctx.lineJoin="round";ctx.strokeStyle=seg.kind==="river"?"#abb392":"#969e93";
-  ctx.lineWidth=28;ctx.stroke();ctx.fillStyle=seg.kind==="river"?"#34788b":"#2c687f";ctx.fill();
+  ctx.lineWidth=5;ctx.beginPath();
+  const [a,b,c,d]=p;
+  const city=seg.kind==="river"||seg.kind==="canal";
+  const end=city?b:d,other=city?d:b;
+  ctx.moveTo(...a);ctx.lineTo(...end);ctx.moveTo(...other);ctx.lineTo(...c);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(...a);ctx.lineTo(...b);ctx.lineTo(...c);ctx.lineTo(...d);ctx.closePath();ctx.fillStyle=seg.kind==="river"?"#34788b":"#2c687f";ctx.fill();
   ctx.strokeStyle="#a8d2d080";ctx.lineWidth=2;ctx.beginPath();
   if(seg.kind==="river"){ctx.moveTo(seg.cx-32,seg.cy);ctx.lineTo(seg.cx+35,seg.cy);}
   else{ctx.moveTo(seg.cx,seg.cy-30);ctx.lineTo(seg.cx,seg.cy+25);}
   ctx.stroke();ctx.restore();
+ }
+ for(const deck of cityBridges){
+  if(!visible(deck.x,deck.y,250))continue;
+  ctx.save();ctx.translate(deck.x,deck.y);
+  if(deck.kind==="canal")ctx.rotate(Math.PI/2);
+  ctx.fillStyle="#726e5c";ctx.fillRect(-deck.half,-79,deck.half*2,158);
+  ctx.fillStyle="#e1ce93";
+  for(let x=-deck.half+8;x<deck.half-6;x+=37)ctx.fillRect(x,-2,19,4);
+  for(const side of [-1,1]){
+   ctx.fillStyle="#cdc7a7";ctx.fillRect(-deck.half,side*76-2,deck.half*2,4);
+   ctx.fillStyle="#544f42";
+   for(let x=-deck.half;x<=deck.half;x+=32)ctx.fillRect(x,side*76-3,8,6);
+  }
+  ctx.restore();
  }
 }
 function drawScenery2D(){
@@ -1767,7 +1799,7 @@ function waterDepth(x,y){
   const offset=Math.abs(x-riverAxis(y));
   if(offset<133&&!roadsY.some(ry=>Math.abs(y-ry)<80))depth=Math.max(depth,Math.min(1,(133-offset)/70));
  }
- if(x>=5600&&y>=2600){
+ if(x>=5600&&x<8400&&y>=2600){
   const offset=Math.abs(y-canalAxis(x));
   if(offset<100&&!roadsX.some(rx=>Math.abs(x-rx)<80))depth=Math.max(depth,Math.min(1,(100-offset)/55));
  }
@@ -9098,6 +9130,20 @@ function update(dt){
   firstStepsPending=false;window.WildFirstSteps?.begin?.(P);
  }
 }
+function nearbyWaterLabel(actor){
+ if(actor.flying||actor.groundZ>18)return "";
+ const disaster=window.WildDisaster,year=elapsed/120;
+ const depth=disaster?.floodDepth?.(actor.x,actor.y,year)||0;
+ if(depth>.0001)return depth>.24?"冠水・深水":"冠水・浅水";
+ const ahead=(actor.r||16)+28,angle=actor.dir||0;
+ if(disaster?.floodDepth?.(actor.x+Math.cos(angle)*ahead,actor.y+Math.sin(angle)*ahead,year)>.0001)return "前方に冠水";
+ for(const deck of cityBridges){
+  const dx=Math.abs(actor.x-deck.x),dy=Math.abs(actor.y-deck.y);
+  if((deck.kind==="river"?dx:dy)<deck.half&&(deck.kind==="river"?dy:dx)<80)
+   return actor.type==="carp"?"橋の下":"橋の上";
+ }
+ return "";
+}
 function syncHUD(hour){
  if(!P)return;
  syncSquadHud();
@@ -9125,7 +9171,7 @@ function syncHUD(hour){
   "青い「建物入口」から歩いて入れます（ボタン不要）");
 
  $("level").textContent="LV "+String(P.level).padStart(2,"0");setBar("xp-bar",P.xp/P.nextXp*100);
- const zone=regionAt(P.x,P.y);$("district-tag").textContent="AREA "+String(zone+1).padStart(2,"0")+" / 08";$("district").textContent=districts[zone];
+ const zone=regionAt(P.x,P.y);$("district-tag").textContent="AREA "+String(zone+1).padStart(2,"0")+" / 08";const waterLabel=nearbyWaterLabel(P);$("district").textContent=districts[zone]+(waterLabel?"｜"+waterLabel:"");
   const windArrow=["→","↘","↓","↙","←","↖","↑","↗"][Math.round(((windDirection%(Math.PI*2)+Math.PI*2)%(Math.PI*2))/(Math.PI/4))%8];
   $("day-label").textContent="YEAR "+String(Math.floor(elapsed/120)).padStart(3,"0");
  const moon=moonlightProfile(elapsed,weather);
@@ -9216,10 +9262,10 @@ function drawWorldMap(){
   if(MOUNTAIN.gorge){bm.fillStyle="#c4d2c5";bm.fillText("山腹・渓谷",X(10950),Y(2900));}
   if(MOUNTAIN.SUMMIT_START){bm.fillText("山頂の岩場",X(12420),Y(2900));bm.fillText("山頂洞窟",X(13200),Y(3150));}
  }
- for(const seg of WATER_RIBBONS){bm.fillStyle=seg.kind==="river"?"#4d9ca9":"#3c87a3";bm.beginPath();seg.pts.forEach((p,i)=>i?bm.lineTo(X(p[0]),Y(p[1])):bm.moveTo(X(p[0]),Y(p[1])));bm.closePath();bm.fill();}
   bm.fillStyle="#586666";
  for(const x of roadsX)bm.fillRect(X(x-75),0,Math.max(2,X(150)),height);
- for(const y of roadsY)bm.fillRect(0,Y(y-75),width,Math.max(2,Y(150)));
+ for(const y of roadsY)bm.fillRect(0,Y(y-75),X(CITY_WIDTH),Math.max(2,Y(150)));
+ for(const seg of WATER_RIBBONS){bm.fillStyle=seg.kind==="river"?"#4d9ca9":"#3c87a3";bm.beginPath();seg.pts.forEach((p,i)=>i?bm.lineTo(X(p[0]),Y(p[1])):bm.moveTo(X(p[0]),Y(p[1])));bm.closePath();bm.fill();}
  for(const b of buildings){
   bm.fillStyle=b.roofZ?"#8277a4":"#394b4e";
   bm.fillRect(X(b.x),Y(b.y),Math.max(2,X(b.w)),Math.max(2,Y(b.h)));
@@ -9261,7 +9307,7 @@ function drawWorldMap(){
    else mark(m.x,m.y,"#eb847b",4);
   }
  for(const e of window.WildDisaster?.events?.()||[]){
-  if(!["flood","wildfire"].includes(e.kind)||elapsed/120-e.year>=e.duration)continue;
+  if(!["flood","wildfire"].includes(e.kind)||elapsed/120<e.year||elapsed/120-e.year>=e.duration)continue;
   const isFire=e.kind==="wildfire";
   bm.save();bm.fillStyle=isFire?"rgba(229,91,24,.38)":"rgba(35,143,190,.38)";bm.strokeStyle=isFire?"#ffc07b":"#90e7ff";bm.lineWidth=2;
   bm.beginPath();bm.ellipse(X(e.x),Y(e.y),X(e.radius),Y(e.radius),0,0,TWO);bm.fill();bm.stroke();bm.restore();
@@ -9310,10 +9356,10 @@ function drawMini(){
    if(x===MOUNTAIN.WEST)mc.moveTo(px,py);else mc.lineTo(px,py);
   }mc.stroke();
  }
- for(const seg of WATER_RIBBONS){if(Math.abs(seg.cx-P.x)>span||Math.abs(seg.cy-P.y)>span)continue;mc.fillStyle=seg.kind==="river"?"#4897a7":"#387f9a";mc.beginPath();seg.pts.forEach((p,i)=>i?mc.lineTo(X(p[0]),Y(p[1])):mc.moveTo(X(p[0]),Y(p[1])));mc.closePath();mc.fill();}
   mc.fillStyle="#465553";
  for(const x of roadsX)if(Math.abs(x-P.x)<span)mc.fillRect(X(x-75),0,w*150/span,h);
- for(const y of roadsY)if(Math.abs(y-P.y)<span)mc.fillRect(0,Y(y-75),w,w*150/span);
+ for(const y of roadsY)if(Math.abs(y-P.y)<span)mc.fillRect(X(0),Y(y-75),CITY_WIDTH*w/span,w*150/span);
+ for(const seg of WATER_RIBBONS){if(Math.abs(seg.cx-P.x)>span||Math.abs(seg.cy-P.y)>span)continue;mc.fillStyle=seg.kind==="river"?"#4897a7":"#387f9a";mc.beginPath();seg.pts.forEach((p,i)=>i?mc.lineTo(X(p[0]),Y(p[1])):mc.moveTo(X(p[0]),Y(p[1])));mc.closePath();mc.fill();}
  mc.fillStyle="#344d45";
  for(const b of buildings)if(Math.hypot(b.x+b.w/2-P.x,b.y+b.h/2-P.y)<span){
   mc.fillStyle=b.interior?"#b7d9a5":"#344d45";
@@ -9322,7 +9368,7 @@ function drawMini(){
  }
  // Live flood boundaries are shown on the minimap, including their dry bypasses.
  for(const e of window.WildDisaster?.events?.()||[]){
-  if(!["flood","wildfire"].includes(e.kind)||elapsed/120-e.year>=e.duration)continue;
+  if(!["flood","wildfire"].includes(e.kind)||elapsed/120<e.year||elapsed/120-e.year>=e.duration)continue;
   const isFire=e.kind==="wildfire";
   mc.save();mc.strokeStyle=isFire?"#ffad62":"#7bdcf6";mc.fillStyle=isFire?"rgba(229,91,24,.30)":"rgba(35,143,190,.30)";mc.lineWidth=1.6;
   mc.beginPath();mc.arc(X(e.x),Y(e.y),e.radius*w/span,0,TWO);mc.fill();mc.stroke();mc.restore();
@@ -10749,7 +10795,7 @@ function drawScene(){
  $("vignette").classList.toggle("boss-close",mode==="play"&&P&&activeStrongBosses().some(m=>dist(P,m)<370));
  const x=cam.x+quakeOffset.x+(mode==="dying"?0:shake?rnd(-shake,shake):0),y=cam.y+quakeOffset.y+(mode==="dying"?0:shake?rnd(-shake,shake):0);
  let use3D=false;
- if(window.Wild3D?.available&&debugRendererPreference!=="2d")use3D=window.Wild3D.render({vw,vh,dpr,cam,quakeOffset,VIEW,cameraZoom,buildings,plants,mobs,P,elapsed,weather,snowpack:currentSnowpack(),WORLD,species,carcasses,weaponScraps,equippedWeapon:equippedWeapon(),streetProps,birdFlocks,scenicProps,disasterEvents:window.WildDisaster?.events?.()||[],standingFallTrees:window.WildDisaster?.standingTrees?.()||[],roadsX,roadsY,landmarks:[...EXPLORE_SITES,...(window.WildEastExpedition?.stops||[]),...(window.WildEastExpedition?.waterStations||[])],waterAt:waterDepth,lightProfile:dayLightProfile(elapsed),nightVision:P?nightVisionProfile():null,dens:denSites.map(site=>({x:site.x,y:site.y,z:site.z,kind:site.kind,level:denLevel,stash:denStash,meatLots:denMeatLots,type:choice}))});
+ if(window.Wild3D?.available&&debugRendererPreference!=="2d")use3D=window.Wild3D.render({vw,vh,dpr,cam,quakeOffset,VIEW,cameraZoom,buildings,plants,mobs,P,elapsed,weather,snowpack:currentSnowpack(),WORLD,species,carcasses,weaponScraps,equippedWeapon:equippedWeapon(),streetProps,birdFlocks,scenicProps,disasterEvents:window.WildDisaster?.events?.()||[],standingFallTrees:window.WildDisaster?.standingTrees?.()||[],roadsX,roadsY,landmarks:[...EXPLORE_SITES,...(window.WildEastExpedition?.stops||[]),...(window.WildEastExpedition?.waterStations||[])],cityWater,cityBridges,waterAt:waterDepth,lightProfile:dayLightProfile(elapsed),nightVision:P?nightVisionProfile():null,dens:denSites.map(site=>({x:site.x,y:site.y,z:site.z,kind:site.kind,level:denLevel,stash:denStash,meatLots:denMeatLots,type:choice}))});
  // All screen overlays and effects now use the very same world-camera offset as the renderer.
  renderedSceneCamera=use3D?{x:cam.x+quakeOffset.x,y:cam.y+quakeOffset.y}:{x,y};
  // Keep Canvas2D shadows fixed to world coordinates and actual paused game time.
@@ -10766,6 +10812,7 @@ function drawScene(){
  for(let xx=farLeft;xx<x+vw*1.8+180;xx+=180)for(let yy=farTop;yy<y+vh*2.3+180;yy+=180){
   const n=noise(xx/180,yy/180);ctx.fillStyle=n>.5?"#536a4214":"#b6a8850a";ctx.beginPath();ctx.ellipse(xx+78,yy+65,75+n*30,45+n*19,n,0,TWO);ctx.fill();
  }
+ roadDraw();
  drawWater2D();
   ctx.beginPath();
   window.WildEastExpedition?.eachRapid(P,elapsed,weather,(x,y,xx,yy)=>{
@@ -10777,7 +10824,6 @@ function drawScene(){
    if(!visible(stone.x,stone.y,24))continue;
    ctx.beginPath();ctx.ellipse(stone.x,stone.y,stone.r*1.4,stone.r*.7,0,0,TWO);ctx.fill();
   }
-  roadDraw();
   drawWorldSnow2D(currentSnowpack(),x,y);
   ctx.fillStyle="#504b40";
   window.WildEastExpedition?.eachTrack?.(elapsed,(tx,ty,rx,ry,angle)=>{
@@ -10958,7 +11004,7 @@ function drawScene(){
     c.restore();
    }});
   window.WildApparitions?.draw?.(ctx,project,{mode,P});
-  window.WildDisaster?.draw?.(ctx,project,elapsed/120,use3D);
+  window.WildDisaster?.draw?.(ctx,project,elapsed/120,use3D,use3D?projectGroundLabel:project,vw,vh);
   window.WildFloodRescue?.draw?.(ctx,project,{P,mobs,elapsed,mode,lineBlocked,
    floodDepth:(x,y)=>window.WildDisaster?.floodDepth?.(x,y,elapsed/120)||0,
    isPrey:m=>!!species[m.type]?.prey});
@@ -10974,7 +11020,7 @@ function drawScene(){
    c.translate(-(drawable.x||0),-(drawable.y||0));drawCreature(drawable,isPlayer);c.restore();
   }});
   window.WildApparitions?.draw?.(ctx,project,{mode:"play",P});
-  window.WildDisaster?.draw?.(ctx,project,elapsed/120,use3D);
+  window.WildDisaster?.draw?.(ctx,project,elapsed/120,use3D,use3D?projectGroundLabel:project,vw,vh);
   window.WildFloodRescue?.draw?.(ctx,project,{P,mobs,elapsed,mode:"play",lineBlocked,
    floodDepth:(x,y)=>window.WildDisaster?.floodDepth?.(x,y,elapsed/120)||0,
    isPrey:m=>!!species[m.type]?.prey});

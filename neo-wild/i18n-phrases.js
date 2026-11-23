@@ -1,6 +1,12 @@
 // WILD RECLAIM player-visible English translations; Japanese remains the source language.
 // Loaded before i18n.js. Keep gameplay/save keys unchanged.
 window.WildI18nPhrases = [
+ ["前方に冠水","Flood ahead"],
+ ["冠水・浅水","Shallow floodwater"],
+ ["冠水・深水","Deep floodwater"],
+ ["橋の上","Bridge deck"],
+ ["橋の下","Under the bridge"],
+ ["冠水","Flood"],
  ["触手が地面に刺さった！ 反撃ダメージ＋35％","Tentacles grounded! Counter now for +35% damage."],
  ["近づいて食べる","Approach to eat"],
  [
