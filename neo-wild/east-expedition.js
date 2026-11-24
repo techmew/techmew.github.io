@@ -502,7 +502,10 @@
   }
  }
  function readTrack(player,clock){
-  if(player.x<8200||Math.hypot(player.vx||0,player.vy||0)>22)return null;
+  return Math.hypot(player.vx||0,player.vy||0)<=22?nearbyTrack(player,clock):null;
+ }
+ function nearbyTrack(player,clock){
+  if(player.x<8200)return null;
   for(let i=tracks.length-1;i>=0;i--){
    const t=tracks[i],age=clock-t.at;
    if(t.wild&&age>=0&&age<t.life&&Math.hypot(t.x-player.x,t.y-player.y)<=80)return t;
@@ -575,6 +578,6 @@
   return {alerted,fleeing};
  }
  global.WildEastExpedition=Object.freeze({stops:STOPS,walkway:WALKWAY,waterStations,bridgeEscape,
-  resetTracks,updateTracks,readTrack,eachTrack,fordStones,surfaceDepth,streamBank,streamCurrent,eachRapid,disturbBrush,brushMotion,waterRibbons,channelDepth,aquaticDepth,waterNodes,aquaticNetworkStep,
+  resetTracks,updateTracks,nearbyTrack,readTrack,eachTrack,fordStones,surfaceDepth,streamBank,streamCurrent,eachRapid,disturbBrush,brushMotion,waterRibbons,channelDepth,aquaticDepth,waterNodes,aquaticNetworkStep,
   cleanWaterMask,waterVisited,waterArrival,waterReplenishable,all:ALL,cleanMask,visited,count,near,arrival,next,replenishable,navigation,aquaticStep,routePosition,groundGuide,habitat,biomes:BIOMES,biomeAt,fieldStatus,wildlifeResponse,aquaticEncounter,drawMap,drawPost2D});
 })(window);

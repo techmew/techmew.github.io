@@ -9,6 +9,8 @@ const animal={...player,type:"deer",r:18,hp:20,vx:0,vy:60};
 trail.updateTracks(player,[animal],10,"RAIN",()=>0);
 assert.equal(trail.readTrack(player,10).angle,Math.PI/2);
 assert.equal(trail.readTrack({...player,vx:75},10),null);
+assert.equal(trail.nearbyTrack({...player,vx:75},10).type,"deer");
+assert.equal(trail.nearbyTrack(player,14),null);
 assert.equal(trail.readTrack({...player,x:8600},10),null);
 assert.equal(trail.readTrack(player,14),null);
 trail.resetTracks();

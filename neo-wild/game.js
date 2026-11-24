@@ -2112,6 +2112,8 @@ function currentSnapshot(){
   tutorialSeen:[...tutorialSeen],mobs,carcasses,weaponScraps:weaponScraps.slice(0,18),weaponScrapSerial,plants,debris,birdFlocks,discoveredSites,earnedDiscoveries,ecology,ecologyClock,ecologyNews,worldEventJournal:worldEventJournal.slice(-40),strongRolls,strongTrophies
  };
 }
+// Retain only the last verified bytes and clock, never references to live actors.
+let verifiedAutoRaw=null,verifiedAutoElapsed=0;
 function saveAuto(){
  // A conflicting pantry must not be made authoritative by a later autosave.
  if(pantrySaveConflict){console.warn("WILD RECLAIM: autosave withheld after pantry/world conflict");return false;}
@@ -2125,26 +2127,34 @@ function saveAuto(){
   persistWorldChronicle();
   return false;
  }
+ let validatedRaw;
  try{
-  const raw=localStorage.getItem(AUTOSAVE_KEY);
-  if(raw){
-   let previous;
-   try{previous=JSON.parse(raw)}catch(_){
-    console.warn("WILD RECLAIM: existing autosave unreadable; refusing overwrite");return false;
-   }
-   // Cross-tab / stale-version protection. Only a user-authorized NEW GAME resets the clock.
+  validatedRaw=localStorage.getItem(AUTOSAVE_KEY);
+  if(validatedRaw){
    const explicitReset=localStorage.getItem("wild-reclaim-explicit-new-world-v1")==="1";
-   // A new Continue may claim precisely the autosave it loaded, once.
-   // An older tab is blocked even when its local world clock has advanced.
-   if(previous?.saveSessionId&&previous.saveSessionId!==SAVE_TAB_ID&&!explicitReset&&
-      (approvedForeignSaveAt===null||previous.savedAt!==approvedForeignSaveAt)){
-    console.warn("WILD RECLAIM: another tab owns this autosave; stale write refused");
-    return false;
+   let priorElapsed=null;
+   if(validatedRaw===verifiedAutoRaw){
+    priorElapsed=verifiedAutoElapsed;
+   }else{
+    let previous;
+    try{previous=JSON.parse(validatedRaw)}catch(_){
+     console.warn("WILD RECLAIM: existing autosave unreadable; refusing overwrite");return false;
+    }
+    // Cross-tab / stale-version protection. Only a user-authorized NEW GAME resets the clock.
+    // A new Continue may claim precisely the autosave it loaded, once.
+    // An older tab is blocked even when its local world clock has advanced.
+    if(previous?.saveSessionId&&previous.saveSessionId!==SAVE_TAB_ID&&!explicitReset&&
+       (approvedForeignSaveAt===null||previous.savedAt!==approvedForeignSaveAt)){
+     console.warn("WILD RECLAIM: another tab owns this autosave; stale write refused");
+     return false;
+    }
+    const valid=isValidSnapshot(previous);
+    if(previous&&!valid&&!explicitReset){
+     console.warn("WILD RECLAIM: existing autosave invalid; preserve raw data for backup");return false;
+    }
+    if(valid)priorElapsed=previous.elapsed;
    }
-   if(previous&&!isValidSnapshot(previous)&&!explicitReset){
-    console.warn("WILD RECLAIM: existing autosave invalid; preserve raw data for backup");return false;
-   }
-   if(previous&&isValidSnapshot(previous)&&snapshot.elapsed+1<previous.elapsed&&!explicitReset&&!window.WildDebugSandbox?.active){
+   if(priorElapsed!==null&&snapshot.elapsed+1<priorElapsed&&!explicitReset&&!window.WildDebugSandbox?.active){
     console.warn("WILD RECLAIM: refusing older tab to overwrite newer world");return false;
    }
   }
@@ -2155,11 +2165,13 @@ function saveAuto(){
  let previousAutoRaw=null,previousAutoRead=false,encodedAuto=null;
  try{
   // Preserve exact previous bytes so a failed readback cannot destroy the last valid run.
-  previousAutoRaw=localStorage.getItem(AUTOSAVE_KEY);
-  previousAutoRead=true;
   encodedAuto=JSON.stringify(snapshot);
+  previousAutoRaw=localStorage.getItem(AUTOSAVE_KEY);
+  if(previousAutoRaw!==validatedRaw)return false;
+  previousAutoRead=true;
   localStorage.setItem(AUTOSAVE_KEY,encodedAuto);
   if(localStorage.getItem(AUTOSAVE_KEY)!==encodedAuto)throw Error("autosave readback mismatch");
+  verifiedAutoRaw=encodedAuto;verifiedAutoElapsed=snapshot.elapsed;
   snapshotSaved=true;
   approvedForeignSaveAt=null;
  }catch(error){
@@ -9173,7 +9185,8 @@ function syncHUD(hour){
  $("level").textContent="LV "+String(P.level).padStart(2,"0");setBar("xp-bar",P.xp/P.nextXp*100);
  const zone=regionAt(P.x,P.y);$("district-tag").textContent="AREA "+String(zone+1).padStart(2,"0")+" / 08";const waterLabel=nearbyWaterLabel(P);
  const track=window.WildEastExpedition?.readTrack?.(P,elapsed);
- const trackLabel=track?(species[track.type]?.prey?"獲物の足跡":"危険な動物の足跡"):"";
+ const trackLabel=track?(species[track.type]?.prey?"獲物の足跡":"危険な動物の足跡"):
+  window.WildEastExpedition?.nearbyTrack?.(P,elapsed)?"足跡あり・止まって調べる":"";
  $("district").textContent=[districts[zone],waterLabel,trackLabel].filter(Boolean).join("｜");
   const windArrow=["→","↘","↓","↙","←","↖","↑","↗"][Math.round(((windDirection%(Math.PI*2)+Math.PI*2)%(Math.PI*2))/(Math.PI/4))%8];
   $("day-label").textContent="YEAR "+String(Math.floor(elapsed/120)).padStart(3,"0");

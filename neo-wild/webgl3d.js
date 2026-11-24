@@ -99,6 +99,7 @@ function writeVertex(p,nx,ny,nz,t){
  // Static district geometry is rebuilt only when the camera enters a new region.
  // Animal and vegetation animation still update every frame.
  let staticBuffer=gl.createBuffer(),snowBuffer=gl.createBuffer();
+ let staticCamX=0,staticCamY=0;
  let staticKey="",staticCount=0,staticRebuilds=0,dynamicCount=0;
  let snowCacheKey="",snowCount=0,snowRebuilds=0;
 function triangle(a,b,c,t){
@@ -2545,19 +2546,23 @@ function render(o){
   };
   // Rebuild the static room only when the roof changes to its playable cutaway.
   const interiorReveal=buildings.filter(b=>b.interior).map(b=>P&&Math.hypot(P.x-b.x-b.w*.5,P.y-b.y-b.h*.5)<Math.max(b.w,b.h)*.92?1:0).join("");
-  const regionKey=[Math.floor(cam.x/240),Math.floor(cam.y/240),vw,vh,...[VIEW.a,VIEW.b,VIEW.c,VIEW.d].map(v=>Math.round(v*12)),buildings.length,(o.streetProps||[]).length,(o.scenicProps||[]).length,(o.disasterEvents||[]).filter(e=>e.kind==="fallen_tree"&&(e.permanent||(o.elapsed||0)/120-e.year<e.duration)).map(e=>[Math.round(e.x),Math.round(e.y),Math.round(e.year),Number.isFinite(e.fallAtSeconds)?Math.min(12,Math.floor(Math.max(0,((o.elapsed||0)-e.fallAtSeconds)/1.4)*12)):12].join(",")).join(";"),
+  const regionKey=[vw,vh,...[VIEW.a,VIEW.b,VIEW.c,VIEW.d].map(v=>Math.round(v*12)),buildings.length,(o.streetProps||[]).length,(o.scenicProps||[]).length,(o.disasterEvents||[]).filter(e=>e.kind==="fallen_tree"&&(e.permanent||(o.elapsed||0)/120-e.year<e.duration)).map(e=>[Math.round(e.x),Math.round(e.y),Math.round(e.year),Number.isFinite(e.fallAtSeconds)?Math.min(12,Math.floor(Math.max(0,((o.elapsed||0)-e.fallAtSeconds)/1.4)*12)):12].join(",")).join(";"),
    // The static mesh is refreshed exactly when a slope deposit appears or fades.
    (o.disasterEvents||[]).filter(e=>e.kind==="landslide"&&((o.elapsed||0)/120)>=e.year&&
     (e.permanent||((o.elapsed||0)/120)<e.year+e.duration))
      .map(e=>[Math.round(e.x),Math.round(e.y),Math.round(e.year*100),Math.round(e.rx||68),Math.round(e.ry||41)].join(",")).join(";"),
    WORLD.w,WORLD.h,interiorReveal].join(":");
-  if(regionKey!==staticKey){
-   meshLength=0;terrain(WORLD,o.roadsX||[530,1410,2320,3270],o.roadsY||[465,1170,1890],isVisible,buildings,o.cityWater,o.cityBridges);
-   mountainTerrain(isVisible);
-   for(const site of o.landmarks||[])if(isVisible(site.x,site.y,600))landmarkMesh(site);
+  const dx=cam.x-staticCamX,dy=cam.y-staticCamY;
+  const cameraTravel=Math.max(Math.abs(VIEW.a*dx+VIEW.c*dy),Math.abs(VIEW.b*dx+VIEW.d*dy));
+  if(regionKey!==staticKey||cameraTravel>=140){
+   staticCamX=cam.x;staticCamY=cam.y;
+   const staticVisible=(x,y,margin=150)=>isVisible(x,y,margin+150);
+   meshLength=0;terrain(WORLD,o.roadsX||[530,1410,2320,3270],o.roadsY||[465,1170,1890],staticVisible,buildings,o.cityWater,o.cityBridges);
+   mountainTerrain(staticVisible);
+   for(const site of o.landmarks||[])if(staticVisible(site.x,site.y,600))landmarkMesh(site);
    // Light decorative rewilding; keep it out of physics and saved plants[].
    for(const p of o.scenicProps||[]){
-    if(!isVisible(p.x,p.y,175))continue;
+    if(!staticVisible(p.x,p.y,175))continue;
     if(p.kind==="wildGrowth"){
      for(let k=0;k<10;k++){
       const a=k*2.4,r=8+(k%4)*7;
@@ -2577,7 +2582,7 @@ function render(o){
     }
    }
    for(const b of buildings){
-   if(!isVisible(b.x+b.w/2,b.y+b.h/2,680))continue;
+   if(!staticVisible(b.x+b.w/2,b.y+b.h/2,680))continue;
    if(b.interior){
     // Geometry matches the five physical wall rectangles in game.js.
     const wall=15,door=b.x+b.w*.5,half=55,high=83;
@@ -2661,13 +2666,13 @@ function render(o){
    }
    }
    // Rooted trees occupy identical collision and 2D world positions.
-   for(const tree of o.standingFallTrees||[])if(isVisible(tree.x,tree.y,245))standingGiantTreeMesh(tree);
+   for(const tree of o.standingFallTrees||[])if(staticVisible(tree.x,tree.y,245))standingGiantTreeMesh(tree);
    // Real rocky deposits are cached in the static GPU mesh, not rebuilt
    // each frame. Their footprint and life span use the physics events.
    for(const e of o.disasterEvents||[]){
     const year=(o.elapsed||0)/120;
     if(year<e.year||(!e.permanent&&year-e.year>=e.duration)||
-       !isVisible(e.x,e.y,210))continue;
+       !staticVisible(e.x,e.y,210))continue;
     if(e.kind==="landslide"){
      const rx=Math.max(24,Number(e.rx)||68),ry=Math.max(18,Number(e.ry)||41);
      const mountain=window.WildMountain;
@@ -2684,7 +2689,7 @@ function render(o){
    }
    // Abandoned traffic has real 3D depth and matches the fallback drawings.
    for(const prop of o.streetProps||[]){
-    if(!isVisible(prop.x,prop.y,150))continue;
+    if(!staticVisible(prop.x,prop.y,150))continue;
     const x=prop.x,y=prop.y;
     if(prop.type==="car"){
      const horiz=Math.abs(prop.dir)<.5,w=horiz?70:38,h=horiz?38:70;
