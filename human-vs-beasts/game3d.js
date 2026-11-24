@@ -61,7 +61,8 @@ const animals=[
  // Preserve the first 50 rivals and their save IDs; special kaiju are bonus challenges.
  racer('spinetitan','スパインタイタン','27mの巨体と岩の背甲を持つ二足怪獣',81,5.5,'spinetitan',0x425b5f,23,'heavy','怪獣'),
  racer('velka','ヴェルカ','13mの軽量な疾走型二足怪獣',94,9.2,'velka',0x7a6555,24,'sprinter','怪獣'),
- racer('dorogan','ドロガン','20mの重甲四足怪獣',68,4.6,'dorogan',0x666c58,24,'heavy','怪獣')
+ racer('dorogan','ドロガン','20mの重甲四足怪獣',68,4.6,'dorogan',0x666c58,24,'heavy','怪獣'),
+ racer('giraffe','キリン','長い首を大きく振りながら疾走する',56,5.6,'giraffe',0xd7a35f,6,'steady','現生動物')
 ];
 // Fictional kaiju heights and per-foot strides (metres); not zoological measurements.
 const KAIJU_SPECS={spinetitan:{heightM:27,strideM:9,form:'biped'},velka:{heightM:13,strideM:5.2,form:'biped'},dorogan:{heightM:20,strideM:7,form:'quad'}};
@@ -121,7 +122,8 @@ const SPECIES_HEIGHT_M={
  kaiju:10,
  spinetitan:27,
  velka:13,
- dorogan:20
+ dorogan:20,
+ giraffe:5.2
 };
 const palettes={skin:['#ffe0c7','#eec09b','#c88d62','#975f45','#633c2d','#f3c99c','#c49574','#ab7858','#dfac7d','#6b4936'],hair:['#202029','#432c23','#9f6337','#d8bd75','#8a484b','#bebdc2','#1e5581','#a649a7','#74371d','#d4d3cb'],shirt:['#a9b5ae','#ffffff','#1a2c47','#ef645a','#3a9ede','#9c69e2','#e5aa49','#1f7d72','#dc88a9','#b6bdc4','#343038','#f3ca77'],pants:['#14283e','#f1f3ee','#193b4f','#3f454d','#953d4e','#41553f','#8e735a','#253364','#74748b'],shoes:['#f7f8f0','#e9b14e','#252a2f','#63d7e6','#ef6a66','#a77beb','#9bb59f','#cfd3d7'],irisTone:['#443020','#67513a','#2a4d62','#477164','#8f897d','#282b30','#8b6b4e','#627e94','#a5ab97','#425d56'],sole:['#e6e4dd','#282f32','#808a8e','#d4c1a4','#c38e72','#546973','#a3a69d','#a36956']};
 
@@ -502,7 +504,10 @@ function makeBeast(data){
     for(const side of [-1,1]){
      const arm=new T.Group();arm.position.set(side*.31,1.59,.22);bodyGroup.add(arm);
      tube(arm,[0,0,0],[side*.13,-.38,.35],.11,coat,.085);
-     ball(arm,coat,side*.16,-.41,.44,.095,.14,.085);
+     const glove=mat(0xb51d30,.48),cuff=mat(0xeee4d8,.82);
+      ball(arm,cuff,side*.13,-.34,.31,.119,.12,.115,12);
+      ball(arm,glove,side*.16,-.43,.49,.19,.19,.22,16);
+      ball(arm,glove,side*.07,-.39,.56,.092,.12,.13,12);
      arms.push({sh:arm,side});
     }
    }
@@ -655,7 +660,49 @@ function makeOriginalKaiju(data){
  return withSpeciesLocomotion(data,{root,bodyGroup,legs,arms,tail,animate:()=>{}});
 }
 
+function makeGiraffe(data){
+ const root=new T.Group(),bodyGroup=new T.Group(),legs=[],arms=[];root.add(bodyGroup);
+ const coat=mat(data.coat,.93),spot=mat(0x80502f,.95),dark=mat(0x433226,.93),cream=mat(0xe8c58d,.9),eye=mat(0x161312,.32);
+ const b=(p,m,x,y,z,w,h,d,n=14)=>ball(p,m,x,y,z,w,h,d,n);
+ b(bodyGroup,coat,0,2.52,0,.46,.47,1.03,22);
+ b(bodyGroup,coat,0,2.65,.59,.40,.53,.48,18);
+ for(let i=0;i<18;i++){
+  const z=-.87+(i%9)*.213,theta=(i<9?1:-1)*(1.0+(i%3)*.32),r=Math.sqrt(Math.max(.12,1-(z/1.04)**2));
+  b(bodyGroup,spot,Math.sin(theta)*.45*r,2.52+Math.cos(theta)*.46*r,z,.045,.125,.125,9);
+ }
+ const neck=new T.Group();neck.position.set(0,2.71,.61);bodyGroup.add(neck);
+ tube(neck,[0,0,0],[0,1.88,.48],.20,coat,.31);
+ for(let i=0;i<10;i++)for(const side of [-1,1]){
+  const t=(i+.5)/10;
+  b(neck,spot,side*(.30-.10*t),1.88*t,.48*t+(i%2?.045:-.045),.032,.079,.087,9);
+ }
+ for(let i=0;i<10;i++)b(neck,dark,0,.15+i*.168,-.23+i*.048,.065,.11,.065,9);
+ b(neck,coat,0,1.98,.55,.22,.25,.34,18);
+ b(neck,cream,0,1.88,.83,.20,.16,.25,16);
+ b(neck,dark,0,1.91,1.02,.14,.075,.065,12);
+ for(const side of [-1,1]){
+  b(neck,eye,side*.18,2.02,.71,.048,.052,.051,12);
+  const ear=b(neck,coat,side*.27,2.12,.46,.17,.075,.115,12);ear.rotation.z=side*.38;
+  tube(neck,[side*.10,2.13,.54],[side*.12,2.34,.52],.044,coat,.055);
+  b(neck,dark,side*.12,2.34,.52,.065,.065,.062,10);
+ }
+ for(const front of [-1,1])for(const side of [-1,1]){
+  const hip=new T.Group();hip.position.set(side*.30,2.40,front*.69);bodyGroup.add(hip);
+  tube(hip,[0,0,0],[0,-1.06,.04],.11,coat,.17);
+  b(hip,spot,side*.095,-.46,0,.037,.16,.09,9);
+  const knee=new T.Group();knee.position.set(0,-1.06,.04);hip.add(knee);
+  tube(knee,[0,0,0],[0,-1.13,.04],.066,coat,.096);
+  b(knee,dark,0,-1.16,.105,.105,.10,.15,12);
+  legs.push({hip,knee,side,front});
+ }
+ const tail=new T.Group();tail.position.set(0,2.58,-.92);bodyGroup.add(tail);
+ tube(tail,[0,0,0],[0,-.74,-.35],.035,coat,.059);
+ b(tail,dark,0,-.78,-.37,.07,.13,.065,10);
+ lineShadow(root,.85);
+ return withSpeciesLocomotion(data,{root,bodyGroup,legs,arms,tail,neck,animate(){}});
+}
 function buildUnscaledBeast(data){
+ if(data.kind==='giraffe')return makeGiraffe(data);
  if(KAIJU_SPECS[data.kind])return makeOriginalKaiju(data);
  // The original thirteen racers retain their existing models; the other thirty-seven use specialized anatomy.
  if(data.kind==='boar')return withSpeciesLocomotion(data,makeWildBoar(data));
@@ -1118,7 +1165,7 @@ function makeWildBoar(data){
 const GAIT_MAP={
  dog:'canter',cat:'flexGallop',fox:'canter',dodo:'birdRun',rabbit:'bound',greyhound:'flexGallop',
  zebra:'horseGallop',boar:'heavyTrot',ostrich:'birdRun',kangaroo:'kangarooHop',moa:'birdRun',
- horse:'horseGallop',wolf:'canter',giantsloth:'heavyBiped',lion:'flexGallop',
+ giraffe:'horseGallop',horse:'horseGallop',wolf:'canter',giantsloth:'heavyBiped',lion:'flexGallop',
  deer:'pronk',smilodon:'flexGallop',gazelle:'pronk',pronghorn:'horseGallop',tiger:'flexGallop',
  unicorn:'skyGallop',cheetah:'flexGallop',gorilla:'knuckleRun',elephant:'heavyTrot',
  hippo:'heavyTrot',rhino:'heavyTrot',mammoth:'heavyTrot',woollyrhino:'heavyTrot',
@@ -1170,7 +1217,7 @@ function speciesMotion(kind,rig,phase,effort){
  const armSwing=(n)=>{for(const [i,p] of arms.entries())if(p.sh)p.sh.rotation.x+=(i%2?-1:1)*n*a};
  const wingFlap=(n)=>{for(const p of wings)p.wing.rotation.z+=p.side*n*a};
  switch(kind){
-  case 'dog':          roll(.10*f);tailWag(.36*Math.sin(phase*2.6));break; // happy tail & excited zig
+  case 'dog':          roll(.10*f);if(tail){tail.rotation.z=phase*4.5;tail.rotation.y=.83*Math.sin(phase*5.8)*Math.min(1,a);}break; // happy tail & excited zig
   case 'cat': pitch(-.21*c);body.scale.z*=1+.14*s;tailWag(.37*Math.sin(phase*1.9));break; // springy arched back
   case 'fox':          yaw(.095*s);tailWag(.40*g);bounce(.04*(1+c));break; // tail-led sidestep
   case 'dodo': roll(.34*s);pitch(.16*f);bounce(.095*(1+f));break; // drunken waddling
@@ -1179,7 +1226,8 @@ function speciesMotion(kind,rig,phase,effort){
   case 'zebra': yaw(.12*f);roll(.12*c);tailWag(.43*f);break; // energetic stamping
   case 'boar':         pitch(-.14*Math.abs(s));roll(.12*f);tailWag(.18*s);break; // head-first shuffle
   case 'ostrich': roll(.21*g);pitch(.20*s);bounce(.095*(1+c));break; // high-neck sway
-  case 'kangaroo': pitch(.18*s);tailPitch(-.55*c);tailWag(.23*g);break; // tail as a rudder
+  case 'kangaroo': pitch(.18*s);tailPitch(-.55*c);tailWag(.23*g);break;
+  case 'giraffe': if(rig.neck){rig.neck.rotation.x=.36*Math.sin(phase*.85)*Math.min(1,a);rig.neck.rotation.z=.24*Math.sin(phase*.55)*Math.min(1,a);}tailWag(.30*f);break; // tail as a rudder
   case 'moa':          roll(.16*Math.sin(phase*.8));pitch(.14*f);break; // towering wobbly strides
   case 'horse':        pitch(.09*s);body.scale.z*=1+.048*c;tailWag(.25*f);break; // exaggerated thoroughbred
   case 'wolf':         pitch(-.105*(1+c));tailWag(.16*q);roll(.044*f);break; // low pack-leader prowl
@@ -1244,7 +1292,9 @@ function withSpeciesLocomotion(data,rig){
    for(const leg of legs){leg.hip.rotation.x=0;leg.knee.rotation.x=0}
    for(const arm of arms)if(arm.sh)arm.sh.rotation.x=0;
    for(const ear of rabbitEars)ear.rotation.x=0;
-   if(tail){tail.rotation.x=0;tail.rotation.y=0}
+   if(tail){tail.rotation.x=0;tail.rotation.y=0;tail.rotation.z=0;}
+   if(rig.neck){rig.neck.rotation.x=0;rig.neck.rotation.z=0;}
+   if(kind==='kangaroo')for(const arm of arms){if(arm.sh)arm.sh.rotation.y=0;}
    lastImpact=null;
    return false;
   }
@@ -1271,7 +1321,11 @@ function withSpeciesLocomotion(data,rig){
     leg.hip.rotation.x=(hind?-.36-1.02*jump+.34*stance:-.20-.36*jump)*effort;
     leg.knee.rotation.x=(hind?.17+1.28*jump:.14+.42*jump)*effort;
    }
-   for(const arm of arms)if(arm.sh)arm.sh.rotation.x=(-.18-.28*jump)*effort;
+   for(const arm of arms)if(arm.sh){
+     const punch=rig.boxingPunch||0, strike=arm.side===-1&&punch>0?Math.sin(Math.PI*clamp(1-punch/.48,0,1)):0;
+     arm.sh.rotation.x=(-.18-.28*jump)*effort-.92*strike;
+     arm.sh.rotation.y=-1.30*strike;
+    }
    if(tail){
     tail.rotation.x=(.38*stance-.52*jump+.12*Math.cos(phase*.5))*effort;
     tail.rotation.y=.18*Math.sin(phase*.25)*effort;
@@ -1436,7 +1490,7 @@ function withSpeciesLocomotion(data,rig){
   // normalization alone cannot compensate for the articulated knee/hip swing.
   // Sample only the four hoof assemblies, not tails, manes or other ornaments.
   // Throttle the expensive bounds sampling on low-end Android GPUs.
-  if(['horse','zebra','gazelle','pronghorn','deer'].includes(kind)&&legs.length>=4&&rig.root.visible){
+  if(['horse','zebra','gazelle','pronghorn','deer','giraffe'].includes(kind)&&legs.length>=4&&rig.root.visible){
    const contact=rig.userDataHoofContact||(rig.userDataHoofContact={lastPhase:-999,offset:0});
    if(phase-contact.lastPhase>.18||phase<contact.lastPhase){
     contact.lastPhase=phase;
@@ -1718,7 +1772,7 @@ function stopAmbience(){
 }
 function showScreen(mo){if(mo!=='race'){if(ceremonyStage)endCeremonyStage();stopAmbience();if(voiceStopTimer){clearTimeout(voiceStopTimer);voiceStopTimer=null}for(const player of Object.values(loadedCalls))if(!player.paused)player.pause()}mode=mo;document.body.classList.remove('menu-mode','race-mode','custom-mode','train-mode','beasts-mode');document.body.classList.add(mo+'-mode');['menu','custom','train','beasts'].forEach(x=>$(x+'Screen').classList.toggle('active',x===mo));$('bottomNav').classList.toggle('gone',mo==='race');document.querySelectorAll('[data-screen]').forEach(b=>b.classList.toggle('active',b.dataset.screen===mo));$('raceHUD').style.display=mo==='race'?'flex':'none';$('raceControls').style.display=mo==='race'?'block':'none';$('resultOverlay').style.display='none';if(mo!=='race'){$('countdown').style.display='none';human.root.position.z=0;opponent.root.position.z=0;human.root.position.x=humanX;opponent.root.position.x=animalX;human.root.rotation.y=0;opponent.root.rotation.y=0;$('raceMsg').style.display='none';$('raceBanner').textContent='';}else {$('raceBanner').textContent='100m走'}if(mo==='train')renderTraining();if(mo==='custom'){$('customScreen').classList.remove('previewOnly');studioShowFull=false;camSpin=0;renderCustom();}if(mo==='beasts')renderBeasts();refreshMenu()}
 const cost=(id)=>{const level=save.stats[id]||1;return Math.round(40+12*(level-1)+2.6*Math.pow(level-1,2))};
-const unlocked=(i)=>!!animals[i]&&(animals[i].group==='怪獣'||i===0||i<=save.unlockedStage||save.won.includes(animals[i-1].id));
+const unlocked=(i)=>!!animals[i]&&(animals[i].id==='giraffe'||animals[i].group==='怪獣'||i===0||i<=save.unlockedStage||save.won.includes(animals[i-1].id));
 // Opponent-specific race briefing uses the same pace profiles as the physics.
 // Show the actual personal best for this opponent, not the global best.
 function rivalRaceBrief(a){
@@ -1826,7 +1880,7 @@ $('loadAvatarSlot')?.addEventListener('click',()=>{
  refreshHuman();renderCustom();store();$('avatarCount').textContent='キャラ'+(slot+1)+'を呼び出しました';
 });
 // Tap race physics — speed is in metres per second, distances in metres.
-function startRace(){if(mode==='race')return;opponent.root.visible=true;opponent.root.position.y=.13;stopAmbience();prefetchVoice(animals[save.chosen].kind);audioSystem();raceName=animals[save.chosen].name;humanGait=0;beastGait=0;race={opponentIndex:save.chosen,time:0,phase:'countdown',count:3.3,lastCount:4,humanD:0,enemyD:0,humanV:0,enemyV:0,combo:0,lastFoot:'',lastTap:-999,lastRatingAt:-999,drive:0,taps:0,legTaps:{L:-999,R:-999},lastAlternate:-999,sideStreak:0,lateral:humanX,lateralTarget:humanX,lateralVelocity:0,enemyLateral:animalX,offTrack:false,bumpCooldown:0,enemyStumble:0,stamina:1,burstCharge:0,burstLeft:0,burstUsed:false,hFinish:null,eFinish:null,lastStep:-1,lastRivalStep:-1,lastRivalImpact:-1,lastRivalCall:-99,rivalStridePhase:0};showScreen('race');race.time=0;$('countdown').textContent='3';$('countdown').style.display='flex';$('raceBanner').textContent='第'+(save.chosen+1)+'戦 / '+raceName;$('enemyLabel').textContent='対戦相手 / '+raceName;$('burstBtn').disabled=true;$('burstBtn').classList.remove('ready');updateHud(true);}
+function startRace(){if(mode==='race')return;opponent.root.visible=true;opponent.root.position.y=.13;opponent.boxingPunch=0;stopAmbience();prefetchVoice(animals[save.chosen].kind);audioSystem();raceName=animals[save.chosen].name;humanGait=0;beastGait=0;race={opponentIndex:save.chosen,time:0,phase:'countdown',count:3.3,lastCount:4,humanD:0,enemyD:0,humanV:0,enemyV:0,combo:0,lastFoot:'',lastTap:-999,lastRatingAt:-999,drive:0,taps:0,legTaps:{L:-999,R:-999},lastAlternate:-999,sideStreak:0,lateral:humanX,lateralTarget:humanX,lateralVelocity:0,enemyLateral:animalX,offTrack:false,bumpCooldown:0,enemyStumble:0,stamina:1,burstCharge:0,burstLeft:0,burstUsed:false,hFinish:null,eFinish:null,lastStep:-1,lastRivalStep:-1,lastRivalImpact:-1,lastRivalCall:-99,rivalStridePhase:0};showScreen('race');race.time=0;$('countdown').textContent='3';$('countdown').style.display='flex';$('raceBanner').textContent='第'+(save.chosen+1)+'戦 / '+raceName;$('enemyLabel').textContent='対戦相手 / '+raceName;$('burstBtn').disabled=true;$('burstBtn').classList.remove('ready');updateHud(true);}
 function tap(side,overlapping=false){
  if(!race||race.phase!=='running'||race.hFinish!==null)return;
  const r=race,now=r.time,elapsed=now-r.lastTap;
@@ -3208,7 +3262,7 @@ function finishRace(){
  const reward=Math.max(15,Math.round((won?190:completed?65:30)+opponent.tier*(won?68:completed?13:0)+(completed?Math.max(0,18-r.hFinish)*4:0)));
  save.money+=reward;
  // Bonus monster wins must not unlock all 50 regular rivals.
- const bonusChallenge=opponent.group==='怪獣';
+ const bonusChallenge=opponent.group==='怪獣'||opponent.id==='giraffe';
  const atLast=!bonusChallenge&&opponentIndex>=49;
  if(won){
   if(!save.won.includes(opponent.id))save.won.push(opponent.id);
@@ -3224,7 +3278,7 @@ function finishRace(){
  $('resultTime').textContent=completed?r.hFinish.toFixed(2)+'秒':'未完走';
  $('resultEnemy').textContent=Number.isFinite(r.eFinish)?r.eFinish.toFixed(2)+'秒':'ゴール前に終了';
  $('resultMoney').textContent='+'+reward+' G';
- $('resultMsg').textContent=won?(bonusChallenge?'怪獣に勝利しました。通常50種の進行は変わりません。':'勝ちました。'+(atLast?'通常50種との対戦を終えました。':'次の動物に挑戦できます。')):completed?'負けました。育成してから再挑戦できます。':'35秒以内にゴールできませんでした。タップして走ってください。';
+ $('resultMsg').textContent=won?(bonusChallenge?'追加対戦に勝利しました。通常50種の進行は変わりません。':'勝ちました。'+(atLast?'通常50種との対戦を終えました。':'次の動物に挑戦できます。')):completed?'負けました。育成してから再挑戦できます。':'35秒以内にゴールできませんでした。タップして走ってください。';
  lastResultWon=won;resultText=(completed?r.hFinish.toFixed(2)+'秒':'未完走')+'  /  '+(won?'勝ち':'負け');
  $('resultOverlay').style.display='flex';
  stopAmbience();if(voiceStopTimer){clearTimeout(voiceStopTimer);voiceStopTimer=null}for(const player of Object.values(loadedCalls))if(!player.paused)player.pause();makeRacePhoto();refreshMenu();effect(won?'victory':'defeat');
@@ -3333,6 +3387,18 @@ function updateRaceStep(dt){const r=race;if(!r)return;if(r.phase==='countdown'){
  // Only the airborne half of the actual hop is protected; landing is hittable.
  const hopPhase=r.rivalStridePhase||0;
  const airborne=a.profile==='hopper'&&Math.sin(hopPhase)>.55;
+ if(a.kind==='kangaroo'){
+  const prev=r.boxingPunch||0;
+  r.boxingPunch=Math.max(0,prev-dtSafe);
+  r.boxingCooldown=Math.max(0,(r.boxingCooldown||0)-dtSafe);
+  const inReach=r.hFinish===null&&r.eFinish===null&&Math.abs(r.humanD-r.enemyD)<1.65&&r.enemyLateral-r.lateral>=0&&r.enemyLateral-r.lateral<2.6;
+  if(inReach&&r.boxingCooldown===0){r.boxingPunch=.48;r.boxingCooldown=2.2;}
+  if(prev>.24&&r.boxingPunch<=.24&&inReach){
+   r.humanV*=.78;r.drive*=.84;r.lateralTarget=clamp(r.lateralTarget-.34,-5.2,2.5);
+   kickDust(r.lateral,r.humanD,9);soundNoise(.13,.055,100,1400);soundTone(115,.12,'sine',.04,0,60);
+  }
+  opponent.boxingPunch=r.boxingPunch;
+ }
  const flying=['pegasus','unicorn','griffin','dragon'].includes(a.kind)&&opponent.flight>.4;
  if(r.bumpCooldown===0&&r.hFinish===null&&r.eFinish===null&&!airborne&&!flying
   &&Math.abs(r.lateral-r.enemyLateral)<collisionWidth
