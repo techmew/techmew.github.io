@@ -790,10 +790,10 @@ function buildUnscaledBeast(data){
    const group=new T.Group();group.position.set(side*.45,.12,length-.05);bodyGroup.add(group);
    animalHead(group,.72,headY,.27,.23,.35);spike(group,shade,side*.12,headY+.25,.76,.23,0,.09);
   }
-  if(k==='pegasus'||k==='griffin'||k==='dragon'){
+  if(k==='unicorn'||k==='pegasus'||k==='griffin'||k==='dragon'){
    for(let side of [-1,1]){
     const wing=leafWing(bodyGroup,side,broad*.86,hipY+.32,-.22,k==='dragon');
-    if(k==='pegasus')wing.scale.set(1.75,1.4,1.35);
+    if(k==='pegasus'||k==='unicorn')wing.scale.set(1.75,1.4,1.35);
    }
   }
   if(k==='griffin'){
@@ -1321,6 +1321,12 @@ function withSpeciesLocomotion(data,rig){
      const lead=leg.front>0,step=Math.sin(phase*.80+(lead?1.5:0)+(leg.side>0?.28:0));
      leg.hip.rotation.x=(step*.58-(lead?.16:.38)*flight)*effort;
      leg.knee.rotation.x=(.14+Math.max(0,-step)*.64+flight*.25)*effort;
+    }
+    for(const {wing,side} of wings){
+     const flap=Math.sin(phase*.92);
+     wing.rotation.z=-side*(.17+flight*(.30+.78*flap));
+     wing.rotation.x=flight*.12*Math.sin(phase*.92-.9);
+     wing.rotation.y=side*(.08+.09*Math.cos(phase*.92))*flight;
     }
     if(tail){tail.rotation.y=.36*Math.sin(phase*.56)*effort;tail.rotation.x=.18*Math.cos(phase*.53)*effort}
    }else if(gait==='wingFlight'){
@@ -3122,10 +3128,34 @@ function makeRacePhoto(){
 // Race distance and finish time remain locked at 100m. The visual Pegasus
 // travels farther, climbs and vanishes without changing awards or save state.
 function isSkyRunner(kind){return kind==='pegasus'||kind==='unicorn'}
+function unicornSkySpark(r){
+ if(r.unicornSparkUntil)return;
+ r.unicornSparkUntil=performance.now()+850;
+ const point=opponent.bodyGroup.getWorldPosition(new T.Vector3()).project(camera);
+ const rect=renderer.domElement.getBoundingClientRect();
+ const x=Number.isFinite(point.x)?clamp((point.x+1)/2,.12,.88):.5;
+ const y=Number.isFinite(point.y)?clamp((1-point.y)/2,.12,.78):.2;
+ const node=document.createElement('div');
+ node.textContent='✦';node.setAttribute('aria-hidden','true');
+ Object.assign(node.style,{position:'fixed',left:(rect.left+rect.width*x)+'px',top:(rect.top+rect.height*y)+'px',fontSize:'42px',lineHeight:'1',color:'#fff9df',textShadow:'0 0 8px #fff,0 0 20px #ffd879',pointerEvents:'none',zIndex:'1000',transform:'translate(-50%,-50%)'});
+ document.body.appendChild(node);
+ if(node.animate)node.animate([
+  {opacity:0,transform:'translate(-50%,-50%) scale(.25)'},
+  {opacity:1,transform:'translate(-50%,-50%) scale(1.25)',offset:.3},
+  {opacity:0,transform:'translate(-50%,-50%) scale(.15)'}
+ ],{duration:850,easing:'ease-out',fill:'forwards'});
+ setTimeout(()=>node.remove(),850);
+ soundTone(1568,.28,'sine',.025);soundTone(2349,.45,'sine',.018,.09);
+}
 function advancePegasusFlight(dt){
  const r=race;
  if(!r||!isSkyRunner(animals[r.opponentIndex]?.kind)||(r.phase!=='pegasusExit'&&r.eFinish===null))return;
  const step=Math.min(.065,Math.max(0,dt));
+ if(r.unicornSparkUntil){
+  opponent.root.visible=false;
+  if(r.phase==='pegasusExit'&&performance.now()>=r.unicornSparkUntil){r.pegasusExitDone=true;finishRace();}
+  return;
+ }
  if(r.pegasusBeyond==null)r.pegasusBeyond=r.enemyD;
  if(r.pegasusCruiseTime==null)r.pegasusCruiseTime=0;
  r.pegasusCruiseTime+=step;
@@ -3138,11 +3168,13 @@ function advancePegasusFlight(dt){
  const height=Math.min(165,1.4*Math.min(r.pegasusCruiseTime,1.6)+2.2*t*t+0.65*t*t*t);
  opponent.root.position.set(r.enemyLateral,.13+height,r.pegasusBeyond);
  opponent.root.visible=r.pegasusBeyond<520;
+ if(!opponent.root.visible&&animals[r.opponentIndex]?.kind==='unicorn'){unicornSkySpark(r);return;}
  if(r.phase==='pegasusExit'){
   r.pegasusExitWait=(r.pegasusExitWait||0)+step;
   if(!opponent.root.visible||r.pegasusExitWait>=(animals[r.opponentIndex]?.kind==='unicorn'?5.8:8.5)){
    // A missing render frame cannot trap the player in the farewell sequence.
    opponent.root.visible=false;
+   if(animals[r.opponentIndex]?.kind==='unicorn'){unicornSkySpark(r);return;}
    r.pegasusExitDone=true;
    finishRace();
   }
@@ -3155,7 +3187,7 @@ function finishRace(){
  const opponent=animals[opponentIndex];
  // Pegasus must visibly continue flying beyond the finish before the result UI
  // switches WebGL over to the podium. The official race time is already fixed.
- if(isSkyRunner(opponent.kind)&&!r.pegasusExitDone&&(r.pegasusBeyond??r.enemyD)<520){
+ if(isSkyRunner(opponent.kind)&&!r.pegasusExitDone&&((r.pegasusBeyond??r.enemyD)<520||(r.unicornSparkUntil||0)>performance.now())){
   if(r.phase!=='pegasusExit'){
    r.phase='pegasusExit';r.pegasusExitWait=0;r.pegasusBeyond=r.pegasusBeyond??r.enemyD;
    r.pegasusCruiseTime=r.pegasusCruiseTime||0;r.pegasusCruiseSpeed=Math.max(22,r.pegasusCruiseSpeed||r.enemyV||22);
