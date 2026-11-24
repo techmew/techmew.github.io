@@ -3448,13 +3448,13 @@ function updateMemeAttack(r,a,dt,rig){
  const active=r.hFinish===null&&r.eFinish===null&&r.humanV>1&&(!['unicorn','pegasus'].includes(a.kind)||r.enemyD<14);
  const gap=Math.abs(r.humanD-r.enemyD),lat=Math.abs(r.enemyLateral-r.lateral);
  if(r.memeElapsed<0&&active&&gap<reach+.55&&lat<Math.min(3.0,1.8+reach*.22)&&r.memeCooldown===0){
-  r.memeElapsed=0;r.memeOrigin=r.pursuit?.origin??r.enemyLateral;r.memeSide=r.pursuit?.side??(r.lateral<r.enemyLateral?-1:1);r.memeHit=-1;r.pursuit=null;
+  r.memeElapsed=0;r.memeEntry=r.enemyLateral;r.memeOrigin=r.pursuit?.origin??r.enemyLateral;r.memeSide=r.pursuit?.side??(r.lateral<r.enemyLateral?-1:1);r.memeHit=-1;r.pursuit=null;
  }
  if(r.memeElapsed>=0){
   r.memeElapsed+=dt;
   const e=r.memeElapsed,env=Math.min(clamp(e/.24,0,1),clamp((total-e)/.22,0,1));
   const target=clamp(r.lateral-r.memeSide*Math.min(1.65,.90+reach*.12),r.memeOrigin-3.8,r.memeOrigin+2.3);
-  r.enemyLateral=mix(r.memeOrigin,target,env);rig.root.position.x=r.enemyLateral;
+  r.enemyLateral=e<.24?mix(r.memeEntry,target,env):mix(r.memeOrigin,target,env);rig.root.position.x=r.enemyLateral;
   const hit=Math.min(count-1,Math.floor((e-.24-interval*.5)/interval));
   if(hit>=0&&hit>r.memeHit){
    r.memeHit=hit;
@@ -3474,7 +3474,7 @@ function updateMemeAttack(r,a,dt,rig){
 }
 function updateRaceStep(dt){const r=race;if(!r)return;if(r.phase==='countdown'){r.count-=dt;const n=Math.ceil(clamp(r.count,0,3));if(n>0){$('countdown').textContent=n;if(n!==r.lastCount){effect('count');r.lastCount=n}}else{$('countdown').textContent='GO!';r.phase='running';r.time=0;showNotice('GO!',.7);effect('start');startAmbience();r.nextVoiceAt=.55;setTimeout(()=>{if(race===r&&r.phase==='running'&&mode==='race')$('countdown').style.display='none'},450)}return}
  if(r.phase!=='running')return;const dtSafe=Math.min(.065,dt);if(r.hitMotion){r.hitMotion.age+=dtSafe;if(r.hitMotion.age>=r.hitMotion.duration)r.hitMotion=null;}r.time+=dtSafe;r.drive=Math.max(0,r.drive-dtSafe*.15);r.bumpCooldown=Math.max(0,r.bumpCooldown-dtSafe);r.enemyStumble=Math.max(0,r.enemyStumble-dtSafe);if(r.combo>0&&r.time-r.lastTap>1.15)r.combo=0;
- const prevLateral=r.lateral;const moveFactor=1-Math.exp(-dtSafe*8.4);
+ const prevRivalLateral=r.enemyLateral;const prevLateral=r.lateral;const moveFactor=1-Math.exp(-dtSafe*8.4);
  r.lateral+=(r.lateralTarget-r.lateral)*moveFactor;
  r.lateralVelocity=(r.lateral-prevLateral)/Math.max(.005,dtSafe);
  const base=(7.15+(save.stats.speed-1)*1.17+save.stats.technique*.10),maxSpeed=base*(r.burstLeft>0?1.47:1);const sinceTap=r.time-r.lastTap;
@@ -3544,13 +3544,13 @@ function updateRaceStep(dt){const r=race;if(!r)return;if(r.phase==='countdown'){
   r.boxingRecoil=Math.max(0,(r.boxingRecoil||0)-dtSafe*7);
   if(r.boxingElapsed==null)r.boxingElapsed=-1;
   if(r.boxingElapsed<0&&near&&r.boxingCooldown===0){
-   r.boxingElapsed=0;r.boxingHitIndex=-1;r.boxingOrigin=r.pursuit?.origin??r.enemyLateral;r.boxingSide=r.pursuit?.side??(r.lateral<r.enemyLateral?-1:1);r.pursuit=null;
+   r.boxingElapsed=0;r.boxingHitIndex=-1;r.boxingEntry=r.enemyLateral;r.boxingOrigin=r.pursuit?.origin??r.enemyLateral;r.boxingSide=r.pursuit?.side??(r.lateral<r.enemyLateral?-1:1);r.pursuit=null;
   }
   if(r.boxingElapsed>=0){
    r.boxingElapsed+=dtSafe;
    const e=r.boxingElapsed, envelope=Math.min(clamp(e/.25,0,1),clamp((1.90-e)/.21,0,1));
    const target=clamp(r.lateral-(r.boxingSide||-1)*.82,r.boxingOrigin-3.65,r.boxingOrigin+2.8);
-   r.enemyLateral=mix(r.boxingOrigin,target,envelope);
+   r.enemyLateral=e<.25?mix(r.boxingEntry,target,envelope):mix(r.boxingOrigin,target,envelope);
    opponent.root.position.x=r.enemyLateral;
    // Eight alternating jabs, each with its own contact window.
    const hitIndex=Math.min(7,Math.floor((e-.34)/.18));
@@ -3570,6 +3570,7 @@ function updateRaceStep(dt){const r=race;if(!r)return;if(r.phase==='countdown'){
   opponent.boxingElapsed=r.boxingElapsed;opponent.boxingSide=r.boxingSide;
  }
  updateMemeAttack(r,a,dtSafe,opponent);
+ if(!isSkyRunner(a.kind)||r.eFinish===null){const turn=clamp((r.enemyLateral-prevRivalLateral)/Math.max(.005,dtSafe)*.065,-.34,.34);opponent.root.rotation.y=mix(opponent.root.rotation.y,turn,1-Math.exp(-dtSafe*12));}
  const flying=['pegasus','unicorn','griffin','dragon'].includes(a.kind)&&opponent.flight>.4;
  if(r.bumpCooldown===0&&r.hFinish===null&&r.eFinish===null&&!airborne&&!flying&&!(a.kind==='kangaroo'&&r.boxingElapsed>=0)&&!(r.memeElapsed>=0)&&!r.pursuit
   &&Math.abs(r.lateral-r.enemyLateral)<collisionWidth
