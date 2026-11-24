@@ -1228,7 +1228,8 @@ function animalGaitRate(kind,speed){
 // Species-specific performance accents run ON TOP of anatomically distinct gaits.
 // Every one of the 53 models gets its own 3D action, not a shared randomized wobble.
 // These are stylized character performances, not claims about real animal biology.
-const MEME_ATTACKS={"zebra":["kick",3,0.23,0.12,1.9],"ostrich":["peck",4,0.18,0.07,2.2],"wolf":["bite",3,0.26,0.09,1.8],"lion":["pounce",2,0.38,0.17,2.3],"deer":["horn",2,0.32,0.13,2.3],"smilodon":["bite",2,0.35,0.15,2.2],"pronghorn":["swerve",3,0.24,0.08,2.1],"tiger":["swipe",3,0.24,0.12,2.1],"gorilla":["slap",4,0.22,0.1,2.2],"elephant":["trunk",2,0.37,0.16,2.8],"hippo":["clamp",2,0.4,0.17,2.6],"rhino":["horn",2,0.32,0.17,2.6],"terrorbird":["peck",4,0.19,0.09,2.4],"cavebear":["swipe",3,0.27,0.12,2.4],"triceratops":["horn",2,0.4,0.18,2.8],"stegosaurus":["tail",3,0.26,0.11,2.8],"ankylosaurus":["shock",2,0.38,0.15,3],"velociraptor":["pounce",3,0.23,0.09,2],"deinonychus":["kick",3,0.24,0.1,2.2],"trex":["gulp",2,0.38,0.19,3],"cerberus":["bite",3,0.22,0.1,2.5],"griffin":["grab",2,0.36,0.14,2.6],"minotaur":["throw",2,0.42,0.15,2.5],"dragon":["flame",2,0.38,0.13,3.7],"alien":["ufo",2,0.4,0.09,3.2],"kaiju":["stomp",2,0.44,0.15,3.6],"spinetitan":["beam",2,0.44,0.13,4.2],"dorogan":["burrow",2,0.43,0.13,3.8],"giraffe":["neck",3,0.25,0.1,2.6],"dog":["tug",3,0.23,0.075,1.7],"cat":["catSwipe",5,0.15,0.055,1.6],"fox":["bite",2,0.3,0.09,1.8],"dodo":["peck",5,0.16,0.055,1.7],"rabbit":["dropkick",2,0.34,0.1,1.7],"greyhound":["ram",2,0.3,0.1,1.8],"boar":["horn",2,0.36,0.14,2.2],"moa":["stomp",2,0.37,0.12,2.4],"horse":["kick",3,0.25,0.11,2.2],"giantsloth":["hug",2,0.4,0.13,2.4],"gazelle":["dropkick",2,0.36,0.1,2.1],"cheetah":["trip",3,0.23,0.085,1.9],"mammoth":["trunk",2,0.41,0.15,3],"woollyrhino":["ram",2,0.4,0.14,2.5],"direwolf":["pack",3,0.27,0.09,2.2],"parasaurolophus":["sonic",3,0.27,0.075,2.8],"gallimimus":["lowkick",5,0.16,0.055,1.8],"carnotaurus":["horn",3,0.25,0.1,2.5],"spinosaurus":["clamp",2,0.41,0.15,3],"unicorn":["magic",2,0.32,0.09,2.7],"pegasus":["gust",3,0.26,0.075,3],"golem":["hammer",3,0.3,0.13,2.7],"giantrobot":["rocketPunch",3,0.26,0.11,3.1],"velka":["whirl",3,0.25,0.1,3.2]};
+const RIVAL_TEMPERAMENT={"greyhound":"race","cheetah":"race","gallimimus":"race","unicorn":"race","pegasus":"race","giantrobot":"race","rabbit":"flee","gazelle":"flee","pronghorn":"flee","dodo":"flee","moa":"flee","deer":"flee","dog":"play","giantsloth":"bluff","giraffe":"bluff","parasaurolophus":"bluff","cat":"guard","zebra":"guard","horse":"guard","gorilla":"guard","elephant":"guard","mammoth":"guard","ostrich":"guard","stegosaurus":"guard","ankylosaurus":"guard","boar":"charge","rhino":"charge","woollyrhino":"charge","triceratops":"charge","carnotaurus":"charge","minotaur":"charge","kaiju":"charge","dorogan":"charge","fox":"ambush","lion":"ambush","tiger":"ambush","smilodon":"ambush","velociraptor":"ambush","deinonychus":"ambush","griffin":"ambush","wolf":"hunt","direwolf":"hunt","hippo":"hunt","terrorbird":"hunt","cavebear":"hunt","trex":"hunt","spinosaurus":"hunt","cerberus":"hunt","kangaroo":"hunt","dragon":"ranged","alien":"ranged","spinetitan":"ranged","velka":"ranged","golem":"ranged"};
+const MEME_ATTACKS={"zebra":["kick",3,0.23,0.12,1.9],"ostrich":["peck",4,0.18,0.07,2.2],"wolf":["bite",3,0.26,0.09,1.8],"lion":["pounce",1,0.4,0.13,2.3],"smilodon":["bite",1,0.4,0.13,2.2],"tiger":["swipe",1,0.4,0.13,2.1],"gorilla":["slap",4,0.22,0.1,2.2],"elephant":["trunk",1,0.37,0.16,2.8],"hippo":["clamp",2,0.4,0.17,2.6],"rhino":["horn",1,0.46,0.17,2.6],"terrorbird":["peck",4,0.19,0.09,2.4],"cavebear":["swipe",3,0.27,0.12,2.4],"triceratops":["horn",1,0.46,0.18,2.8],"stegosaurus":["tail",3,0.26,0.11,2.8],"ankylosaurus":["shock",1,0.38,0.15,3],"velociraptor":["pounce",1,0.4,0.13,2],"deinonychus":["kick",1,0.4,0.13,2.2],"trex":["gulp",2,0.38,0.19,3],"cerberus":["bite",3,0.22,0.1,2.5],"griffin":["grab",1,0.4,0.13,2.6],"minotaur":["throw",1,0.46,0.16,2.5],"dragon":["flame",2,0.38,0.13,3.7],"alien":["ufo",2,0.4,0.09,3.2],"kaiju":["stomp",1,0.46,0.16,3.6],"spinetitan":["beam",2,0.44,0.13,4.2],"dorogan":["burrow",1,0.46,0.16,3.8],"cat":["catSwipe",5,0.15,0.055,1.6],"fox":["bite",1,0.4,0.13,1.8],"boar":["horn",1,0.46,0.16,2.2],"horse":["kick",1,0.25,0.11,2.2],"mammoth":["trunk",1,0.41,0.15,3],"woollyrhino":["ram",1,0.46,0.16,2.5],"direwolf":["pack",3,0.27,0.09,2.2],"carnotaurus":["horn",1,0.46,0.16,2.5],"spinosaurus":["clamp",2,0.41,0.15,3],"golem":["shock",1,0.48,0.15,3.5],"velka":["whirl",3,0.25,0.1,3.2]};
 function memeAttackPose(kind,rig){
  const spec=MEME_ATTACKS[kind],e=rig.memeElapsed??-1;if(!spec||e<.24)return;
  const [type,count,interval]=spec,beat=(e-.24)/interval,index=Math.floor(beat);
@@ -1337,6 +1338,12 @@ function speciesMotion(kind,rig,phase,effort){
   default:throw Error('Missing 3D signature motion for '+kind);
  }
  memeAttackPose(kind,rig);
+ const b=rig.temperamentPose;if(b&&b.amount>0){
+  const p=b.amount,side=b.side;
+  if(b.mode==='flee'){body.rotation.y-=side*.28*p;body.rotation.x-=.15*p;}
+  else if(b.mode==='play'){if(tail)tail.rotation.y+=1.05*Math.sin(phase*4)*p;body.rotation.y+=side*.22*p;}
+  else if(b.mode==='bluff'){body.rotation.y+=side*.36*p;if(kind==='giraffe'&&rig.neck)rig.neck.rotation.z=-side*.65*p;else if(kind==='giantsloth'){for(const a of arms)if(a.sh)a.sh.rotation.x-=.80*p;}}
+ }
  rig.signatureMotion=kind;
 }
 
@@ -1971,7 +1978,7 @@ $('loadAvatarSlot')?.addEventListener('click',()=>{
  refreshHuman();renderCustom();store();$('avatarCount').textContent='キャラ'+(slot+1)+'を呼び出しました';
 });
 // Tap race physics — speed is in metres per second, distances in metres.
-function startRace(){if(mode==='race')return;opponent.root.visible=true;opponent.root.position.y=.13;opponent.boxingElapsed=-1;opponent.memeElapsed=-1;human.root.position.y=.13;human.torso.rotation.y=0;stopAmbience();prefetchVoice(animals[save.chosen].kind);audioSystem();raceName=animals[save.chosen].name;humanGait=0;beastGait=0;race={opponentIndex:save.chosen,time:0,phase:'countdown',count:3.3,lastCount:4,humanD:0,enemyD:0,humanV:0,enemyV:0,combo:0,lastFoot:'',lastTap:-999,lastRatingAt:-999,drive:0,taps:0,legTaps:{L:-999,R:-999},lastAlternate:-999,sideStreak:0,lateral:humanX,lateralTarget:humanX,lateralVelocity:0,enemyLateral:animalX,offTrack:false,bumpCooldown:0,enemyStumble:0,stamina:1,burstCharge:0,burstLeft:0,burstUsed:false,hFinish:null,eFinish:null,lastStep:-1,lastRivalStep:-1,lastRivalImpact:-1,lastRivalCall:-99,rivalStridePhase:0};showScreen('race');race.time=0;$('countdown').textContent='3';$('countdown').style.display='flex';$('raceBanner').textContent='第'+(save.chosen+1)+'戦 / '+raceName;$('enemyLabel').textContent='対戦相手 / '+raceName;$('burstBtn').disabled=true;$('burstBtn').classList.remove('ready');updateHud(true);}
+function startRace(){if(mode==='race')return;opponent.root.visible=true;opponent.root.position.y=.13;opponent.boxingElapsed=-1;opponent.memeElapsed=-1;opponent.temperamentPose=null;human.root.position.y=.13;human.torso.rotation.y=0;stopAmbience();prefetchVoice(animals[save.chosen].kind);audioSystem();raceName=animals[save.chosen].name;humanGait=0;beastGait=0;race={opponentIndex:save.chosen,time:0,phase:'countdown',count:3.3,lastCount:4,humanD:0,enemyD:0,humanV:0,enemyV:0,combo:0,lastFoot:'',lastTap:-999,lastRatingAt:-999,drive:0,taps:0,legTaps:{L:-999,R:-999},lastAlternate:-999,sideStreak:0,lateral:humanX,lateralTarget:humanX,lateralVelocity:0,enemyLateral:animalX,offTrack:false,bumpCooldown:0,enemyStumble:0,stamina:1,burstCharge:0,burstLeft:0,burstUsed:false,hFinish:null,eFinish:null,lastStep:-1,lastRivalStep:-1,lastRivalImpact:-1,lastRivalCall:-99,rivalStridePhase:0};showScreen('race');race.time=0;$('countdown').textContent='3';$('countdown').style.display='flex';$('raceBanner').textContent='第'+(save.chosen+1)+'戦 / '+raceName;$('enemyLabel').textContent='対戦相手 / '+raceName;$('burstBtn').disabled=true;$('burstBtn').classList.remove('ready');updateHud(true);}
 function tap(side,overlapping=false){
  if(!race||race.phase!=='running'||race.hFinish!==null)return;
  const r=race,now=r.time,elapsed=now-r.lastTap;
@@ -3418,59 +3425,80 @@ function updateRace(dt){
 // Bounded, autonomous pursuit: leave the lane even if the player stays in theirs.
 // Stop pursuing when the target escapes, stops tapping, or reaches the finish.
 function rivalPursuit(r,a,dt,normalSpeed){
- const spec=MEME_ATTACKS[a.kind],reach=spec?spec[4]:2.2;
- const active=r.hFinish===null&&r.eFinish===null&&r.humanV>1&&r.enemyD<96&&(!['unicorn','pegasus'].includes(a.kind)||r.enemyD<12);
- r.pursuitCooldown=Math.max(0,(r.pursuitCooldown||0)-dt);
+ const mode=RIVAL_TEMPERAMENT[a.kind],spec=MEME_ATTACKS[a.kind],reach=spec?spec[4]:2.2;
+ const gap=r.humanD-r.enemyD,dx=r.lateral-r.enemyLateral,lat=Math.abs(dx),side=dx<0?-1:1;
+ const active=r.hFinish===null&&r.eFinish===null&&r.humanV>1&&r.enemyD<96;
+ r.pursuitCooldown=Math.max(0,(r.pursuitCooldown||0)-dt);r.temperamentPose=null;
+ const moveTo=(target,speed)=>{r.enemyLateral+=clamp(target-r.enemyLateral,-dt*speed,dt*speed);};
+ if(mode==='race')return normalSpeed;
+ if(mode==='flee'||mode==='play'||mode==='bluff'){
+  const close=active&&Math.abs(gap)<(mode==='flee'?3.6:3.0)&&lat<(mode==='play'?4.0:2.4);
+  const origin=r.passiveOrigin??r.enemyLateral;r.passiveOrigin=origin;
+  if(close){
+   r.temperamentPose={mode,side,amount:1};
+   if(mode==='flee'){moveTo(clamp(origin-side*1.15,animalX-1,animalX+1.8),5.8);return normalSpeed*1.09;}
+   if(mode==='play'){moveTo(clamp(r.lateral-side*1.8,origin-1.5,origin+1.2),2.8);return normalSpeed;}
+   return normalSpeed*1.035;
+  }
+  moveTo(origin,3);return normalSpeed;
+ }
  if(r.memeElapsed>=0||r.boxingElapsed>=0){
   r.pursuit=null;
-  if(active&&Math.abs(r.enemyD-r.humanD)<reach+2)return clamp(r.humanV+(r.humanD-r.enemyD)*2.4,Math.max(1.5,normalSpeed*.48),normalSpeed*1.12);
-  return normalSpeed;
+  if(active&&(mode==='hunt'||mode==='ambush')&&Math.abs(gap)<reach+2)return clamp(r.humanV+gap*2.2,Math.max(1.5,normalSpeed*.60),normalSpeed*1.10);
+  return mode==='charge'?normalSpeed*1.12:normalSpeed;
  }
- if(!r.pursuit&&active&&r.time>.6&&r.pursuitCooldown===0&&(r.memeCooldown||0)===0&&(r.boxingCooldown||0)===0&&Math.abs(r.humanD-r.enemyD)<Math.min(9,reach+4.5)&&Math.abs(r.lateral-r.enemyLateral)<5.5){
-  r.pursuit={origin:r.enemyLateral,age:0,side:r.lateral<r.enemyLateral?-1:1};
+ if(mode==='guard'||mode==='ranged')return normalSpeed;
+ const hunt=mode==='hunt',ambush=mode==='ambush',charge=mode==='charge';
+ const ready=(r.memeCooldown||0)===0&&(r.boxingCooldown||0)===0&&r.pursuitCooldown===0;
+ const startGap=hunt?7.0:ambush?4.5:5.5;
+ if(!r.pursuit&&active&&r.time>(hunt?.55:ambush?1.1:.85)&&ready&&Math.abs(gap)<startGap&&lat<(charge?4.2:5.0)&&(!ambush||gap>-.7)){
+  r.pursuit={origin:r.enemyLateral,age:0,side,target:clamp(r.lateral-side*1.02,r.enemyLateral-3.4,r.enemyLateral+2.5)};
  }
- const p=r.pursuit;if(!p)return normalSpeed;
- p.age+=dt;
- if(!active||p.age>1.6||Math.abs(r.humanD-r.enemyD)>10||Math.abs(r.lateral-p.origin)>5.8){
-  r.enemyLateral=p.origin;r.pursuit=null;r.pursuitCooldown=1.2;return normalSpeed;
+ const p=r.pursuit;if(!p)return normalSpeed;p.age+=dt;
+ const duration=hunt?1.65:ambush?.85:1.05;
+ if(!active||p.age>duration||Math.abs(gap)>startGap+2||Math.abs(r.lateral-p.origin)>5.8){
+  moveTo(p.origin,5);if(Math.abs(p.origin-r.enemyLateral)<.05){r.enemyLateral=p.origin;r.pursuit=null;r.pursuitCooldown=1.4;}return normalSpeed;
  }
- const target=clamp(r.lateral-p.side*.98,p.origin-4.0,p.origin+2.8);
- const step=dt*(a.kind==='kangaroo'?6.8:4.8);
- r.enemyLateral+=clamp(target-r.enemyLateral,-step,step);
- return clamp(r.humanV+(r.humanD-r.enemyD)*2.8,Math.max(1.5,normalSpeed*.48),normalSpeed*1.16);
+ const target=charge?p.target:clamp(r.lateral-p.side*(hunt?.95:1.1),p.origin-3.6,p.origin+2.6);
+ moveTo(target,charge?7.0:ambush?6.4:a.kind==='kangaroo'?6.8:4.6);
+ if(charge)return normalSpeed*1.12;
+ return clamp(r.humanV+gap*(ambush?3.0:2.5),Math.max(1.5,normalSpeed*.55),normalSpeed*(ambush?1.18:1.12));
 }
 function updateMemeAttack(r,a,dt,rig){
- const spec=MEME_ATTACKS[a.kind];if(!spec)return;
- const [type,count,interval,loss,reach]=spec,total=.24+count*interval+.22;
- r.memeRecoil=Math.max(0,(r.memeRecoil||0)-dt*7);
- r.memeCooldown=Math.max(0,(r.memeCooldown||0)-dt);
- if(r.memeElapsed==null)r.memeElapsed=-1;
- const active=r.hFinish===null&&r.eFinish===null&&r.humanV>1&&(!['unicorn','pegasus'].includes(a.kind)||r.enemyD<14);
+ const mode=RIVAL_TEMPERAMENT[a.kind],spec=MEME_ATTACKS[a.kind];rig.temperamentPose=r.temperamentPose;if(!spec)return;
+ const [type,count,interval,loss,reach]=spec;
+ const lead=mode==='charge'?.34:mode==='ranged'?.40:mode==='ambush'?.16:.24,ret=mode==='charge'?.34:.24,total=lead+count*interval+ret;
+ r.memeCooldown=Math.max(0,(r.memeCooldown||0)-dt);if(r.memeElapsed==null)r.memeElapsed=-1;
+ const active=r.hFinish===null&&r.eFinish===null&&r.humanV>1;
  const gap=Math.abs(r.humanD-r.enemyD),lat=Math.abs(r.enemyLateral-r.lateral);
- if(r.memeElapsed<0&&active&&gap<reach+.55&&lat<Math.min(3.0,1.8+reach*.22)&&r.memeCooldown===0){
-  r.memeElapsed=0;r.memeEntry=r.enemyLateral;r.memeOrigin=r.pursuit?.origin??r.enemyLateral;r.memeSide=r.pursuit?.side??(r.lateral<r.enemyLateral?-1:1);r.memeHit=-1;r.pursuit=null;
+ const guard=mode==='guard',ranged=mode==='ranged',charge=mode==='charge';
+ const trigger=guard?gap<Math.min(reach,1.65)&&lat<1.48:ranged?gap<reach+.75&&lat<4.5:gap<reach+.45&&lat<Math.min(2.8,1.65+reach*.24);
+ if(r.memeElapsed<0&&active&&trigger&&r.memeCooldown===0&&r.time>(ranged?1.2:.35)){
+  r.memeElapsed=0;r.memeEntry=r.enemyLateral;r.memeOrigin=r.pursuit?.origin??r.enemyLateral;
+  r.memeSide=r.pursuit?.side??(r.lateral<r.enemyLateral?-1:1);r.memeHit=-1;r.pursuit=null;
+  r.memeTarget=clamp(r.lateral-r.memeSide*Math.min(1.4,.85+reach*.10),r.memeOrigin-3.6,r.memeOrigin+2.6);
  }
  if(r.memeElapsed>=0){
-  r.memeElapsed+=dt;
-  const e=r.memeElapsed,env=Math.min(clamp(e/.24,0,1),clamp((total-e)/.22,0,1));
-  const target=clamp(r.lateral-r.memeSide*Math.min(1.65,.90+reach*.12),r.memeOrigin-3.8,r.memeOrigin+2.3);
-  r.enemyLateral=e<.24?mix(r.memeEntry,target,env):mix(r.memeOrigin,target,env);rig.root.position.x=r.enemyLateral;
-  const hit=Math.min(count-1,Math.floor((e-.24-interval*.5)/interval));
+  r.memeElapsed+=dt;const e=r.memeElapsed;
+  const env=Math.min(clamp(e/lead,0,1),clamp((total-e)/ret,0,1));
+  const target=ranged?r.memeOrigin:guard?clamp(r.memeTarget,r.memeOrigin-.35,r.memeOrigin+.35):charge?r.memeTarget:clamp(r.lateral-r.memeSide*Math.min(1.4,.85+reach*.10),r.memeOrigin-3.6,r.memeOrigin+2.6);
+  r.enemyLateral=e<lead?mix(r.memeEntry,target,env):mix(r.memeOrigin,target,env);rig.root.position.x=r.enemyLateral;
+  const hit=Math.min(count-1,Math.floor((e-lead-interval*.5)/interval));
   if(hit>=0&&hit>r.memeHit){
-   r.memeHit=hit;
-   emitMemeFx(type,r.enemyLateral,r.enemyD,r.lateral,r.humanD);
-   if(active&&gap<reach&&Math.abs(r.enemyLateral-r.lateral)<Math.min(2.3,1.15+reach*.22)){
+   r.memeHit=hit;emitMemeFx(type,r.enemyLateral,r.enemyD,r.lateral,r.humanD);
+   const hitLat=Math.abs(r.enemyLateral-r.lateral);
+   const inRange=ranged?Math.hypot(gap,hitLat)<reach+1.0:gap<reach&&hitLat<Math.min(2.3,1.15+reach*.22);
+   if(active&&inRange){
     r.humanV*=1-loss;r.drive*=1-loss*.42;r.memeRecoil=1;
     r.hitMotion={type,side:r.memeSide,age:0,duration:['ufo','throw','gulp','trunk'].includes(type)?.65:.36};
-    const shove=['kick','dropkick','ram','horn','neck','tail','throw','trunk','gust','shock','whirl'].includes(type)?.24:.07;
+    const shove=charge?.62:guard?.28:ranged?.15:.10;
     r.lateralTarget=clamp(r.lateralTarget+r.memeSide*shove,-5.2,2.5);
-    r.bumpCooldown=Math.max(r.bumpCooldown,.28);
-    kickDust(r.lateral,r.humanD,8);soundNoise(.09,.037,100,1500);
+    r.bumpCooldown=Math.max(r.bumpCooldown,.28);kickDust(r.lateral,r.humanD,8);soundNoise(.09,.037,100,1500);
    }
   }
-  if(e>=total||!active){r.enemyLateral=r.memeOrigin;rig.root.position.x=r.enemyLateral;r.memeElapsed=-1;r.memeCooldown=1.3;r.pursuitCooldown=.8;}
+  if(e>=total||!active){r.enemyLateral=r.memeOrigin;rig.root.position.x=r.enemyLateral;r.memeElapsed=-1;r.memeCooldown=guard?2.5:ranged?3.2:charge?2.8:mode==='ambush'?2.1:1.25;r.pursuitCooldown=.8;}
  }
- rig.memeElapsed=r.memeElapsed;rig.memeSide=r.memeSide;
+ rig.memeElapsed=r.memeElapsed<0?-1:r.memeElapsed-lead+.24;rig.memeSide=r.memeSide;
 }
 function updateRaceStep(dt){const r=race;if(!r)return;if(r.phase==='countdown'){r.count-=dt;const n=Math.ceil(clamp(r.count,0,3));if(n>0){$('countdown').textContent=n;if(n!==r.lastCount){effect('count');r.lastCount=n}}else{$('countdown').textContent='GO!';r.phase='running';r.time=0;showNotice('GO!',.7);effect('start');startAmbience();r.nextVoiceAt=.55;setTimeout(()=>{if(race===r&&r.phase==='running'&&mode==='race')$('countdown').style.display='none'},450)}return}
  if(r.phase!=='running')return;const dtSafe=Math.min(.065,dt);if(r.hitMotion){r.hitMotion.age+=dtSafe;if(r.hitMotion.age>=r.hitMotion.duration)r.hitMotion=null;}r.time+=dtSafe;r.drive=Math.max(0,r.drive-dtSafe*.15);r.bumpCooldown=Math.max(0,r.bumpCooldown-dtSafe);r.enemyStumble=Math.max(0,r.enemyStumble-dtSafe);if(r.combo>0&&r.time-r.lastTap>1.15)r.combo=0;
@@ -3539,7 +3567,7 @@ function updateRaceStep(dt){const r=race;if(!r)return;if(r.phase==='countdown'){
  const airborne=a.profile==='hopper'&&Math.sin(hopPhase)>.55;
  if(a.kind==='kangaroo'){
   const eligible=r.hFinish===null&&r.eFinish===null;
-  const near=eligible&&r.humanV>1&&Math.abs(r.humanD-r.enemyD)<2.8&&Math.abs(r.enemyLateral-r.lateral)<4.2;
+  const near=eligible&&r.humanV>1&&Math.abs(r.humanD-r.enemyD)<2.8&&Math.abs(r.enemyLateral-r.lateral)<2.5;
   r.boxingCooldown=Math.max(0,(r.boxingCooldown||0)-dtSafe);
   r.boxingRecoil=Math.max(0,(r.boxingRecoil||0)-dtSafe*7);
   if(r.boxingElapsed==null)r.boxingElapsed=-1;
@@ -4300,7 +4328,7 @@ function frame(){requestAnimationFrame(frame);
   }
  }
 }
- if(mode!=='race')opponent.memeElapsed=-1;
+ if(mode!=='race'){opponent.memeElapsed=-1;opponent.temperamentPose=null;opponent.boxingElapsed=-1;}
  const hasLanded=opponent.animate(beastGait,espeed,mode==='beasts'?beastShowcaseDistance:visualSky?(race.pegasusBeyond??race.enemyD):race?.enemyD||0);
  if(hasLanded&&mode==='race'&&race?.phase==='running'&&race.eFinish===null&&espeed>2){
   const kind=animals[Number.isInteger(race?.opponentIndex)?race.opponentIndex:save.chosen].kind,gait=GAIT_MAP[kind];
