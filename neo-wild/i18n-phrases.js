@@ -1,6 +1,15 @@
 // WILD RECLAIM player-visible English translations; Japanese remains the source language.
 // Loaded before i18n.js. Keep gameplay/save keys unchanged.
 window.WildI18nPhrases = [
+ ["餓死。空腹ゲージが減ったら、地図の食料目印へ。食べ物のそばで○／E。","Starvation. Follow the food marker when hungry and press ○ / E beside food."],
+ ["毒で力尽きた。毒が残っている間は、敵から離れて食事で生命を補おう。","Poison. Get away from enemies and eat to recover health while poisoned."],
+ ["地割れに落ちた。揺れたら亀裂から離れよう。","Fissure. Move away from cracks when the ground shakes."],
+ ["UFOに捕獲された。吸引光の外へ走ろう。","UFO capture. Run clear of the tractor beams."],
+ ["の突進。進行方向を横切るようにかわそう。"," charge. Dodge sideways across its path."],
+ ["の攻撃。攻撃前の構えが見えたら、一歩引いて隙を待とう。"," attack. Step back at the windup and wait for an opening."],
+ ["見切り反撃 ＋30％","Counter +30%"],
+ ["隙！ 攻撃で反撃","Opening! Counter now"],
+ ["攻撃予告｜横へ回避","Incoming! Dodge sideways"],
  ["獲物を狩る","Hunt prey"],
  ["小動物に近づき△／Jで攻撃。近くの食料を○／Eで食べても進める","Approach prey and attack with △ / J. Eating nearby food with ○ / E also counts."],
  ["最初の食事","Your first meal"],

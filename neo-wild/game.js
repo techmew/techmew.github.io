@@ -1441,6 +1441,7 @@ function updateVenom(dt){
  if(!P||(P.poisonTime||0)<=0)return;
  const poisonSeconds=Math.min(Math.max(0,dt),P.poisonTime);
  P.poisonTime=Math.max(0,P.poisonTime-poisonSeconds);
+ if(P.hp>0&&P.hp<=poisonSeconds*1.45)P.deathReason="poison";
  P.hp=Math.max(0,P.hp-poisonSeconds*1.45);
 }
 function updateSurvivalNeeds(dt){
@@ -1465,7 +1466,10 @@ function updateSurvivalNeeds(dt){
  // Integrate the exact time at zero hunger even when a frame crosses the threshold.
  const emptySeconds=before<=0?dt:drain>0?dt*clamp((drain-before)/drain,0,1):0;
  // Only zero hunger causes starvation damage; a meal immediately stops it.
- if(emptySeconds>0)P.hp=Math.max(0,P.hp-emptySeconds*2.4);
+ if(emptySeconds>0){
+  if(P.hp>0&&P.hp<=emptySeconds*2.4)P.deathReason="starvation";
+  P.hp=Math.max(0,P.hp-emptySeconds*2.4);
+ }
  if(before>0&&P.hunger===0&&P.hp>0)notify("空腹0：生命が減少中。食べ物を探そう");
  if(P.hp<=0)return false;
  if(P.hunger>0&&atDen()&&!denThreatNearby())
@@ -2829,7 +2833,7 @@ function updateAquaticStrong(m,s,dt){
   const facing=Math.atan2(Math.sin(angle-(m.strikeDir||0)),Math.cos(angle-(m.strikeDir||0)));
   if(d<profile.reach+P.r&&Math.abs(facing)<.92&&!lineBlocked(m,P)&&(P.jumpHeight||0)<22&&P.inv<=0){
    const damage=strongDamageTaken(Math.round(s.damage*rainStrength(m.type)*profile.damage*bossStrikePower(m)*(COMBAT_LEVELS?.incoming(m.type,P.level)||1)));
-   P.lastCombatAt=elapsed;P.hp-=damage;interruptRush();P.inv=.45;shake=10;flash=.25;
+   P.lastCombatAt=elapsed;applyWildHit(m,damage);interruptRush();P.inv=.45;shake=10;flash=.25;
    label(P.x,P.y-35,"水辺 -"+damage,"#ff9890");blood(P.x,P.y,"#eb6356",12,110);
    playEffect("damage");applyStrongStrikeEffect(m,angle,false);
   }else if(d<profile.reach+80){m.stun=Math.max(m.stun,.22);label(m.x,m.y-m.r-15,"回避成功！","#a6f5d8");}
@@ -5169,6 +5173,11 @@ function putDownFood(){
 function equippedWeapon(){return window.WildArsenal?.equippedFor?.(P)||null}
 function weaponHitDamage(enemy,amount){
  const equippedDamage=window.WildArsenal?.damage?.(P,enemy,amount)??amount;
+ if(enemy?.salvageCacheId&&enemy.salvageOpeningUntil>elapsed&&equippedDamage>0){
+  enemy.salvageOpeningUntil=0;
+  label(enemy.x,enemy.y-(enemy.r||18)-36,"見切り反撃 ＋30％","#a1f4db");
+  return Math.round(equippedDamage*1.30);
+ }
  return enemy?.worldEndBoss&&enemy.worldEndOpening>0?Math.round(equippedDamage*1.35):equippedDamage;
 }
 function nearestWeaponScrap(range=95){
@@ -5501,7 +5510,7 @@ function renderWeaponVault(){
 }
 // Close-range world-space label: reveals only "ガラクタ", NEVER rarity or species.
 function drawWeaponScrapLabels(){
- if(!P||mode!=="play")return;
+ if(!P||mode!=="play"||!weaponScraps.length)return;
  ctx.save();ctx.setTransform(dpr,0,0,dpr,0,0);ctx.textAlign="center";
  ctx.textBaseline="middle";ctx.font="bold 12px sans-serif";let count=0;
  for(const drop of weaponScraps){
@@ -5512,8 +5521,19 @@ function drawWeaponScrapLabels(){
   ctx.strokeStyle="#d9c6a0";ctx.lineWidth=1.3;ctx.strokeRect(pos.x-46,pos.y-24,92,27);
   const guarded=drop.guardState==="engaged",locked=drop.guardState==="pending";
   ctx.fillStyle=guarded?"#ffaaa0":locked?"#ffcf9c":"#bde9be";
-  const remaining=guarded?mobs.filter(m=>m.hp>0&&m.salvageCacheId===drop.id).length:0;
-  ctx.fillText(guarded&&scrapOpening(drop,scrapLivingGuardian(drop))?"○ 今だ・奪取":guarded?"！番人 残り"+Math.max(remaining,salvageRemaining(drop))+"体":
+  let sentry=null,living=0;
+  if(guarded)for(const m of mobs){
+   if(m.hp>0&&m.salvageCacheId===drop.id){
+    living++;
+    if(!m.companion&&!m.releasedIndividualId)sentry=m;
+   }
+  }
+  const open=living===1&&drop.siegeTotal===1&&sentry?.salvageOpeningUntil>elapsed;
+  if(open){
+   ctx.fillStyle="#8df1d2";
+   ctx.fillRect(pos.x-44,pos.y,88*Math.min(1,(sentry.salvageOpeningUntil-elapsed)/1.6),2);
+  }
+  ctx.fillText(open?"○ 今だ・奪取":guarded?"！番人 残り"+Math.max(living,salvageRemaining(drop))+"体":
    locked?"！番人 残り"+salvageRemaining(drop)+"体":"？ ガラクタ",pos.x,pos.y-11);
   if(++count>=5)break;
  }
@@ -5521,13 +5541,31 @@ function drawWeaponScrapLabels(){
  // marker; screen projection is shared by Canvas2D and WebGL overlay modes.
  for(const guard of mobs){
   if(guard.hp<=0||!guard.salvageCacheId||
-   !weaponScraps.some(q=>q.id===guard.salvageCacheId&&q.guardState==="engaged")||
-   Math.hypot(guard.x-P.x,guard.y-P.y)>330||lineBlocked(P,guard))continue;
+   Math.hypot(guard.x-P.x,guard.y-P.y)>330||
+   !weaponScraps.some(q=>q.id===guard.salvageCacheId&&q.guardState==="engaged")||lineBlocked(P,guard))continue;
   const pos=projectGroundLabel(guard.x,guard.y,Math.max(30,guard.r||18));
   if(pos.x<63||pos.x>vw-63||pos.y<54||pos.y>vh-36)continue;
-  ctx.fillStyle="#69282ce8";ctx.fillRect(pos.x-60,pos.y-25,120,26);
-  ctx.strokeStyle="#ff998c";ctx.lineWidth=1.4;ctx.strokeRect(pos.x-60,pos.y-25,120,26);
-  ctx.fillStyle="#fff3de";ctx.fillText("番人｜討伐対象",pos.x,pos.y-12);
+  const opening=guard.salvageOpeningUntil>elapsed;
+  const winding=guard.windup>0&&Number.isFinite(guard.strikeDir);
+  if(winding){
+   // Project both ends at terrain height; the cue follows the committed direction.
+   const dx=Math.cos(guard.strikeDir),dy=Math.sin(guard.strikeDir);
+   const reach=ordinaryMeleeReach(guard);
+   const tip=projectGroundLabel(guard.x+dx*reach,guard.y+dy*reach,4);
+   const base=projectGroundLabel(guard.x,guard.y,4);
+   const angle=Math.atan2(tip.y-base.y,tip.x-base.x);
+   ctx.save();ctx.translate(tip.x,tip.y);ctx.rotate(angle);
+   ctx.strokeStyle=guard.windup<.18?"#fff2b0":"#ffac77";ctx.lineWidth=3;
+   ctx.beginPath();ctx.moveTo(-Math.hypot(tip.x-base.x,tip.y-base.y),0);ctx.lineTo(0,0);
+   ctx.lineTo(-8,-5);ctx.moveTo(0,0);ctx.lineTo(-8,5);ctx.stroke();ctx.restore();
+  }
+  ctx.fillStyle=opening?"#153e37ed":"#69282ce8";ctx.fillRect(pos.x-60,pos.y-25,120,26);
+  ctx.strokeStyle=opening?"#91eacb":"#ff998c";ctx.lineWidth=1.4;ctx.strokeRect(pos.x-60,pos.y-25,120,26);
+  ctx.fillStyle="#fff3de";ctx.fillText(opening?"隙！ 攻撃で反撃":winding?"攻撃予告｜横へ回避":"番人｜討伐対象",pos.x,pos.y-12);
+  if(opening||winding){
+   const fraction=opening?(guard.salvageOpeningUntil-elapsed)/1.6:1-guard.windup/(guard.windupTotal||guard.windup);
+   ctx.fillStyle=opening?"#91eacb":"#ffcc8c";ctx.fillRect(pos.x-58,pos.y-2,116*Math.min(1,Math.max(0,fraction)),2);
+  }
  }
  ctx.restore();
 }
@@ -6916,6 +6954,22 @@ function getObjective(){
  return {x:safe?px:huntTarget.x,y:safe?py:huntTarget.y,label:"獲物を追う / △・Jで攻撃"};
 }
 
+function applyWildHit(enemy,damage,charge=false){
+ if(P.hp>0&&damage>=P.hp){
+  const name=STRONG_NAMES[enemy.type]||ENEMY_LABEL_NAMES[enemy.type]||animals[enemy.type]?.name||"野生動物";
+  P.deathReason=name+(charge?"の突進":"の攻撃");
+ }
+ P.hp-=damage;
+}
+function survivalReport(reason){
+ if(reason==="starvation")return "餓死。空腹ゲージが減ったら、地図の食料目印へ。食べ物のそばで○／E。";
+ if(reason==="poison")return "毒で力尽きた。毒が残っている間は、敵から離れて食事で生命を補おう。";
+ if(reason==="fissure")return "地割れに落ちた。揺れたら亀裂から離れよう。";
+ if(reason==="ufo")return "UFOに捕獲された。吸引光の外へ走ろう。";
+ if(typeof reason==="string"&&reason.endsWith("の突進"))return reason+"。進行方向を横切るようにかわそう。";
+ if(typeof reason==="string"&&reason.endsWith("の攻撃"))return reason+"。攻撃前の構えが見えたら、一歩引いて隙を待とう。";
+ return "命を落としました。残る仲間がいれば引き継げます。";
+}
 function createDeathShareRecord(){
  if(!P)return;
  const member=P.squadIndividualId?window.WildSquad?.load?.()?.members?.find(m=>m.id===P.squadIndividualId):null;
@@ -6992,7 +7046,7 @@ function finish(won=false){
  $("result-kicker").textContent=won?"生存の記録":"SURVIVAL REPORT";
  $("result-title").textContent=won?"生き延びた！":"死んでしまった";
  $("result-title").style.color=won?"#a1edbe":"#f5ede0";
- $("result-reason").textContent=won?"生存記録を残しました。":"命を落としました。残る仲間がいれば引き継げます。";
+ $("result-reason").textContent=won?"生存記録を残しました。":survivalReport(P.deathReason);
  const partySurvivors=P.squadIndividualId?window.WildSquad?.load?.():null;
  $("retry-btn").textContent=partySurvivors?(partySurvivors.members.length?"仲間から新リーダーを選択":"新しいガチャ編成"):(getCheckpoints().some(s=>s.player.type===P.type)?"リトライ（同じ動物のチェックポイント）":"リトライ（同じ動物）");
  $("result-score").textContent=String(totalScore).padStart(6,"0");
@@ -9045,7 +9099,7 @@ function update(dt){
        m.rock={x:rx,y:ry,vx:Math.cos(dir)*540,vy:Math.sin(dir)*540,ttl:.52};label(m.x,m.y-m.r-35,"投石！","#f1d5b6");
       }else if(m.stun<=0&&P.inv<=0&&(P.jumpHeight||0)<22&&dStrike<reach&&(overlap||Math.abs(delta)<(m.attackVariation?.arc||.92))&&(overlap||!lineBlocked(m,P))){
        const damage=(P.lastCombatAt=elapsed,strongDamageTaken(Math.round(s.damage*rainStrength(m.type)*(m.strongBoss?bossStrikePower(m):(m.damageScale||enemyDamageFactor()))*(STRONG_ATTACK_PROFILES[m.type]?.damage||1)*(m.attackVariation?.power||1)*(COMBAT_LEVELS?.incoming(m.type,P.level)||1))));
-       {P.hp-=damage;interruptRush();P.inv=.42;shake=9;flash=.23;
+       {applyWildHit(m,damage);interruptRush();P.inv=.42;shake=9;flash=.23;
        label(P.x,P.y-35,"-"+damage,"#ff9890");
        blood(P.x,P.y,"#eb6356",12,125);playEffect("damage");applyStrongStrikeEffect(m,aim,false);applyOrdinaryStrikeEffect(m,aim);
        if(m.type==="venomSnake")inflictVenom(m);
@@ -9092,7 +9146,7 @@ function update(dt){
      if(P.inv<=0){
       const damage=(P.lastCombatAt=elapsed,strongDamageTaken(Math.round(s.damage*rainStrength(m.type)*(m.strongBoss?bossStrikePower(m):(m.damageScale||enemyDamageFactor()))*(STRONG_ATTACK_PROFILES[m.type]?.damage||1)*(m.attackVariation?.power||1)*(COMBAT_LEVELS?.incoming(m.type,P.level)||1))));
       if(damage===0){P.inv=.12;shake=3;flash=0;}
-       else{P.hp-=damage;interruptRush();P.inv=.52;shake=11;flash=.27;
+       else{applyWildHit(m,damage,true);interruptRush();P.inv=.52;shake=11;flash=.27;
       label(P.x,P.y-35,"突進 -"+damage,"#ff9890");
       blood(P.x,P.y,"#eb6356",15,150);playEffect("damage");applyStrongStrikeEffect(m,m.chargeDir,true);applyOrdinaryStrikeEffect(m,m.chargeDir);}
      }else label(P.x,P.y-35,"無傷","#a6f5d8");

@@ -1,0 +1,14 @@
+"use strict";
+const assert=require("node:assert/strict"),fs=require("node:fs"),path=require("node:path"),vm=require("node:vm");
+const game=fs.readFileSync(path.join(__dirname,"game.js"),"utf8");
+const env={P:{hp:10},animals:{},ENEMY_LABEL_NAMES:{dog:"野犬"},STRONG_NAMES:{}};
+vm.runInNewContext(game.slice(game.indexOf("function applyWildHit("),game.indexOf("function createDeathShareRecord(")),env);
+env.applyWildHit({type:"dog"},2);assert.equal(env.P.deathReason,undefined);
+env.applyWildHit({type:"dog"},8,true);assert.equal(env.P.deathReason,"野犬の突進");
+env.applyWildHit({type:"wolf"},3);assert.equal(env.P.deathReason,"野犬の突進");
+assert.match(env.survivalReport(env.P.deathReason),/横切る/);
+vm.runInNewContext(game.slice(game.indexOf("function updateVenom("),game.indexOf("function updateSurvivalNeeds(")),env);
+env.P={hp:1,poisonTime:1};env.updateVenom(1);assert.equal(env.P.deathReason,"poison");
+assert.match(env.survivalReport("starvation"),/食料/);
+assert.match(env.survivalReport(undefined),/仲間/);
+console.log("Fatal hit attribution, charge advice, poison and fallback passed.");
