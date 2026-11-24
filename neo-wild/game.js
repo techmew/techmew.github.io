@@ -8386,7 +8386,8 @@ function update(dt){
   if(P.hp>0&&P.hunger>0)P.hp=Math.min(P.maxHp,P.hp+18);
  }
  P.jumpCD=Math.max(0,P.jumpCD-dt);P.wallKickLock=Math.max(0,(P.wallKickLock||0)-dt);P.wallKickTime=Math.max(0,(P.wallKickTime||0)-dt);
- if(P.fallTime>0&&P.jumpTime<=0&&P.pounceTime<=0){
+ const wasFalling=P.fallTime>0;
+ if(wasFalling&&P.jumpTime<=0&&P.pounceTime<=0){
   P.fallTime=Math.max(0,P.fallTime-dt);
   const part=P.fallTime/.30;
   P.jumpHeight=(P.groundZ||0)+(P.fallFromZ-(P.groundZ||0))*part*part;
@@ -8473,7 +8474,7 @@ function update(dt){
   if(P.ghostPossessedUntil===0){resetControls();notify("霊が離れた。操作を取り戻した");}
  }
  const a=P.stun>0||P._ufoAbducting?{x:0,y:0}:getAxes(),sneaking=keys.has("c")||keys.has("control");
-  const boarStartX=P.x,boarStartY=P.y;
+  const boarStartX=P.x,boarStartY=P.y,wasAirborne=wasFalling||P.jumpTime>0||P.pounceTime>0;
   let boarDashActive=false;
   if(P.jumpTime>0){
     const jumpLeft=Math.max(0,P.jumpTime-dt);
@@ -8505,7 +8506,7 @@ function update(dt){
      if(P.frogSlamPending){P.frogSlamPending=false;resolveSpeciesSpecial();}
      else resolveFrogLanding();
      if(reachedRoof)notify("屋上に到着");
-     blood(P.x,P.y,"#b7be9e",5,26);
+
      if(P.pendingStrike&&P.jumpDive&&P.fallTime===0)resolveAttack();
      else P.jumpAmbush=false;
      aerialPounceState.delete(P);
@@ -8589,9 +8590,18 @@ function update(dt){
   if(P.type==="shoebill"){P.stillTime=speed<12&&!P.pendingStrike&&!P.pounceTime?Math.min(2.5,(P.stillTime||0)+dt):0;}
   P.beakVisual=Math.max(0,(P.beakVisual||0)-dt);
   footstepTimer=Math.max(0,footstepTimer-dt);
-  if(speed>70&&!P.jumpTime&&!P.pounceTime&&!P.fallTime&&footstepTimer<=0){
-   footstepTimer=P.type==="wolf"?.39:P.type==="cat"?.27:.34;
-   playEffect(roadsX.some(x=>Math.abs(P.x-x)<78)||roadsY.some(y=>Math.abs(P.y-y)<78)?"stepHard":"step",{volume:.045});
+  const travelX=P.x-boarStartX,travelY=P.y-boarStartY;
+  const contactSpeed=dt>0?Math.hypot(travelX,travelY)/dt:0;
+  const landed=wasAirborne&&!P.jumpTime&&!P.pounceTime&&!P.fallTime;
+  if(!P.flying&&!P.jumpTime&&!P.pounceTime&&!P.fallTime&&!(P.frogHopLift>2)&&(landed||contactSpeed>40&&footstepTimer<=0)){
+   const roof=P.groundZ>2;
+   const wet=!roof&&(P.type==="carp"?fishWaterAt(P.x,P.y):waterDepth(P.x,P.y)>.015);
+   const road=roof||P.x<CITY_WIDTH&&(roadsX.some(x=>Math.abs(P.x-x)<78)||roadsY.some(y=>Math.abs(P.y-y)<78));
+   const surface=wet?"water":road?"hard":"earth";
+   footstepTimer=clamp((P.r*.85+34)/Math.max(1,contactSpeed),.18,.46);
+   window.WildMovementTrail?.record(P,surface,contactSpeed,elapsed,Math.atan2(travelY,travelX),(x,y)=>MOUNTAIN?.height(x,y)||0,landed);
+   playEffect(wet?"stepWater":landed?"land":road?"stepHard":"step",{volume:landed?.063:sneaking?.022:.046,rate:clamp(1.25-P.r*.009,.72,1.2)});
+   if(wet&&P.type!=="carp"&&P.type!=="otter"&&contactSpeed>P.speed*1.1&&!sneaking)P.noiseBurst=Math.max(P.noiseBurst||0,.30);
   }
   P.noiseBurst=Math.max(0,P.noiseBurst-dt*1.6);
   P.noise=clamp(speed/P.speed*(sneaking?traitEffect("albinoWolf",.28):.94)*(P.type==="manul"?.48:1)+P.noiseBurst,0,1.8);
@@ -10977,8 +10987,12 @@ function drawScene(){
   });
   drawScenery2D();
  drawDenBedding2D(false);
+ window.WildMovementTrail?.each(P,elapsed,(x,y,z,rx,ry,c,s,tint)=>{
+  const lift=z*.93*cameraZoom/VIEW_DET;
+  ctx.fillStyle=tint;ctx.beginPath();ctx.ellipse(x+VIEW.c*lift,y-VIEW.a*lift,rx,ry,Math.atan2(s,c),0,TWO);ctx.fill();
+ });
  // Foot-level water wake, visible only while an animal is actually moving.
- for(const e of entities)if(waterDepth(e.x,e.y)>.10&&Math.hypot(e.vx||0,e.vy||0)>25){
+ for(const e of entities)if(e!==P&&!e.flying&&!(e.jumpTime>0)&&!(e.groundZ>2)&&Math.hypot(e.vx||0,e.vy||0)>25&&waterDepth(e.x,e.y)>.10){
   ctx.save();ctx.strokeStyle="#b4dedaaf";ctx.lineWidth=2;ctx.beginPath();
   ctx.ellipse(e.x,e.y,Math.max(11,e.r*1.35),Math.max(5,e.r*.64),0,0,TWO);ctx.stroke();ctx.restore();
  }

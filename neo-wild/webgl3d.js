@@ -2724,6 +2724,9 @@ function render(o){
    const endZ=(window.WildMountain?.height(xx,yy)||0)+3;
    quad([x-1.4,y,z],[x+1.4,y,z],[xx+.65,yy,endZ],[xx-.65,yy,endZ],color("#abdcd6"));
   });
+  window.WildMovementTrail?.each(P,elapsed,(x,y,z,rx,ry,c,s,tint)=>{
+   quad([x+c*rx,y+s*rx,z],[x-s*ry,y+c*ry,z],[x-c*rx,y-s*rx,z],[x+s*ry,y-c*ry,z],color(tint));
+  });
   window.WildEastExpedition?.eachTrack?.(elapsed,(x,y,rx,ry,a)=>{
    if(!isVisible(x,y,28))return;
    const z=(window.WildMountain?.height(x,y)||0)+3,c=Math.cos(a),s=Math.sin(a);

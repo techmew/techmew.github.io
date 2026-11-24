@@ -329,7 +329,7 @@ function buildAtmos(name){
 }
 function sample(name){
  const sr=22050;
- const lengths={step:.11,stepHard:.14,bite:.27,rake:.18,tapStrike:.13,wing:.33,jump:.27,attack:.24,impact:.38,howl:1.35,thunder:2.6,collect:.18,menu:.13,damage:.38,snarl:.65,rustle:.36,land:.24,death:1.4,level:.70};
+ const lengths={step:.11,stepHard:.14,stepWater:.19,bite:.27,rake:.18,tapStrike:.13,wing:.33,jump:.27,attack:.24,impact:.38,howl:1.35,thunder:2.6,collect:.18,menu:.13,damage:.38,snarl:.65,rustle:.36,land:.24,death:1.4,level:.70};
  const duration=lengths[name]||.22,len=Math.ceil(sr*duration),buf=context.createBuffer(1,len,sr),a=buf.getChannelData(0);
  let low=0,mid=0;
  for(let i=0;i<len;i++){
@@ -339,6 +339,7 @@ function sample(name){
   let v=0;
   switch(name){
    case "step":v=mid*.36+low*.38+Math.sin(2*Math.PI*(93-40*u)*t)*.13;break;
+   case "stepWater":v=(n-mid)*.37*Math.exp(-u*12)+mid*.4+Math.sin(2*Math.PI*(185+220*u)*t)*.12;break;
    case "stepHard":v=mid*.55+low*.16+Math.sin(2*Math.PI*(130-70*u)*t)*.13;break;
    case "bite":v=mid*.57+low*.19+Math.sin(2*Math.PI*(280-180*u)*t)*.18;break;
    case "rake":v=(n-mid)*.35*(.38+.62*Math.cos(u*9)**2)+low*.12;break;
@@ -442,7 +443,7 @@ function play(name,options={}){
   source.buffer=buf;source.playbackRate.value=options.rate||(.95+rand()*.10);
   // Preserve music and weather beds. Foreground effects are subdued; jump in
   // particular is a quiet low thump. Never let call-site volume override caps.
-  const step=name==="step"||name==="stepHard";
+  const step=name==="step"||name==="stepHard"||name==="stepWater";
   const quietCap={
    jump:.07,land:.08,attack:.13,bite:.12,rake:.12,tapStrike:.12,impact:.12,
    howl:.13,snarl:.11,damage:.11,thunder:.17,death:.12

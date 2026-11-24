@@ -50,5 +50,11 @@ for(const [x,y] of [[530,465],[10950,3800],[12500,3700]]){
  actor.x=x;actor.y=y;scene.cam={x:x-240,y:y-400};
  for(let i=0;i<2;i++)assert(browser.window.Wild3D.render(scene));
 }
+vm.runInNewContext(source("movement-trail.js"),browser);
+const renderer=browser.window.Wild3D;
+const baseline=renderer.stats.dynamicTriangles;
+browser.window.WildMovementTrail.record(actor,"water",120,scene.elapsed,0,()=>12);
+assert(renderer.render(scene));
+assert.equal(renderer.stats.dynamicTriangles,baseline+4,"swimming wake adds only four triangles");
 assert(uploads.filter(n=>n>65536).length>=3);
 console.log("Combat contacts, clean misses and six finite mesh frames passed (mock WebGL).");
