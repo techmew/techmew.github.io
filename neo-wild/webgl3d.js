@@ -1767,7 +1767,8 @@ function animal(m,player,clock){
  const fox=type==="fox"||type==="wildFox",cat=type==="cat"||type==="strayCat",wolf=type==="wolf"||type==="alpha",rabbit=type==="rabbit",rat=type==="rat",pigeon=type==="pigeon";
  const large=wolf||type==="boar",torso=fox?"#c97741":cat?"#9caaa1":wolf?"#647b84":base;
  const crouch=cat?(m.hidden?.32:attackPrep*.29):
-  type==="boar"?Math.max(attackPrep,attackCharge)*.23:0;
+  type==="boar"?Math.max(attackPrep,attackCharge)*.38:
+  !player&&(wolf||fox||type==="dog")?attackPrep*.26:0;
  const h=(1-crouch)*(large?r*.74:fox?r*.72:cat?r*.64:rabbit?r*.50:r*.56)*(resting?.64:1)*(1-collapse*.52);
  const x=m.x,y=m.y;
  animalLift=0;

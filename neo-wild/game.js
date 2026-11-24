@@ -4221,7 +4221,9 @@ function getAxes(){
   const wx=(VIEW.d*x-VIEW.c*y)/VIEW_DET,wy=(-VIEW.b*x+VIEW.a*y)/VIEW_DET,n=Math.hypot(wx,wy);
   return n>1e-5?{x:wx/n*strength,y:wy/n*strength}:{x:0,y:0};
 }
-function blood(x,y,color,count=9,speed=125){for(let i=0;i<count;i++){const a=rnd(0,TWO),v=rnd(speed*.2,speed);particles.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,life:rnd(.25,.8),max:.8,size:rnd(1.6,4.4),color});}}
+function blood(x,y,color,count=9,speed=125){
+ count=Math.min(count,Math.max(0,112-particles.length));
+ for(let i=0;i<count;i++){const a=rnd(0,TWO),v=rnd(speed*.2,speed);particles.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,life:rnd(.25,.8),max:.8,size:rnd(1.6,4.4),color});}}
 function label(x,y,t,color="#ffffff"){popups.push({x,y,t,color,life:1.1})}
 function notify(t,duration=2.1){toastMessage=t;toastTime=duration;$("toast").textContent=t;$("toast").classList.add("show")}
 function startAmbient(){window.WildAudio?.unlock();}
@@ -5266,7 +5268,7 @@ function wakeWeaponScrapGuardian(drop){
   for(const m of wave)markSalvageGuardian(drop,m);
   if(!drop.siegeTotal){drop.siegeTotal=wave.length;drop.siegeDefeated=0;}
   drop.guardianAwake=true;drop.guardState="engaged";
-  notify("東部の番人"+wave.length+"体がこちらに気づいた。全員倒すまで回収不可",3);
+  notify(drop.siegeTotal===1?"番人の攻撃をかわし、ガラクタのそばで○": "東部の番人"+wave.length+"体がこちらに気づいた。全員倒すまで回収不可",3);
   saveAuto();return true;
  }
  if(atDen()||mobs.filter(m=>m.hp>0&&Math.hypot(m.x-P.x,m.y-P.y)<650).length>=5){
@@ -5303,7 +5305,7 @@ function wakeWeaponScrapGuardian(drop){
  if(pack.length){
   if(!drop.siegeTotal){drop.siegeTotal=pack.length;drop.siegeDefeated=0;}
   drop.guardianAwake=true;drop.guardState="engaged";
-  notify("東部掃討：番人"+pack.length+"体を全員討伐してガラクタを回収",3);
+  notify(drop.siegeTotal===1?"番人の攻撃をかわし、ガラクタのそばで○":"東部掃討：番人"+pack.length+"体を全員討伐してガラクタを回収",3);
   saveAuto();return true;
  }
  drop.guardRetryAt=elapsed+14;return false;
@@ -5367,13 +5369,18 @@ function tickWeaponScraps(dt){
 function scrapLivingGuardian(drop){
  return drop?mobs.find(m=>m&&m.hp>0&&m.salvageCacheId===drop.id&&!m.companion&&!m.releasedIndividualId)||null:null;
 }
+function scrapOpening(drop,guard){
+ return !!guard&&drop.guardState==="engaged"&&drop.siegeTotal===1&&guard.salvageOpeningUntil>elapsed&&
+  !mobs.some(m=>m!==guard&&m.hp>0&&m.salvageCacheId===drop.id);
+}
 function pickWeaponScrap(){
  const drop=nearestWeaponScrap(95),armory=window.WildArsenal;
  if(!drop||!armory)return false;
  // A live linked guardian always blocks collection, even if it wandered
  // outside the old 300-unit warning ring or a stale save says "cleared".
  const live=scrapLivingGuardian(drop);
- if(live){
+ const snatch=scrapOpening(drop,live);
+ if(live&&!snatch){
   if(drop.guardState!=="engaged"){
    drop.guardState="engaged";drop.guardianAwake=true;
    saveAuto(); // Conservative repair; a failed save never grants loot.
@@ -5381,17 +5388,17 @@ function pickWeaponScrap(){
   live.alert=Math.max(Number(live.alert)||0,6);
   live.search=Math.max(Number(live.search)||0,6);
   live.lastX=P.x;live.lastY=P.y;
-  notify("番人「"+(species[live.type]?.name||live.type)+"」が生存中。倒すまでガラクタを回収できない",3);
+  notify(drop.siegeTotal===1?"攻撃をかわして○で奪取。倒せば追加報酬":"番人「"+(species[live.type]?.name||live.type)+"」が生存中。倒すまでガラクタを回収できない",3);
   return true;
  }
  // Older gate/suburb saves marked unchallenged loot as "cleared".
  // Verified defeat has guardianAwake=true; unearned cleared is relocked.
  if(drop.guardState==="cleared"&&!drop.guardianAwake)drop.guardState="pending";
- if(drop.guardState!=="cleared"&&drop.guardState!=="legacy"){
+ if(!snatch&&drop.guardState!=="cleared"&&drop.guardState!=="legacy"){
   if(drop.guardState==="pending"&&drop.guardianAwake)drop.guardianAwake=false;
   if(drop.guardState!=="engaged")wakeWeaponScrapGuardian(drop);
   const spawned=scrapLivingGuardian(drop);
-  if(spawned)notify("番人「"+(species[spawned.type]?.name||spawned.type)+"」を討伐してから回収",3);
+  if(spawned)notify(drop.siegeTotal===1?"番人の攻撃をかわし、ガラクタのそばで○":"番人「"+(species[spawned.type]?.name||spawned.type)+"」を討伐してから回収",3);
   else notify("番人が出現するまで待機。討伐しないとガラクタは回収できない",3);
   return true;
  }
@@ -5416,12 +5423,11 @@ function pickWeaponScrap(){
   enemy.wander=0;alerted++;
  }
  if(alerted>0)notify("ガラクタの物音で野生の敵"+alerted+"体が接近！",3);
- window.WildFirstSteps?.event?.("interact");
  const grade=armory.gradeOf(outcome.item),owned=outcome.item.owner===P.type;
  // A failed world autosave never rolls back the independently verified vault:
  // old snapshots filter claimed scrap IDs when reloaded.
  let bonus=null;
- if(!outcome.duplicate){
+ if(!snatch&&!outcome.duplicate){
   const tier=Math.max(1,Number(armory.dangerTier(drop.x))||1);
   const foodType=tier>=2?"meat":"berries",amount=12+8*tier;
   const points=70+65*tier+Math.max(0,(Number(drop.siegeTotal)||1)-1)*90;
@@ -5438,6 +5444,11 @@ function pickWeaponScrap(){
    kind:"east-salvage-siege",label:"東部掃討・武器発掘："+(nearest?.name||"東部")+
     "｜番人"+Math.max(1,Number(drop.siegeTotal)||1)+"体｜得点"+points});
   worldEventJournal=worldEventJournal.slice(-40);
+ }
+ if(snatch){
+  delete live.salvageCacheId;delete live.salvageOpeningUntil;
+  live.alert=Math.max(live.alert||0,7);live.lastX=P.x;live.lastY=P.y;
+  notify("ガラクタ奪取！ 番人から逃げろ",3);
  }
  const worldSaved=saveAuto();
  if(!worldSaved&&bonus){
@@ -5502,7 +5513,7 @@ function drawWeaponScrapLabels(){
   const guarded=drop.guardState==="engaged",locked=drop.guardState==="pending";
   ctx.fillStyle=guarded?"#ffaaa0":locked?"#ffcf9c":"#bde9be";
   const remaining=guarded?mobs.filter(m=>m.hp>0&&m.salvageCacheId===drop.id).length:0;
-  ctx.fillText(guarded?"！番人 残り"+Math.max(remaining,salvageRemaining(drop))+"体":
+  ctx.fillText(guarded&&scrapOpening(drop,scrapLivingGuardian(drop))?"○ 今だ・奪取":guarded?"！番人 残り"+Math.max(remaining,salvageRemaining(drop))+"体":
    locked?"！番人 残り"+salvageRemaining(drop)+"体":"？ ガラクタ",pos.x,pos.y-11);
   if(++count>=5)break;
  }
@@ -5560,6 +5571,10 @@ function drawEquippedWeapon2D(actor){
 
 function contextAction(longPress=false){
  if(mode!=="play"||!P||isControlBlocked())return;
+ const lesson=window.WildFirstSteps?.status?.();
+ if(!longPress&&lesson?.active&&["hunt","meal"].includes(lesson.kind)&&nearbyFood()&&P.eatCD<=0){
+  P.eatCD=.34;eat();return;
+ }
  if(!longPress&&pickWeaponScrap())return;
  // The existing action button doubles as rescue without changing its UI position.
  if(!longPress&&window.WildFloodRescue?.tryBegin?.({
@@ -5573,7 +5588,7 @@ function contextAction(longPress=false){
  if(atDen()){
   if(P.carry){carryFood();return}
   if(longPress&&denLevel<DEN_MAX_LEVEL){upgradeDen();return}
-  if(openDenInventory())window.WildFirstSteps?.event?.("interact");return;
+  openDenInventory();return;
  }
  if(longPress){
   if(P.carry){putDownFood();return}
@@ -5709,7 +5724,7 @@ function attack(){
   }
  }
  P.hidden=false;P.revealTimer=1.15;P.steps+=.1;
- window.WildFirstSteps?.event?.("attack");
+
  P.noiseBurst=Math.max(P.noiseBurst,P.type==="manul"?.46:P.type==="shoebill"?.75:1.05);playEffect("attack",{volume:.22});
  if(P.jumpTime>0)armAerialPounce();
 }
@@ -5951,6 +5966,7 @@ function kill(m){
  m._killRegistered=true;
  recordWeaponScrapGuardianDefeat(m);
  if(!debugTutorialSession)window.WildBestiary?.recordKill(m.type);
+ if(species[m.type]?.prey)window.WildFirstSteps?.event?.("hunt");
  kills++;window.WildTrophies?.record?.("hunt",{kills},notify);
  // Hunting grants XP and materials, but never additional animal tickets.
  window.WildTrophies?.record?.("kill",{type:m.type,region:regionAt(m.x,m.y),boss:!!m.strongBoss},notify);
@@ -6346,7 +6362,7 @@ function eat(){
  finishSpecialistContests(contests,true);
  label(P.x,P.y-30,foodName(c)+" 満腹+"+gain+" 生命+"+heal+(woundRelief>0?" 出血緩和":""),"#bfe89e");
  blood(P.x,P.y,"#d6c17f",7,45);playEffect("collect");checkMission();syncHUD();
- window.WildFirstSteps?.event?.("interact");return true;
+ if(P.hunger>before.hunger)window.WildFirstSteps?.event?.("meal");return true;
 }
 function inheritStrongTrait(type){
  if(mode!=="inventory"||!P||!atDen()||!STRONG_TRAITS[type])return false;
@@ -6517,6 +6533,7 @@ function eatFromDen(kind){
   else notify("世界セーブに失敗したため食事を取り消しました。肉・満腹度・体力は維持しました");
   syncHUD();renderDenInventory();return false;
  }
+ if(P.hunger>beforeVitals.hunger)window.WildFirstSteps?.event?.("meal");
  checkMission();syncHUD();renderDenInventory();
  notify((kind==="meat"?"肉":kind==="berries"?"食草":"以前の備蓄")+"を食べた：満腹+"+satiety+"・生命+"+recovery+(woundRelief>0?"・出血緩和":""));
  return true;
@@ -6767,6 +6784,7 @@ function eastSalvageObjective(){
  const fighting=nearby.filter(q=>q.guardState==="engaged"&&dist(q,P)<650)
   .map(q=>({drop:q,guard:mobs.find(m=>m.hp>0&&m.salvageCacheId===q.id)}))
   .find(q=>q.guard&&dist(q.guard,P)<950);
+ if(fighting?.guard.salvageOpeningUntil&&scrapOpening(fighting.drop,fighting.guard))return makeGoal(fighting.drop,"今だ・奪取","pickup",fighting.drop.id);
  if(fighting)return makeGoal(fighting.guard,
   "ガラクタ番人 残り"+mobs.filter(m=>m.hp>0&&m.salvageCacheId===fighting.drop.id).length+
   "体："+(species[fighting.guard.type]?.name||fighting.guard.type),
@@ -6802,11 +6820,28 @@ function getObjective(){
  if(!P||mode==="menu"||mode==="over"||mode==="clear")return null;
  // During practice or critical hunger, point to food the animal can actually reach.
  const practice=window.WildFirstSteps?.status?.();
- if(P.type!=="carp"&&!P.carry&&(P.hunger<25||(practice?.active&&practice.step===3))){
+ const training=practice?.active&&["hunt","meal"].includes(practice.kind);
+ if(training&&practice.kind==="hunt"){
+  let prey=null,range=310;
+  for(const m of mobs){
+   if(m.hp<=0||!species[m.type]?.prey||m.companion||m.releasedIndividualId||m.strongBoss)continue;
+   const gap=dist(P,m);
+   if(gap<range&&!lineBlocked(P,m)&&routeClear(P,m,P.r)){range=gap;prey=m;}
+  }
+  if(prey)return {x:prey.x,y:prey.y,label:"獲物に近づいて△で狩る"};
+ }
+ if(!P.carry&&((P.type!=="carp"&&P.hunger<25)||training)){
   let nearest=null,limit=360;
   for(const food of carcasses){
+   if(training&&practice.forager&&food.type!=="berries")continue;
    const gap=dist(P,food);
    if(gap>=limit||!foodAtActorLevel(food)||lineBlocked(P,food)||!routeClear(P,food,P.r))continue;
+   if(P.type==="carp"){
+    let wet=true;
+    const n=Math.max(1,Math.ceil(gap/12));
+    for(let i=1;i<=n;i++)if(!fishWaterAt(P.x+(food.x-P.x)*i/n,P.y+(food.y-P.y)*i/n)){wet=false;break;}
+    if(!wet)continue;
+   }
    limit=gap;nearest=food;
   }
   if(nearest)return {x:nearest.x,y:nearest.y,food:true,label:foodName(nearest)+(limit<65?"｜○で食べる":"｜近づいて食べる")};
@@ -9028,7 +9063,7 @@ function update(dt){
         P.sp=clamp(P.sp-8,0,100);
        }
        if(m.type==="giantLion"){if(m.lionCombo){m.lionCombo=0;}else{m.lionCombo=1;m.windup=.48;m.windupTotal=.48;m.strikeDir=aim;label(m.x,m.y-m.r-24,"連撃！","#ffc589");}}}
-      }else if(dist(P,m)<reach+50){m.stun=Math.max(m.stun,.24);label(m.x,m.y-m.r-16,"空振りの隙！","#a6f5d8");}
+      }else if(dist(P,m)<reach+50){if(m.salvageCacheId)m.salvageOpeningUntil=elapsed+1.6;m.stun=Math.max(m.stun,.24);label(m.x,m.y-m.r-16,"空振りの隙！","#a6f5d8");}
      }
     }
    }
@@ -9071,6 +9106,7 @@ function update(dt){
      label(m.x,m.y-m.r-20,"隙！","#bdf6cc");
     }
    }
+   if(charging&&!m.chargeHit&&m.chargeTime<=0&&m.salvageCacheId)m.salvageOpeningUntil=elapsed+1.6;
    if(ox===m.x&&oy===m.y&&!charging){m.dir+=1.7;m.wander=0;if(!s.prey)m.avoidSide=-(m.avoidSide||1)}
    if(!s.prey&&m.windup<=0&&m.chargeTime<=0&&m.stun<=0&&d<P.r+m.r+(STRONG_ATTACK_PROFILES[m.type]?.reach??(m.type==="boar"?115:m.type==="alpha"?112:29))&&(spotted||m.alert>0)&&m.attack<=0&&!lineBlocked(m,P)){
     const variant=!m.strongBoss?COMBAT_LEVELS?.nextAttack(m):null;
@@ -9243,7 +9279,7 @@ function syncHUD(hour){
    window.WildEastExpedition?.waterReplenishable?.(P,eastWaterMask,eastWaterSupplyYears,Math.floor(elapsed/120)):
    window.WildEastExpedition?.replenishable?.(P,eastTrailMask,eastTrailSupplyYears,Math.floor(elapsed/120));
   const cache=nearestWeaponScrap(95);
-  const cacheAction=cache?.guardState==="engaged"?"番人を倒す":
+  const cacheAction=cache?.guardState==="engaged"?(scrapOpening(cache,scrapLivingGuardian(cache))?"今だ・奪取":cache.siegeTotal===1?"空振りを誘う":"番人を倒す"):
    cache?.guardState==="pending"?"番人を誘い出す":cache?"ガラクタを拾う":null;
   contextLabel.textContent=cacheAction?cacheAction:home&&P.carry?"備蓄":home&&denLevel<DEN_MAX_LEVEL&&denStash>=DEN_COSTS[denLevel+1]?"長押し強化":eastSupply?"長押し補給":home?"食料庫":rescuePossible?"救助":P.carry?"食べる/置く":nearbyFood()?(mission===4?"長押し運ぶ":"食べる"):nearestTerritoryPost()?"縄張り":"行動";}
   $("kill-line").textContent="HUNT "+String(kills).padStart(2,"0");
@@ -10662,13 +10698,13 @@ function drawAligned3DActorStatus(){
  };
  // Preserve nearby enemy labels during melee. The player ownership label has
  // its own fixed anchor and must not suppress enemy names or health bars.
- const ordered=P?mobs.filter(m=>m.hp>0&&visible(m.x,m.y,130)&&!lineBlocked(P,m))
+ const ordered=P?mobs.filter(m=>m.hp>0&&Math.abs(m.x-P.x)<=900&&Math.abs(m.y-P.y)<=900&&visible(m.x,m.y,130)&&!lineBlocked(P,m))
   .sort((a,b)=>Number(!!b.strongBoss)-Number(!!a.strongBoss)||dist(P,a)-dist(P,b)):[];
  for(const m of ordered){
   const distance=dist(P,m);
   if(distance>900)continue;
   const rise=m.type==="giantEagle"?Math.max(0,m.airHeight||125):Math.max(0,m.evadeHeight||0);
-  const feet=projectGroundLabel(m.x,m.y,rise),ground=projectGroundLabel(m.x,m.y);
+  const ground=projectGroundLabel(m.x,m.y),feet=rise?{x:ground.x,y:ground.y-rise*.93*cameraZoom}:ground;
   const radius=Math.max(7,Math.max(1,m.r)*cameraZoom);
   if(feet.x<10||feet.x>vw-10||feet.y<15||feet.y>vh+100)continue;
   const scale=ACTOR_TOP_SCALE[m.type]||1.85;
@@ -10971,10 +11007,10 @@ function drawScene(){
    ctx.fillText("!",m.x,m.y-m.r-24);ctx.restore();
   }
   if(!use3D&&P&&mode==="play"&&P.dashTime>0){ctx.strokeStyle="#b4f7d88b";ctx.lineWidth=4;ctx.beginPath();ctx.arc(P.x,P.y,P.r+14,0,TWO);ctx.stroke()}
- if(!use3D)for(const q of particles){const alpha=clamp(q.life/q.max,0,1);ctx.globalAlpha=alpha;
+ if(!use3D)for(const q of particles){if(!q.ring&&!visible(q.x,q.y,10))continue;const alpha=clamp(q.life/q.max,0,1);ctx.globalAlpha=alpha;
   if(q.ring){ctx.strokeStyle=q.color;ctx.lineWidth=4;ctx.beginPath();ctx.arc(q.x,q.y,(1-alpha)*390,0,TWO);ctx.stroke()}
   else{ctx.fillStyle=q.color;ctx.beginPath();ctx.arc(q.x,q.y,q.size,0,TWO);ctx.fill()}}ctx.globalAlpha=1;
- if(!use3D)for(const f of popups){ctx.globalAlpha=clamp(f.life,0,1);ctx.font="900 14px Barlow Condensed,sans-serif";ctx.textAlign="center";ctx.shadowColor="#00100c";ctx.shadowBlur=7;ctx.fillStyle=f.color;ctx.fillText(f.t,f.x,f.y);ctx.shadowBlur=0}ctx.globalAlpha=1;
+ if(!use3D)for(const f of popups){if(!visible(f.x,f.y,50))continue;ctx.globalAlpha=clamp(f.life,0,1);ctx.font="900 14px Barlow Condensed,sans-serif";ctx.textAlign="center";ctx.shadowColor="#00100c";ctx.shadowBlur=7;ctx.fillStyle=f.color;ctx.fillText(f.t,f.x,f.y);ctx.shadowBlur=0}ctx.globalAlpha=1;
  const light=dayLightProfile(elapsed),nightAlpha=clamp((1-light.brightness)*.80,0,.76);
  if(!use3D){
   // Darkness is composed in screen space after world drawing, then feathered by night vision.
@@ -11145,7 +11181,7 @@ function keyDown(e){
  }
  if(k==="l")act("jump");
  if(k==="r")act("instinct");
- if(k==="e")act("eat");if(k==="g")act("carry");if(k==="h")act("den");
+ if(k==="e"){if(mode==="play"&&P&&nearestWeaponScrap(95))contextAction(false);else act("eat");}if(k==="g")act("carry");if(k==="h")act("den");
  if(k==="escape"&&mode==="map")toggleWorldMap();else if(k==="p"||k==="escape")togglePause();
  if(k==="f")fullScreen();if(k==="m")toggleWorldMap();if(k==="-"||k==="_")adjustZoom(-.13);if(k==="="||k==="+")adjustZoom(.13);
 }

@@ -22,7 +22,7 @@ Object.assign(env,{dist:(a,b)=>Math.hypot(a.x-b.x,a.y-b.y),foodAtActorLevel:f=>f
  lineBlocked:()=>false,routeClear:(p,f)=>f.x!==905,foodName:()=>"食草",
  carcasses:[{x:905,y:900,amount:10},{x:910,y:900,type:"bones",amount:0},{x:960,y:900,amount:12}]});
 ok(goal()?.x===960&&goal()?.label.includes("○"),"hungry animal finds accessible food");
-env.P.hunger=100;env.window.WildFirstSteps={status:()=>({active:true,step:3})};
+env.P.hunger=100;env.window.WildFirstSteps={status:()=>({active:true,kind:"meal"})};
 ok(goal()?.x===960,"practice finds food while full");delete env.window.WildFirstSteps;
 for(const [x,y] of [[8450,1680],[8680,1760],[9120,1870],[9350,1900],[9900,1980],[10320,2250],[10600,2450],[10740,2590],[10960,3280],[11280,3500],[11400,3540],[11980,3340],[12350,3250],[12720,3818],[13220,3797]]){
  env.P={x,y,type:"cat",hp:100};env.mission=0;

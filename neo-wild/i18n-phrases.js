@@ -1,6 +1,17 @@
 // WILD RECLAIM player-visible English translations; Japanese remains the source language.
 // Loaded before i18n.js. Keep gameplay/save keys unchanged.
 window.WildI18nPhrases = [
+ ["獲物を狩る","Hunt prey"],
+ ["小動物に近づき△／Jで攻撃。近くの食料を○／Eで食べても進める","Approach prey and attack with △ / J. Eating nearby food with ○ / E also counts."],
+ ["最初の食事","Your first meal"],
+ ["地図の目印へ。食料のそばで○／Eを短く押す（鳥は着地）","Follow the marker. Tap ○ / E beside food. Land first if flying."],
+ ["ミニマップを長押し／Mで周囲の道を確認","Hold the minimap or press M to see nearby routes."],
+ ["獲物に近づいて△で狩る","Approach prey and attack with △"],
+ ["番人の攻撃をかわし、ガラクタのそばで○","Dodge the sentry, then tap ○ beside the salvage."],
+ ["攻撃をかわして○で奪取。倒せば追加報酬","Dodge and tap ○ to snatch. Defeat the sentry for a bonus."],
+ ["今だ・奪取","Grab it now"],
+ ["空振りを誘う","Bait a miss"],
+ ["ガラクタ奪取！ 番人から逃げろ","Salvage snatched! Escape the sentry."],
  ["足跡あり・止まって調べる","Tracks nearby · stop to inspect"],
  ["獲物の足跡","Prey tracks"],
  ["危険な動物の足跡","Dangerous animal tracks"],

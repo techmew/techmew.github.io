@@ -1811,3 +1811,5 @@
  #first-steps-title{font-size:13px}
  #first-steps-detail{font-size:10px}
 }
+
+#app .practice-control{outline:3px solid #ffdf80;outline-offset:2px}

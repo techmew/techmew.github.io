@@ -234,6 +234,15 @@ ok(api.recordWeaponScrapGuardianDefeat(env.mobs[0]),"real guard defeat is credit
 api.contextAction(false);
 eq(env.weaponScraps.length,0,"defeated far guardian releases item");
 ok(a.alreadyClaimed("scrap:qa:living-far"),"verified defeat credits item");
+// A genuine solo miss permits a timed steal; all other encounters retain their gate.
+for(const [total,until,claimed] of [[1,171,true],[1,170,false],[2,171,false]]){
+ const key="scrap:qa:dodge:"+total+":"+until;
+ const {env,api}=fixture(key);
+ Object.assign(env.weaponScraps[0],{siegeTotal:total,guardState:"engaged"});
+ env.mobs.push({type:"wolf",hp:90,x:9360,y:1877,salvageCacheId:key,salvageOpeningUntil:until});
+ api.contextAction(false);eq(a.alreadyClaimed(key),claimed,"timed solo cache "+key);
+ if(claimed){eq(env.totalScore,0,"steal gives no siege bonus");eq(env.mobs[0].hp,90,"guard survives");}
+}
 const backupMethods=part(backup,'const WEAPON_VAULT_KEY=',"function mergeIds(records,key,older){");
 const merge=new Function("window",backupMethods+";return mergeWeaponVault;")(window);
 const oldVault={version:1,items:[a.derive({id:"scrap:qa:old",seed:123})],equipped:{}};
