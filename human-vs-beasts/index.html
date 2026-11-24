@@ -416,13 +416,13 @@ body:not(.race-mode) #footFeedback{display:none}
 #debugOpen{display:none!important}
 #menuScreen #debugTitleTap{pointer-events:auto;touch-action:manipulation;user-select:none;-webkit-user-select:none}
 
-/* Thumb + two-finger race controls (2026-11-24): left sprint, diagonal right-side L/R.
+/* Thumb + two-finger race controls (2026-11-24): left sprint, level right-side L/R.
    Visual and hit-test areas stay separate so holding sprint cannot block foot taps. */
 body.race-mode .raceControls{
  left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom) + 12px);
 }
 body.race-mode .tapPair{
- display:block;position:relative;width:100%;height:194px;
+ display:block;position:relative;width:100%;height:clamp(120px,18vh,145px);
  margin:0;gap:0;pointer-events:none;
 }
 body.race-mode .controlsLabel{
@@ -454,15 +454,15 @@ body.race-mode .tapPair>#leftTap{
  left:auto;right:calc(clamp(100px,27vw,146px) + 12px);bottom:0;
 }
 body.race-mode .tapPair>#rightTap{
- left:auto;right:0;bottom:62px;
+ left:auto;right:0;bottom:0;
 }
 @media(max-width:360px) and (orientation:portrait){
- body.race-mode .tapPair{height:180px}
+ body.race-mode .tapPair{height:108px}
  body.race-mode .tapPair>.burstBox{width:94px}
  body.race-mode .tapPair>.touchbtn{width:90px;height:108px;min-height:108px}
  body.race-mode .tapPair>.burstBox .burstBtn{height:108px;min-height:108px}
  body.race-mode .tapPair>#leftTap{right:102px}
- body.race-mode .tapPair>#rightTap{bottom:58px}
+ body.race-mode .tapPair>#rightTap{bottom:0}
 }
 @media(max-width:310px) and (orientation:portrait){
  body.race-mode .tapPair>.burstBox{width:76px}
@@ -472,14 +472,14 @@ body.race-mode .tapPair>#rightTap{
 @media(orientation:landscape) and (max-height:540px){
  body.race-mode .controlsLabel{display:none}
  body.race-mode .raceControls{left:10px;right:10px;bottom:calc(env(safe-area-inset-bottom) + 5px)}
- body.race-mode .tapPair{height:125px}
+ body.race-mode .tapPair{height:94px}
  body.race-mode .tapPair>.burstBox{width:clamp(98px,17vw,145px)}
  body.race-mode .tapPair>.burstBox .burstBtn{height:94px;min-height:94px;font-size:14px}
  body.race-mode .tapPair>.touchbtn{
   width:clamp(90px,15vw,125px);height:93px;min-height:93px;font-size:30px;
  }
  body.race-mode .tapPair>#leftTap{right:calc(clamp(90px,15vw,125px) + 12px);bottom:0}
- body.race-mode .tapPair>#rightTap{bottom:31px}
+ body.race-mode .tapPair>#rightTap{bottom:0}
 }
 </style></head><body>
 <canvas id="world" aria-label="リアルタイム3D競技場"></canvas><div id="shade"></div>
