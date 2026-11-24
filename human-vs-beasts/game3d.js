@@ -1294,7 +1294,7 @@ function withSpeciesLocomotion(data,rig){
    for(const ear of rabbitEars)ear.rotation.x=0;
    if(tail){tail.rotation.x=0;tail.rotation.y=0;tail.rotation.z=0;}
    if(rig.neck){rig.neck.rotation.x=0;rig.neck.rotation.z=0;}
-   if(kind==='kangaroo')for(const arm of arms){if(arm.sh)arm.sh.rotation.y=0;}
+   if(kind==='kangaroo')for(const arm of arms){if(arm.sh){arm.sh.rotation.y=0;arm.sh.scale.setScalar(1);}}
    lastImpact=null;
    return false;
   }
@@ -1322,9 +1322,15 @@ function withSpeciesLocomotion(data,rig){
     leg.knee.rotation.x=(hind?.17+1.28*jump:.14+.42*jump)*effort;
    }
    for(const arm of arms)if(arm.sh){
-     const punch=rig.boxingPunch||0, strike=arm.side===-1&&punch>0?Math.sin(Math.PI*clamp(1-punch/.68,0,1)):0;
-     arm.sh.rotation.x=(-.18-.28*jump)*effort-.92*strike;
-     arm.sh.rotation.y=-1.30*strike;
+     const elapsed=rig.boxingElapsed??-1;
+     const beat=(elapsed-.25)/.18, index=Math.floor(beat), local=beat-index;
+     const active=elapsed>=.25&&index>=0&&index<8;
+     const strike=active&&arm.side===(index%2===0?-1:1)?Math.sin(Math.PI*local):0;
+     const guard=elapsed>=0?.55:0;
+     arm.sh.rotation.x=(-.18-.28*jump)*effort-guard-1.05*strike;
+     arm.sh.rotation.y=-1.48*strike;
+     arm.sh.scale.setScalar(1+.23*strike);
+     if(active)body.rotation.y=-.25+.13*Math.sin(beat*Math.PI);
     }
    if(tail){
     tail.rotation.x=(.38*stance-.52*jump+.12*Math.cos(phase*.5))*effort;
@@ -1880,7 +1886,7 @@ $('loadAvatarSlot')?.addEventListener('click',()=>{
  refreshHuman();renderCustom();store();$('avatarCount').textContent='キャラ'+(slot+1)+'を呼び出しました';
 });
 // Tap race physics — speed is in metres per second, distances in metres.
-function startRace(){if(mode==='race')return;opponent.root.visible=true;opponent.root.position.y=.13;opponent.boxingPunch=0;stopAmbience();prefetchVoice(animals[save.chosen].kind);audioSystem();raceName=animals[save.chosen].name;humanGait=0;beastGait=0;race={opponentIndex:save.chosen,time:0,phase:'countdown',count:3.3,lastCount:4,humanD:0,enemyD:0,humanV:0,enemyV:0,combo:0,lastFoot:'',lastTap:-999,lastRatingAt:-999,drive:0,taps:0,legTaps:{L:-999,R:-999},lastAlternate:-999,sideStreak:0,lateral:humanX,lateralTarget:humanX,lateralVelocity:0,enemyLateral:animalX,offTrack:false,bumpCooldown:0,enemyStumble:0,stamina:1,burstCharge:0,burstLeft:0,burstUsed:false,hFinish:null,eFinish:null,lastStep:-1,lastRivalStep:-1,lastRivalImpact:-1,lastRivalCall:-99,rivalStridePhase:0};showScreen('race');race.time=0;$('countdown').textContent='3';$('countdown').style.display='flex';$('raceBanner').textContent='第'+(save.chosen+1)+'戦 / '+raceName;$('enemyLabel').textContent='対戦相手 / '+raceName;$('burstBtn').disabled=true;$('burstBtn').classList.remove('ready');updateHud(true);}
+function startRace(){if(mode==='race')return;opponent.root.visible=true;opponent.root.position.y=.13;opponent.boxingElapsed=-1;stopAmbience();prefetchVoice(animals[save.chosen].kind);audioSystem();raceName=animals[save.chosen].name;humanGait=0;beastGait=0;race={opponentIndex:save.chosen,time:0,phase:'countdown',count:3.3,lastCount:4,humanD:0,enemyD:0,humanV:0,enemyV:0,combo:0,lastFoot:'',lastTap:-999,lastRatingAt:-999,drive:0,taps:0,legTaps:{L:-999,R:-999},lastAlternate:-999,sideStreak:0,lateral:humanX,lateralTarget:humanX,lateralVelocity:0,enemyLateral:animalX,offTrack:false,bumpCooldown:0,enemyStumble:0,stamina:1,burstCharge:0,burstLeft:0,burstUsed:false,hFinish:null,eFinish:null,lastStep:-1,lastRivalStep:-1,lastRivalImpact:-1,lastRivalCall:-99,rivalStridePhase:0};showScreen('race');race.time=0;$('countdown').textContent='3';$('countdown').style.display='flex';$('raceBanner').textContent='第'+(save.chosen+1)+'戦 / '+raceName;$('enemyLabel').textContent='対戦相手 / '+raceName;$('burstBtn').disabled=true;$('burstBtn').classList.remove('ready');updateHud(true);}
 function tap(side,overlapping=false){
  if(!race||race.phase!=='running'||race.hFinish!==null)return;
  const r=race,now=r.time,elapsed=now-r.lastTap;
@@ -3360,7 +3366,9 @@ function updateRaceStep(dt){const r=race;if(!r)return;if(r.phase==='countdown'){
   // identical taps and elapsed time now yield identical kangaroo/rabbit pace
   // on both 30 FPS and 60 FPS phones.
   const hopImpulse=a.profile==='hopper'?Math.pow(Math.max(0,Math.sin(r.rivalStridePhase)),2)*.12:0;
-  const enemyTarget=maxB*(pace+hopImpulse)*stridePace*(r.enemyStumble>0?.62:1),acc=a.acc*accMult*challenge;
+  let enemyTarget=maxB*(pace+hopImpulse)*stridePace*(r.enemyStumble>0?.62:1);const acc=a.acc*accMult*challenge;
+  // Stay alongside the moving runner during a combo, without stopping either racer.
+  if(a.kind==='kangaroo'&&r.boxingElapsed>=0&&r.humanV>1&&Math.abs(r.enemyD-r.humanD)<3.5)enemyTarget=clamp(r.humanV+(r.humanD-r.enemyD)*3.5,1.5,enemyTarget);
   if(r.enemyV<enemyTarget)r.enemyV=Math.min(enemyTarget,r.enemyV+acc*dtSafe);
   else r.enemyV=Math.max(enemyTarget,r.enemyV-acc*1.4*dtSafe);
   r.enemyD+=r.enemyV*dtSafe;
@@ -3388,29 +3396,39 @@ function updateRaceStep(dt){const r=race;if(!r)return;if(r.phase==='countdown'){
  const hopPhase=r.rivalStridePhase||0;
  const airborne=a.profile==='hopper'&&Math.sin(hopPhase)>.55;
  if(a.kind==='kangaroo'){
-  const prev=r.boxingPunch||0;
-  r.boxingPunch=Math.max(0,prev-dtSafe);
-  r.boxingCooldown=Math.max(0,(r.boxingCooldown||0)-dtSafe);
   const eligible=r.hFinish===null&&r.eFinish===null;
-  const near=eligible&&Math.abs(r.humanD-r.enemyD)<2.2&&r.enemyLateral-r.lateral>=0&&r.enemyLateral-r.lateral<3.8;
-  if(near&&r.boxingCooldown===0){
-   r.boxingPunch=.68;r.boxingCooldown=2.4;r.boxingOrigin=r.enemyLateral;
-   r.boxingTarget=Math.max(r.lateral+.90,r.enemyLateral-2.3);
+  const near=eligible&&r.humanV>1&&Math.abs(r.humanD-r.enemyD)<2.8&&Math.abs(r.enemyLateral-r.lateral)<4.2;
+  r.boxingCooldown=Math.max(0,(r.boxingCooldown||0)-dtSafe);
+  r.boxingRecoil=Math.max(0,(r.boxingRecoil||0)-dtSafe*7);
+  if(r.boxingElapsed==null)r.boxingElapsed=-1;
+  if(r.boxingElapsed<0&&near&&r.boxingCooldown===0){
+   r.boxingElapsed=0;r.boxingHitIndex=-1;r.boxingOrigin=r.enemyLateral;
   }
-  if(r.boxingPunch>0||prev>0){
-   const p=clamp(1-r.boxingPunch/.68,0,1);
-   r.enemyLateral=mix(r.boxingOrigin,r.boxingTarget,Math.sin(Math.PI*p));
+  if(r.boxingElapsed>=0){
+   r.boxingElapsed+=dtSafe;
+   const e=r.boxingElapsed, envelope=Math.min(clamp(e/.25,0,1),clamp((1.90-e)/.21,0,1));
+   const target=clamp(r.lateral+.82,r.boxingOrigin-3.65,r.boxingOrigin+1.1);
+   r.enemyLateral=mix(r.boxingOrigin,target,envelope);
    opponent.root.position.x=r.enemyLateral;
-   if(prev>.34&&r.boxingPunch<=.34&&eligible&&Math.abs(r.humanD-r.enemyD)<1.65&&Math.abs(r.enemyLateral-r.lateral)<1.55){
-    r.humanV*=.78;r.drive*=.84;r.lateralTarget=clamp(r.lateralTarget-.34,-5.2,2.5);
-    r.bumpCooldown=Math.max(r.bumpCooldown,.65);
-    kickDust(r.lateral,r.humanD,9);soundNoise(.13,.055,100,1400);soundTone(115,.12,'sine',.04,0,60);
+   // Eight alternating jabs, each with its own contact window.
+   const hitIndex=Math.min(7,Math.floor((e-.34)/.18));
+   if(hitIndex>=0&&hitIndex>r.boxingHitIndex){
+    r.boxingHitIndex=hitIndex;
+    if(eligible&&r.humanV>1&&Math.abs(r.humanD-r.enemyD)<1.7&&Math.abs(r.enemyLateral-r.lateral)<1.35){
+     r.humanV*=.94;r.drive*=.96;r.boxingRecoil=1;
+     r.bumpCooldown=Math.max(r.bumpCooldown,.35);
+     kickDust(r.lateral,r.humanD,7);soundNoise(.075,.042,100,1500);soundTone(125,.075,'sine',.028,0,65);
+    }
+   }
+   if(e>=1.90||!eligible){
+    r.enemyLateral=r.boxingOrigin;opponent.root.position.x=r.enemyLateral;
+    r.boxingElapsed=-1;r.boxingCooldown=.45;
    }
   }
-  opponent.boxingPunch=r.boxingPunch;
+  opponent.boxingElapsed=r.boxingElapsed;
  }
  const flying=['pegasus','unicorn','griffin','dragon'].includes(a.kind)&&opponent.flight>.4;
- if(r.bumpCooldown===0&&r.hFinish===null&&r.eFinish===null&&!airborne&&!flying
+ if(r.bumpCooldown===0&&r.hFinish===null&&r.eFinish===null&&!airborne&&!flying&&!(a.kind==='kangaroo'&&r.boxingElapsed>=0)
   &&Math.abs(r.lateral-r.enemyLateral)<collisionWidth
   &&Math.abs(r.humanD-r.enemyD)<collisionDepth){
    r.bumpCooldown=massive?1.65:1.2;
@@ -4117,6 +4135,7 @@ function frame(){requestAnimationFrame(frame);
  const espeed=visualSky?(race.pegasusFlightSpeed||22):mode==='race'&&race?.phase==='running'&&race.eFinish===null?(race.enemyV||0):previewSpeed;
  if(hspeed>.13)humanGait+=dt*(6.8+clamp(hspeed/8,0,1.7)*4.3);if(espeed>.13)beastGait+=dt*animalGaitRate(animals[Number.isInteger(race?.opponentIndex)?race.opponentIndex:save.chosen].kind,espeed);human.animate(humanGait,hspeed,mode==='race'?race.stamina:1,mode==='race'?race.legTaps:null,mode==='race'?race.time:0,dt);
  
+ if(mode==='race'&&race?.phase==='running'&&race.boxingRecoil>0){human.torso.rotation.z=mix(human.torso.rotation.z,.38,Math.min(1,race.boxingRecoil));human.head.rotation.z=mix(human.head.rotation.z,-.18,Math.min(1,race.boxingRecoil));}
  const hasLanded=opponent.animate(beastGait,espeed,mode==='beasts'?beastShowcaseDistance:visualSky?(race.pegasusBeyond??race.enemyD):race?.enemyD||0);
  if(hasLanded&&mode==='race'&&race?.phase==='running'&&race.eFinish===null&&espeed>2){
   const kind=animals[Number.isInteger(race?.opponentIndex)?race.opponentIndex:save.chosen].kind,gait=GAIT_MAP[kind];
