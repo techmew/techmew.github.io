@@ -3640,6 +3640,8 @@ let recaptureBusy=false;
 async function recaptureRacePhoto(){
  if(recaptureBusy||mode!=='race'||race?.phase!=='results')return false;
  if(webglUnavailable){$('shareHelp').textContent='3D描画の復旧待ちです。復旧後に再撮影してください。';return false}
+ const resultRace=race;
+ const isCurrent=()=>mode==='race'&&race===resultRace&&race.phase==='results';
  recaptureBusy=true;
  // A failed recapture must never destroy the previously validated 3D photograph.
  // Keep its actual canvas pixels available for download and X sharing.
@@ -3650,27 +3652,29 @@ async function recaptureRacePhoto(){
   makeRacePhoto();
   if(!ceremonyStage){$('shareHelp').textContent='3Dモデルの作成に失敗しました。';return false}
   const ready=await waitForPodiumFrames(2,900);
+  if(!isCurrent())return false;
   if(webglUnavailable||!ceremonyStage){
    $('shareHelp').textContent='3D描画が停止しています。画面復帰後に再撮影してください。';return false;
   }
   // An rAF timeout alone is not a GPU failure on Android WebView.
   // Attempt the validated synchronous 3D capture before reporting failure.
   if(!ready)console.warn('Podium rAF unavailable; attempting direct capture');
-  for(let attempt=0;attempt<4&&!racePicture&&ceremonyStage;attempt++){
+  for(let attempt=0;attempt<4&&isCurrent()&&!racePicture&&ceremonyStage;attempt++){
    podiumRetryAttempts=attempt;
    renderer.setRenderTarget(null);
    renderer.render(ceremonyStage.scene,ceremonyStage.camera);
    if(captureCeremonyPhoto())break;
    if(attempt<3&&!await waitForPodiumFrames(2,900))break;
   }
+  if(!isCurrent())return false;
   if(!racePicture){$('shareHelp').textContent='3D表彰台の撮影に失敗しました。再撮影できます。';return false}
   return true;
  }catch(err){
   console.warn('Manual podium rebuild failed',err);
-  $('shareHelp').textContent='再撮影に失敗しました。画面復帰後にお試しください。';
+  if(isCurrent())$('shareHelp').textContent='再撮影に失敗しました。画面復帰後にお試しください。';
   return false;
  }finally{
-  if(!racePicture&&previousPhoto){
+  if(isCurrent()&&!racePicture&&previousPhoto){
    racePicture=previousPhoto;
    cacheRaceSharePhoto(previousPhoto);
    if(ceremonyStage)ceremonyStage.photoCaptured=true;
