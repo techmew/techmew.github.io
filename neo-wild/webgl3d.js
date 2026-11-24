@@ -101,7 +101,7 @@ function writeVertex(p,nx,ny,nz,t){
  let staticBuffer=gl.createBuffer(),snowBuffer=gl.createBuffer();
  let staticCamX=0,staticCamY=0;
  let staticKey="",staticCount=0,staticRebuilds=0,dynamicCount=0;
- let snowCacheKey="",snowCount=0,snowRebuilds=0;
+ let snowCacheKey="",snowCount=0,snowRebuilds=0,snowBuild=null;
 function triangle(a,b,c,t){
  const ux=b[0]-a[0],uy=b[1]-a[1],uz=b[2]-a[2],vx=c[0]-a[0],vy=c[1]-a[1],vz=c[2]-a[2];
  let nx=uy*vz-uz*vy,ny=uz*vx-ux*vz,nz=ux*vy-uy*vx;
@@ -2515,7 +2515,7 @@ canvas.addEventListener("webglcontextrestored",()=>{
  try{
   // A restored WebGL context invalidates shaders, programs and GPU buffers.
   initializeGPU();staticBuffer=gl.createBuffer();snowBuffer=gl.createBuffer();
-  staticKey="";staticCount=0;dynamicCount=0;snowCacheKey="";snowCount=0;
+  staticKey="";staticCount=0;dynamicCount=0;snowCacheKey="";snowCount=0;snowBuild=null;
   failed=false;canvas.style.display="block";window.Wild3D.available=true;
  }catch(err){
   failed=true;window.Wild3D.available=false;canvas.style.display="none";
@@ -2755,15 +2755,23 @@ function render(o){
   const snowKey=[snowCellX,snowCellY,vw,vh,Math.round(VIEW.a*8),Math.round(VIEW.b*8),Math.round(VIEW.c*8),Math.round(VIEW.d*8),
    WORLD.w,WORLD.h,snow.toFixed(3),alpineInView?1:0,flood?Math.floor(elapsed/5):-1,flood?.x,flood?.y].join(":");
   if(snowKey!==snowCacheKey){
-   const snowDataStart=meshLength;
+   // Spread expensive snow contour clipping across frames. Retain the last
+   // finished GPU buffer until the new field is complete; never stall the
+   // whole animal simulation or freeze the camera on a weather transition.
+   if(!snowBuild||snowBuild.key!==snowKey)
+    snowBuild={key:snowKey,x:NaN,y:NaN,parts:[],floats:0};
+   const build=snowBuild,snowDataStart=meshLength;
+   let complete=true;
    if(snow>.06||alpineInView){
-   const step=48,margin=snowViewMargin;
+   // Mobile GPU needs fewer ground triangles. Retain the same smooth
+   // world-space contour and 8-edge fan, with a modestly wider sampling grid.
+   const step=dpr>=1.25?64:48,margin=snowViewMargin;
    const firstX=Math.max(snow>.06?0:8300,Math.floor((snowAnchorX-margin)/step)*step);
    const firstY=Math.max(snow>.06?0:2600,Math.floor((snowAnchorY-margin)/step)*step);
    const endX=Math.min(snow>.06?WORLD.w:13600,snowAnchorX+vw+margin);
    const endY=Math.min(snow>.06?WORLD.h:5100,snowAnchorY+vh+margin);
-   // Per-frame world-coordinate caches share exact edge heights and snow masks
-   // across neighbouring cells. Recreated every render to follow terrain/weather.
+   // Batch-local world-coordinate caches share edge heights and snow masks.
+   // Snow geometry does not need rebuilding with every moving animal.
    const heightCache=new Map(),maskCache=new Map();
    const sampleKey=(px,py)=>px+","+py;
    const ground=(px,py)=>{
@@ -2850,7 +2858,14 @@ function render(o){
     }
     return out;
    };
-   for(let x=firstX;x<endX;x+=step)for(let y=firstY;y<endY;y+=step){
+   if(!Number.isFinite(build.x)){build.x=firstX;build.y=firstY;}
+   // Maximum snow tiles generated in a single rendered frame.
+   let budget=dpr>=1.25?160:280;
+   snowRows: for(let x=build.x;x<endX;x+=step){
+    for(let y=x===build.x?build.y:firstY;y<endY;y+=step){
+     if(budget--<=0){
+      build.x=x;build.y=y;complete=false;break snowRows;
+     }
     const x2=Math.min(WORLD.w,x+step),y2=Math.min(WORLD.h,y+step);
     if(!isVisible((x+x2)*.5,(y+y2)*.5,120+snowSector*2))continue;
     // Center-fan tessellation samples shared world-space edge midpoints.
@@ -2871,15 +2886,21 @@ function render(o){
     }
    }
    }
-   // Preserve animated animals, vegetation, and FX in their existing dynamic buffer.
-   // Upload the snow only when its cache key changes; never mix stale geometry
-   // into the next frame's dynamic mesh.
-   const snowVertices=meshData.subarray(snowDataStart,meshLength);
+   }
+   // meshData is reused by animals on every frame: copy this frame's completed
+   // snow batch before continuing to generate the dynamic scene.
+   const part=meshData.slice(snowDataStart,meshLength);
    meshLength=snowDataStart;
-   gl.bindBuffer(gl.ARRAY_BUFFER,snowBuffer);
-   gl.bufferData(gl.ARRAY_BUFFER,snowVertices,gl.STATIC_DRAW);
-   snowCount=snowVertices.length/9;
-   snowCacheKey=snowKey;snowRebuilds++;
+   if(part.length){build.parts.push(part);build.floats+=part.length;}
+   if(complete){
+    const snowVertices=new Float32Array(build.floats);
+    let offset=0;
+    for(const chunk of build.parts){snowVertices.set(chunk,offset);offset+=chunk.length;}
+    gl.bindBuffer(gl.ARRAY_BUFFER,snowBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER,snowVertices,gl.STATIC_DRAW);
+    snowCount=snowVertices.length/9;
+    snowCacheKey=snowKey;snowBuild=null;snowRebuilds++;
+   }
   }
   // Lightweight water wakes match the physical depth model; skip dry bridges and stationary actors.
   if(typeof o.waterAt==="function"){

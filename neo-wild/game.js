@@ -10935,6 +10935,8 @@ function drawWorldSnow2D(snow,viewX,viewY){
   return out;
  };
  ctx.save();ctx.fillStyle="#f4f6f3";ctx.globalAlpha=.88;
+ // One composited snowfield path instead of hundreds of canvas fill calls.
+ ctx.beginPath();
  for(let x=sx;x<ex;x+=step)for(let y=sy;y<ey;y+=step){
   const x2=Math.min(x+step,WORLD.w),y2=Math.min(y+step,WORLD.h);
   if(!visible((x+x2)*.5,(y+y2)*.5,96))continue;
@@ -10952,10 +10954,10 @@ function drawWorldSnow2D(snow,viewX,viewY){
   for(const poly of polygons){
    ctx.beginPath();ctx.moveTo(poly[0][0],poly[0][1]);
    for(let i=1;i<poly.length;i++)ctx.lineTo(poly[i][0],poly[i][1]);
-   ctx.closePath();ctx.fill();
+   ctx.closePath();
   }
  }
- ctx.restore();
+ ctx.fill();ctx.restore();
 }
 function drawScene(){
  // Earthquakes affect the world view only; never transform the app or HUD.
@@ -11142,13 +11144,15 @@ function drawScene(){
  }
  if(weather==="SNOW"&&mode!=="dying"){
   ctx.save();ctx.globalAlpha=.90;ctx.fillStyle="#e5f4fa";
+  // Keep 145 visible falling flakes, but only one Canvas paint operation.
+  ctx.beginPath();
   for(let i=0;i<145;i++){
    const speed=32+(i*17%58),drift=(i%7-3)*.12;
    const py=((i*73.73+elapsed*speed)%(vh+30)+vh+30)%(vh+30)-15;
    const px=((i*131.7+Math.sin(elapsed*.43+i)*22+elapsed*drift*10)%(vw+30)+vw+30)%(vw+30)-15;
    const radius=i%9===0?2.2:i%4===0?1.5:.95;
-   ctx.beginPath();ctx.arc(px,py,radius,0,TWO);ctx.fill();
-  }ctx.restore();
+   ctx.moveTo(px+radius,py);ctx.arc(px,py,radius,0,TWO);
+  }ctx.fill();ctx.restore();
  }
  if(weather==="WIND"&&mode!=="dying"){
   ctx.strokeStyle="#d2c8a73b";ctx.lineWidth=1.4;ctx.beginPath();
