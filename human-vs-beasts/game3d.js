@@ -717,7 +717,7 @@ function buildUnscaledBeast(data){
  const armor=mat(new T.Color(data.coat).multiplyScalar(.86),.74,.04);
  const gold=mat(0xbca164,.55,.15);
  const wingmat=mat(new T.Color(data.coat).multiplyScalar(.91),.85);
- const legs=[],arms=[];let tail=null,wings=[],decor=[];
+ const legs=[],arms=[];let tail=null,wings=[],decor=[],trunk=null,extraHeads=[];
  const dinoArmored=['triceratops','stegosaurus','ankylosaurus'].includes(k);
  const theropod=['parasaurolophus','gallimimus','velociraptor','deinonychus','carnotaurus','trex','spinosaurus'].includes(k);
  const bird=['dodo','moa','terrorbird'].includes(k);
@@ -804,9 +804,10 @@ function buildUnscaledBeast(data){
   if(['elephant','mammoth'].includes(k)){
    // Curved trunk and paired tusks distinguish the elephant and mammoth in silhouette.
    const z=length+.72,y=headY-.12;
-   t(bodyGroup,[0,y,z],[0,y-.34,z+.24],.13,coat,.105);
-   t(bodyGroup,[0,y-.34,z+.24],[0,y-.77,z+.39],.105,coat,.077);
-   t(bodyGroup,[0,y-.77,z+.39],[0,y-.98,z+.54],.074,coat,.066);
+   trunk=new T.Group();trunk.position.set(0,y,z);bodyGroup.add(trunk);
+   t(trunk,[0,0,0],[0,-.34,.24],.13,coat,.105);
+   t(trunk,[0,-.34,.24],[0,-.77,.39],.105,coat,.077);
+   t(trunk,[0,-.77,.39],[0,-.98,.54],.074,coat,.066);
    for(let side of [-1,1]){
     t(bodyGroup,[side*.20,headY-.18,length+.64],[side*.38,headY-.30,length+1.04],.095,tusk,.066);
     t(bodyGroup,[side*.38,headY-.30,length+1.04],[side*.43,headY+.04,length+1.23],.066,tusk,.012);
@@ -834,7 +835,7 @@ function buildUnscaledBeast(data){
   }}
   if(k==='unicorn')spike(bodyGroup,tusk,0,headY+.32,length+.46,.60,-.16,.065);
   if(k==='cerberus')for(let side of [-1,1]){
-   const group=new T.Group();group.position.set(side*.45,.12,length-.05);bodyGroup.add(group);
+   const group=new T.Group();group.position.set(side*.45,.12,length-.05);bodyGroup.add(group);extraHeads.push({group,side});
    animalHead(group,.72,headY,.27,.23,.35);spike(group,shade,side*.12,headY+.25,.76,.23,0,.09);
   }
   if(k==='unicorn'||k==='pegasus'||k==='griffin'||k==='dragon'){
@@ -930,21 +931,33 @@ function buildUnscaledBeast(data){
   }
  }else if(humanoid){
   const stone=k==='golem',robot=k==='giantrobot',slender=k==='alien',beastlike=k==='kaiju';
-  const shoulder=slender?.34:beastlike?.70:.53;
+  const ape=k==='gorilla',sloth=k==='giantsloth';
+  const shoulder=ape?.78:sloth?.65:slender?.34:beastlike?.70:.53;
   const bodyY=1.65;
   if(stone||robot)box(bodyGroup,shoulder*2.0,1.0,.56,coat,0,bodyY+.02,0,true);
-  else b(bodyGroup,coat,0,bodyY,0,shoulder,.73,.38,22);
+  else b(bodyGroup,coat,0,bodyY,0,shoulder,ape?.78:sloth?.84:.73,ape?.53:sloth?.57:.38,24);
+  if(ape||sloth){coat.map=furMaterialTexture;coat.needsUpdate=true;
+   b(bodyGroup,shade,0,2.09,-.15,shoulder*.94,.43,.47,20);
+   b(bodyGroup,ape?mat(0x353535,.96):shade,0,1.72,.39,shoulder*.72,.51,.22,20);
+   for(const side of [-1,1]){b(bodyGroup,coat,side*shoulder*.77,2.05,0,.30,.38,.36,18);if(ape)b(bodyGroup,shade,side*.29,1.94,.53,.32,.26,.13,18);}
+   for(let i=0;i<20;i++){const a=i*2.39996;b(bodyGroup,i%4?coat:shade,Math.sin(a)*shoulder*.84,1.22+(i%8)*.13,-.38+Math.cos(a)*.12,sloth?.15:.11,sloth?.24:.13,.12,9);}
+  }
   b(bodyGroup,shade,0,1.10,.06,shoulder*.82,.35,.31);
-  if(k==='gorilla'||k==='giantsloth')b(bodyGroup,light,0,1.76,.33,.36,.37,.12);
+  if(sloth)b(bodyGroup,light,0,1.65,.46,.36,.43,.13);
   for(let side of [-1,1]){
    limb(.63,.56,.05,side,shoulder*.56,stone?.25:slender?.10:.20,.25,1.05);
    const arm=new T.Group();arm.position.set(side*shoulder,2.11,.05);bodyGroup.add(arm);
    if(stone||robot)box(arm,.30,.65,.32,shade,0,-.37,.04,true);
-   else b(arm,coat,0,-.40,0,stone?.24:.18,humanoid?.49:.45,.19);
-   const hand=b(arm,stone||robot?armor:shade,0,-.90,.16,stone?.25:.21,.23,.19);
+   else if(ape||sloth){
+    b(arm,coat,0,-.34,0,ape?.30:.22,.43,.27,20);
+    b(arm,coat,0,-.85,.09,ape?.24:.19,.48,.23,18);
+    for(let i=0;i<5;i++)b(arm,shade,side*.14,-.40-i*.15,-.09,.10,sloth?.20:.11,.10,8);
+   }else b(arm,coat,0,-.40,0,stone?.24:.18,humanoid?.49:.45,.19);
+   const hand=b(arm,stone||robot?armor:shade,0,ape||sloth?-1.24:-.90,.16,ape?.25:stone?.25:.21,.23,.19);
+   if(ape||sloth)for(let i=0;i<4;i++){const x=(i-1.5)*.10;b(arm,shade,x,-1.37,.25,.065,.105,.10,12);if(sloth&&i<3)t(arm,[x,-1.39,.28],[x,-1.59,.47],.045,tusk,.008);}
    arms.push({sh:arm,side});
   }
-  const headY=slender?2.75:2.64,headW=slender?.40:k==='kaiju'?.40:.32;
+  const headY=ape?2.54:sloth?2.52:slender?2.75:2.64,headW=ape?.39:sloth?.34:slender?.40:k==='kaiju'?.40:.32;
   if(robot||stone)box(bodyGroup,.58,.55,.50,shade,0,headY,.13,true);
   else b(bodyGroup,coat,0,headY,.12,headW,slender?.38:.30,slender?.27:.32);
   if(slender){
@@ -955,8 +968,19 @@ function buildUnscaledBeast(data){
    b(bodyGroup,light,0,headY-.14,.38,headW*.63,.115,.11);
   }
   if(k==='minotaur'){horns(bodyGroup,.28,headY+.18,.09,.43);b(bodyGroup,mouth,0,headY-.23,.48,.20,.11,.13)}
-  if(k==='giantsloth')for(let side of [-1,1])for(let i=0;i<3;i++){
-   spike(bodyGroup,tusk,side*(shoulder+.07*i),1.20,.45,.22,-.70,.045);
+  if(ape||sloth){
+   const face=mat(ape?0x302a28:0x93785d,.95),noseM=mat(ape?0x181719:0x4b382b,.87);
+   b(bodyGroup,face,0,headY-.02,.35,headW*.90,.28,.20,20);
+   b(bodyGroup,face,0,headY-.18,.49,ape?.27:.22,.16,.22,18);
+   b(bodyGroup,noseM,0,headY-.09,.66,ape?.15:.115,.09,.075,14);
+   for(const side of [-1,1]){
+    b(bodyGroup,shade,side*.19,headY+.13,.48,.17,.065,.115,14);
+    b(bodyGroup,eye,side*.16,headY+.045,.515,.042,.038,.041,12);
+    b(bodyGroup,noseM,side*.065,headY-.10,.71,.039,.029,.024,10);
+    if(ape)b(bodyGroup,face,side*.36,headY-.015,.12,.075,.11,.07,12);
+   }
+   b(bodyGroup,mouth,0,headY-.27,.64,.16,.024,.032,12);
+   if(ape)b(bodyGroup,coat,0,headY+.24,.02,.24,.19,.23,16);
   }
   if(stone)for(let i=0;i<10;i++){
    const x=(i%2?1:-1)*(shoulder*.65),y=1.05+(i%5)*.31;
@@ -997,7 +1021,7 @@ function buildUnscaledBeast(data){
   for(const wing of wings)wing.wing.rotation.z=-wing.side*(.08+.15*Math.sin(time*.76)*effort);
  }
  function mtRobotLight(){return mat(0x80bdb4,.25,.3)}
- return withSpeciesLocomotion(data,finishAnimalModel(data,{root,bodyGroup,legs,arms,tail,wings,animate}));
+ return withSpeciesLocomotion(data,finishAnimalModel(data,{root,bodyGroup,legs,arms,tail,wings,trunk,extraHeads,animate}));
 }
 
 
@@ -1044,7 +1068,7 @@ function finishAnimalModel(data,rig){
  }
  if(['golem','giantrobot','alien','minotaur','gorilla','kaiju'].includes(k)){
   if(['golem','giantrobot'].includes(k))for(let i=0;i<5;i++)dot(i%2?light:dark,0,1.2+i*.22,.40,.29,.02,.035);
-  else dot(light,0,1.70,.39,.28,.22,.055);
+  else if(k!=='gorilla')dot(light,0,1.70,.39,.28,.22,.055);
  }
  if(['dragon','pegasus','griffin'].includes(k)){
   for(let side of [-1,1]){
@@ -1218,59 +1242,59 @@ function speciesMotion(kind,rig,phase,effort){
  const wingFlap=(n)=>{for(const p of wings)p.wing.rotation.z+=p.side*n*a};
  switch(kind){
   case 'dog':          roll(.10*f);if(tail){tail.rotation.z=phase*4.5;tail.rotation.y=.83*Math.sin(phase*5.8)*Math.min(1,a);}break; // happy tail & excited zig
-  case 'cat': pitch(-.21*c);body.scale.z*=1+.14*s;tailWag(.37*Math.sin(phase*1.9));break; // springy arched back
-  case 'fox':          yaw(.095*s);tailWag(.40*g);bounce(.04*(1+c));break; // tail-led sidestep
-  case 'dodo': roll(.34*s);pitch(.16*f);bounce(.095*(1+f));break; // drunken waddling
-  case 'rabbit': pitch(.23*c);legs.forEach(p=>{if(p.front<0)p.knee.rotation.x+=.44*a*Math.max(0,s)});body.rotation.z+=.055*f*a;break; // double hind tuck and airborne balance
-  case 'greyhound':    pitch(-.085*s);body.scale.z*=1+.14*c;tailWag(.10*g);break; // overextended sprint
-  case 'zebra': yaw(.12*f);roll(.12*c);tailWag(.43*f);break; // energetic stamping
-  case 'boar':         pitch(-.14*Math.abs(s));roll(.12*f);tailWag(.18*s);break; // head-first shuffle
-  case 'ostrich': roll(.21*g);pitch(.20*s);bounce(.095*(1+c));break; // high-neck sway
+  case 'cat': pitch(-.31*c);body.scale.z*=1-.24*Math.max(0,s);body.scale.y*=1+.32*Math.max(0,s);tailWag(.74*f);if(tail)tail.rotation.x=-.85;roll(.23*Math.sin(phase*.65));yaw(.42*Math.sin(phase*.65));break;
+  case 'fox': pitch(.54*Math.sin(phase*.55));tailWag(.55*g);bounce(.28*Math.max(0,Math.sin(phase*.55)));break;
+  case 'dodo': roll(.39*s);pitch(.29*f);bounce(.18*(1+f));wingFlap(.95*f);break;
+  case 'rabbit': pitch(.34*c);bounce(.23*Math.max(0,s));legs.forEach(p=>{if(p.front<0)p.knee.rotation.x+=.50*a*Math.max(0,s)});break;
+  case 'greyhound': pitch(-.12*s);body.scale.z*=1+.38*c;body.scale.y*=1-.14*c;tailWag(.22*g);break;
+  case 'zebra': yaw(.15*f);pitch(-.28*Math.max(0,c));for(const leg of legs)if(leg.front<0){leg.hip.rotation.x+=.85*Math.max(0,f)*a;leg.knee.rotation.x-=.42*Math.max(0,f)*a;}tailWag(.52*f);break;
+  case 'boar': pitch(-.30*Math.abs(s));roll(.16*f);tailWag(.30*s);break;
+  case 'ostrich': pitch(.48*Math.max(0,f));roll(.18*g);bounce(.12*(1+c));break;
   case 'kangaroo': pitch(.18*s);tailPitch(-.55*c);tailWag(.23*g);break;
-  case 'giraffe': if(rig.neck){rig.neck.rotation.x=.36*Math.sin(phase*.85)*Math.min(1,a);rig.neck.rotation.z=.24*Math.sin(phase*.55)*Math.min(1,a);}tailWag(.30*f);break; // tail as a rudder
-  case 'moa':          roll(.16*Math.sin(phase*.8));pitch(.14*f);break; // towering wobbly strides
-  case 'horse':        pitch(.09*s);body.scale.z*=1+.048*c;tailWag(.25*f);break; // exaggerated thoroughbred
-  case 'wolf':         pitch(-.105*(1+c));tailWag(.16*q);roll(.044*f);break; // low pack-leader prowl
-  case 'giantsloth':   roll(.15*g);pitch(.17*s);armSwing(.23*f);break; // enormous slow lurch
-  case 'lion':         pitch(-.13*s);roll(.07*Math.sin(phase*1.5));tailWag(.23*q);break; // chest-out charge
-  case 'deer':         bounce(.09*(1+s));roll(.075*f);yaw(.05*c);break; // sideways spring
-  case 'smilodon':     pitch(-.20*Math.max(0,c));armSwing(.12*f);tailPitch(.12*s);break; // teeth-first pounce
-  case 'gazelle':      roll(.10*Math.sin(phase*.7));yaw(.105*f);bounce(.10*(1+s));break; // corkscrew pronk
-  case 'pronghorn':    yaw(.16*Math.sin(phase*.93));roll(.045*f);tailWag(.09*s);break; // slalom dash
-  case 'tiger':        roll(.115*Math.sin(phase*1.7));pitch(-.10*s);tailWag(.31*Math.sin(phase*.72));break; // stalking shoulder rolls
+  case 'giraffe': if(rig.neck){rig.neck.rotation.x=.48*Math.sin(phase*.85)*Math.min(1,a);rig.neck.rotation.z=.42*Math.sin(phase*.55)*Math.min(1,a);}tailWag(.40*f);break;
+  case 'moa': pitch(.27*c);bounce(.55*Math.max(0,s));roll(.16*Math.sin(phase*.8));break;
+  case 'horse': pitch(-.47*Math.max(0,Math.sin(phase*.45)));for(const leg of legs)if(leg.front>0)leg.hip.rotation.x-=.5*Math.max(0,Math.sin(phase*.45))*a;tailWag(.35*f);break;
+  case 'wolf': pitch(-.23*(1+c));body.scale.z*=1+.14*s;tailWag(.33*q);break;
+  case 'giantsloth': roll(.24*g);pitch(.22*s);armSwing(.82*Math.sin(phase*1.5));break;
+  case 'lion': pitch(-.30*Math.max(0,s));bounce(.30*Math.max(0,c));tailWag(.48*q);break;
+  case 'deer': bounce(.34*Math.max(0,s));pitch(.25*c);yaw(.13*c);break;
+  case 'smilodon': pitch(-.39*Math.max(0,c));bounce(.25*Math.max(0,s));tailPitch(.26*s);break;
+  case 'gazelle': bounce(.62*Math.pow(Math.max(0,s),1.5));pitch(.10*c);break;
+  case 'pronghorn': yaw(.43*Math.sin(phase*.93));roll(.18*f);tailWag(.19*s);break;
+  case 'tiger': roll(.20*Math.sin(phase*1.7));pitch(-.23*s);tailWag(.50*Math.sin(phase*.72));break;
   case 'unicorn': pitch(-.31*Math.max(0,c));roll(.17*Math.sin(phase*.72));yaw(.11*Math.sin(phase*.49));tailWag(.47*Math.sin(phase*.82));break; // proud head toss
-  case 'cheetah': body.scale.z*=1+.27*s;pitch(.15*c);tailWag(.37*g);break; // extreme spinal extension
-  case 'gorilla':      roll(.16*s);pitch(.18*Math.max(0,c));armSwing(.30*f);break; // alternating knuckle smash
-  case 'elephant':     roll(.060*Math.sin(phase*.68));pitch(.035*c);tailWag(.21*Math.sin(phase*.64));break; // lumbering trunk-like sway
-  case 'hippo':        roll(.16*Math.sin(phase*1.37));bounce(.035*(1+f));pitch(.075*s);break; // barrel wobble
-  case 'rhino':        pitch(-.18*Math.max(0,s));yaw(.06*f);roll(.035*c);break; // horn-first bulldozer
-  case 'mammoth': roll(.095*g);pitch(.11*s);tailWag(.22*Math.sin(phase*.55));break; // swinging tusk silhouette
-  case 'woollyrhino':  pitch(-.10*Math.abs(c));roll(.090*f);tailWag(.075*g);break; // woolly shoulder shake
-  case 'direwolf':     pitch(-.065*c);body.scale.z*=1+.074*s;tailWag(.28*Math.sin(phase*1.32));break; // enormous canine stride
-  case 'terrorbird':   pitch(.22*Math.sin(phase*1.12));roll(.09*f);bounce(.048*(1+c));break; // fast pecking gait
-  case 'cavebear':     roll(.13*Math.sin(phase*.77));pitch(.17*Math.max(0,s));armSwing(.14*c);break; // staggering bear bulk
-  case 'triceratops':  pitch(-.18*Math.max(0,s));roll(.065*Math.sin(phase*.84));tailWag(.11*q);break; // horn feint
-  case 'stegosaurus':  roll(.075*g);tailWag(.46*Math.sin(phase*.83));pitch(.04*f);break; // dramatic tail sweep
-  case 'ankylosaurus': tailWag(.68*Math.sin(phase*.63));roll(.075*Math.sin(phase*.63));break; // club-tail windup
-  case 'parasaurolophus':yaw(.14*Math.sin(phase*.95));pitch(.125*s);tailWag(.11*c);break; // crest-like head dance
-  case 'gallimimus': roll(.22*f);pitch(.17*c);armSwing(.37*Math.sin(phase*2.1));break; // nervous bird-arm paddles
-  case 'velociraptor':yaw(.19*Math.sin(phase*1.1));roll(.115*f);tailWag(-.25*s);break; // evasive raptor jig
-  case 'deinonychus':  pitch(.13*c);armSwing(.33*Math.sin(phase*1.7));tailWag(.20*Math.sin(phase*.98));break; // sickle-claw reach
-  case 'carnotaurus':  roll(.10*Math.sin(phase*2.0));pitch(-.145*Math.max(0,s));armSwing(.40*f);break; // tiny furious arms
-  case 'trex': pitch(-.22*Math.max(0,c));armSwing(.70*Math.sin(phase*2.1));tailWag(.17*g);break; // ridiculous micro-arm sprint
-  case 'spinosaurus':  roll(.083*Math.sin(phase*.62));pitch(.13*s);tailWag(.29*Math.sin(phase*.57));break; // sailboat-like rocking
-  case 'pegasus': wingFlap(-.49*Math.sin(phase*.58));pitch(-.11*Math.max(0,s));tailWag(.16*q);break; // broad wing strokes
-  case 'cerberus':     yaw(.20*Math.sin(phase*.84));roll(.090*Math.cos(phase*2.2));tailWag(.31*f);break; // three-head scan
-  case 'griffin':      wingFlap(-.37*Math.sin(phase*.90));roll(.17*Math.sin(phase*.71));pitch(-.07*c);break; // banking wing-beast
-  case 'minotaur':     yaw(.095*f);pitch(-.20*Math.max(0,s));armSwing(.28*Math.sin(phase*1.61));break; // bull-like shoulder feint
-  case 'dragon': wingFlap(-.75*Math.sin(phase*.68));roll(.21*Math.sin(phase*.42));tailWag(.38*Math.sin(phase*.42));break; // broad-winged sway
-  case 'golem':        roll(.10*Math.sign(s)*Math.abs(s));bounce(.035*(1+f));armSwing(.12*c);break; // loose masonry stomp
-  case 'giantrobot': pitch(.18*Math.sin(phase*1.15));roll(.12*Math.sign(f));armSwing(.42*Math.sign(s));break; // angular mechanical joints
-  case 'alien': body.scale.x*=1+.21*Math.sin(phase*1.7);body.scale.y*=1+.13*Math.sin(phase*.81);yaw(.22*f);break; // elastic extraterrestrial shuffle
-  case 'kaiju':        roll(.09*Math.sin(phase*.42));pitch(-.10*Math.max(0,s));tailWag(.20*Math.sin(phase*.41));break; // geological wobble
-  case 'spinetitan':   roll(.10*Math.sin(phase*.34));pitch(.09*Math.sin(phase*.49));tailWag(.08*f);break; // drifting giant dorsal plates
-  case 'velka':        yaw(.145*Math.sin(phase*1.47));pitch(-.09*s);tailWag(.32*Math.sin(phase*1.34));break; // agile titan switchback
-  case 'dorogan':      roll(.06*Math.sin(phase*.36));pitch(.035*c);tailWag(.095*Math.sin(phase*.42));break; // slow four-foot quake
+  case 'cheetah': body.scale.z*=1+.48*s;body.scale.y*=1-.15*s;pitch(.18*c);tailWag(.44*g);break;
+  case 'gorilla': roll(.21*s);pitch(.18*Math.max(0,c));for(const [i,p] of arms.entries())if(p.sh)p.sh.rotation.x-=.75*Math.max(0,Math.sin(phase*2+i*Math.PI));break;
+  case 'elephant': roll(.09*g);if(rig.trunk){rig.trunk.rotation.z=.85*Math.sin(phase*.95);rig.trunk.rotation.x=.32*c;}tailWag(.28*q);break;
+  case 'hippo': roll(.26*Math.sin(phase*1.37));bounce(.10*(1+f));pitch(.22*s);break;
+  case 'rhino': pitch(-.36*Math.max(0,s));yaw(.19*f);break;
+  case 'mammoth': roll(.12*g);if(rig.trunk){rig.trunk.rotation.z=1.03*Math.sin(phase*.7);rig.trunk.rotation.x=.42*c;}pitch(.13*s);break;
+  case 'woollyrhino': pitch(-.22*Math.abs(c));roll(.19*f);body.scale.x*=1+.13*Math.abs(f);break;
+  case 'direwolf': pitch(-.15*c);body.scale.z*=1+.17*s;tailWag(.48*Math.sin(phase*1.32));break;
+  case 'terrorbird': pitch(.56*Math.max(0,f));roll(.13*f);bounce(.10*(1+c));break;
+  case 'cavebear': roll(.25*Math.sin(phase*.77));pitch(-.35*Math.max(0,s));for(const p of legs)if(p.front>0)p.hip.rotation.x+=.48*Math.max(0,s)*a;break;
+  case 'triceratops': pitch(-.40*Math.max(0,s));roll(.09*Math.sin(phase*.84));tailWag(.19*q);break;
+  case 'stegosaurus': roll(.14*g);tailWag(1.05*Math.sin(phase*.83));pitch(.08*f);break;
+  case 'ankylosaurus': tailWag(1.20*Math.sin(phase*.63));tailPitch(.56*Math.max(0,c));roll(.16*Math.sin(phase*.63));break;
+  case 'parasaurolophus': yaw(.26*Math.sin(phase*.95));pitch(.26*s);tailWag(.20*c);break;
+  case 'gallimimus': roll(.23*f);pitch(.27*c);for(const leg of legs)leg.hip.rotation.x+=.32*Math.sin(phase*2.3+(leg.side===1?Math.PI:0))*a;armSwing(.55*f);break;
+  case 'velociraptor': yaw(.33*Math.sin(phase*1.1));bounce(.34*Math.max(0,s));tailWag(-.43*s);break;
+  case 'deinonychus': pitch(.24*c);armSwing(.61*Math.sin(phase*1.7));bounce(.28*Math.max(0,s));tailWag(.40*Math.sin(phase*.98));break;
+  case 'carnotaurus': roll(.12*f);pitch(-.24*Math.max(0,s));armSwing(.96*Math.sin(phase*4));break;
+  case 'trex': pitch(-.34*Math.max(0,c));armSwing(1.05*Math.sin(phase*3));tailWag(.28*g);break;
+  case 'spinosaurus': roll(.22*Math.sin(phase*.62));pitch(.30*s);tailWag(.54*Math.sin(phase*.57));break;
+  case 'pegasus': wingFlap(-.64*Math.sin(phase*.58));pitch(-.20*Math.max(0,s));tailWag(.25*q);break;
+  case 'cerberus': yaw(.27*Math.sin(phase*.84));for(const h of rig.extraHeads||[]){h.group.rotation.y=h.side*.35+.48*Math.sin(phase*1.7+h.side);h.group.rotation.x=.19*Math.sin(phase*2.2+h.side);}tailWag(.44*f);break;
+  case 'griffin': wingFlap(-.88*Math.sin(phase*.90));bounce(.46*Math.max(0,s));pitch(.40*c);break;
+  case 'minotaur': yaw(.19*f);pitch(-.38*Math.max(0,s));armSwing(.55*Math.sin(phase*1.61));break;
+  case 'dragon': wingFlap(-.95*Math.sin(phase*.68));bounce(.46*Math.max(0,s));tailWag(.68*Math.sin(phase*.42));break;
+  case 'golem': roll(.23*Math.sign(s)*Math.abs(s));bounce(.17*(1+f));armSwing(.45*c);break;
+  case 'giantrobot': pitch(.24*Math.sin(phase*1.15));roll(.15*Math.sign(f));armSwing(.80*Math.sign(s));break;
+  case 'alien': body.scale.x*=1+.30*Math.sin(phase*1.7);body.scale.y*=1+.23*Math.sin(phase*.81);yaw(.32*f);bounce(.16*Math.max(0,s));break;
+  case 'kaiju': roll(.15*Math.sin(phase*.42));pitch(-.23*Math.max(0,s));tailWag(.34*Math.sin(phase*.41));break;
+  case 'spinetitan': roll(.16*Math.sin(phase*.34));pitch(.22*Math.sin(phase*.49));tailWag(.21*f);break;
+  case 'velka': yaw(.34*Math.sin(phase*1.47));pitch(-.23*s);tailWag(.61*Math.sin(phase*1.34));break;
+  case 'dorogan': roll(.14*Math.sin(phase*.36));pitch(.27*c);tailWag(.25*Math.sin(phase*.42));break;
   default:throw Error('Missing 3D signature motion for '+kind);
  }
  rig.signatureMotion=kind;
@@ -1294,6 +1318,8 @@ function withSpeciesLocomotion(data,rig){
    for(const ear of rabbitEars)ear.rotation.x=0;
    if(tail){tail.rotation.x=0;tail.rotation.y=0;tail.rotation.z=0;}
    if(rig.neck){rig.neck.rotation.x=0;rig.neck.rotation.z=0;}
+   if(rig.trunk)rig.trunk.rotation.set(0,0,0);
+   for(const h of rig.extraHeads||[])h.group.rotation.set(0,0,0);
    if(kind==='kangaroo')for(const arm of arms){if(arm.sh){arm.sh.rotation.y=0;arm.sh.scale.setScalar(1);}}
    lastImpact=null;
    return false;
