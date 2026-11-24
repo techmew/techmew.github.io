@@ -1322,7 +1322,7 @@ function withSpeciesLocomotion(data,rig){
     leg.knee.rotation.x=(hind?.17+1.28*jump:.14+.42*jump)*effort;
    }
    for(const arm of arms)if(arm.sh){
-     const punch=rig.boxingPunch||0, strike=arm.side===-1&&punch>0?Math.sin(Math.PI*clamp(1-punch/.48,0,1)):0;
+     const punch=rig.boxingPunch||0, strike=arm.side===-1&&punch>0?Math.sin(Math.PI*clamp(1-punch/.68,0,1)):0;
      arm.sh.rotation.x=(-.18-.28*jump)*effort-.92*strike;
      arm.sh.rotation.y=-1.30*strike;
     }
@@ -3391,11 +3391,21 @@ function updateRaceStep(dt){const r=race;if(!r)return;if(r.phase==='countdown'){
   const prev=r.boxingPunch||0;
   r.boxingPunch=Math.max(0,prev-dtSafe);
   r.boxingCooldown=Math.max(0,(r.boxingCooldown||0)-dtSafe);
-  const inReach=r.hFinish===null&&r.eFinish===null&&Math.abs(r.humanD-r.enemyD)<1.65&&r.enemyLateral-r.lateral>=0&&r.enemyLateral-r.lateral<2.6;
-  if(inReach&&r.boxingCooldown===0){r.boxingPunch=.48;r.boxingCooldown=2.2;}
-  if(prev>.24&&r.boxingPunch<=.24&&inReach){
-   r.humanV*=.78;r.drive*=.84;r.lateralTarget=clamp(r.lateralTarget-.34,-5.2,2.5);
-   kickDust(r.lateral,r.humanD,9);soundNoise(.13,.055,100,1400);soundTone(115,.12,'sine',.04,0,60);
+  const eligible=r.hFinish===null&&r.eFinish===null;
+  const near=eligible&&Math.abs(r.humanD-r.enemyD)<2.2&&r.enemyLateral-r.lateral>=0&&r.enemyLateral-r.lateral<3.8;
+  if(near&&r.boxingCooldown===0){
+   r.boxingPunch=.68;r.boxingCooldown=2.4;r.boxingOrigin=r.enemyLateral;
+   r.boxingTarget=Math.max(r.lateral+.90,r.enemyLateral-2.3);
+  }
+  if(r.boxingPunch>0||prev>0){
+   const p=clamp(1-r.boxingPunch/.68,0,1);
+   r.enemyLateral=mix(r.boxingOrigin,r.boxingTarget,Math.sin(Math.PI*p));
+   opponent.root.position.x=r.enemyLateral;
+   if(prev>.34&&r.boxingPunch<=.34&&eligible&&Math.abs(r.humanD-r.enemyD)<1.65&&Math.abs(r.enemyLateral-r.lateral)<1.55){
+    r.humanV*=.78;r.drive*=.84;r.lateralTarget=clamp(r.lateralTarget-.34,-5.2,2.5);
+    r.bumpCooldown=Math.max(r.bumpCooldown,.65);
+    kickDust(r.lateral,r.humanD,9);soundNoise(.13,.055,100,1400);soundTone(115,.12,'sine',.04,0,60);
+   }
   }
   opponent.boxingPunch=r.boxingPunch;
  }
