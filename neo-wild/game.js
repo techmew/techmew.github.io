@@ -4874,7 +4874,7 @@ function instinct(){
  playEffect(spec.kind==="roar"?"howl":"attack",{volume:.2});
 }
 
-function combatAim(maxTurn=.56,maxRange=105,offset=0){
+function combatAim(maxTurn=.56,maxRange=105,offset=0,preview=false){
  let best=null,bestScore=Infinity,aim=P.dir;
  for(const m of mobs){
   if(m.hp<=0||m.companion||dist(P,m)>P.r+m.r+maxRange||lineBlocked(P,m))continue;
@@ -4884,7 +4884,7 @@ function combatAim(maxTurn=.56,maxRange=105,offset=0){
   const score=dist(P,m)+(huntTarget===m?-24:0)+Math.abs(diff)*28;
   if(score<bestScore){best=m;bestScore=score;aim=P.dir+clamp(diff,-maxTurn,maxTurn)}
  }
- if(best)P.dir=aim;
+ if(best&&!preview)P.dir=aim;
  return best;
 }
 
@@ -5751,6 +5751,7 @@ function attack(){
   if(P.jumpDive)P.windup=Math.max(P.windup,P.jumpTime);
  const target=combatAim(P.type==="cat"?.72:P.type==="wolf"?.32:P.type==="shoebill"?.30:P.type==="tibetanFox"?.72:.55,P.type==="shoebill"?145:105,!P.jumpDive&&combatMotion(P.type,step)==="hind"?Math.PI:0);
   ambushTarget=concealed&&target&&unawareOfPlayer(target)?target:null;
+  downwindAmbushTarget=ambushTarget&&isDownwindStalk(ambushTarget)?ambushTarget:null;
   P.ambushStrike=!!ambushTarget;
  if((P.type==="fox"||P.type==="tibetanFox")&&P.abilityTime>0&&target&&!P.jumpDive){
   const distance=dist(P,target),angle=Math.atan2(target.y-P.y,target.x-P.x);
@@ -5851,7 +5852,7 @@ function resolveAttack(aerialContact=null){
    const foxBurst=P.type==="fox"&&P.abilityTime>0;
    const dive=P.jumpDive;
     const silentHit=stealthHit&&ambushTarget===m;
-     const downwindStrike=silentHit&&isDownwindStalk(m);
+     const downwindStrike=silentHit&&downwindAmbushTarget===m;
      const airProfile=dive&&aerialPounceState.get(P)?.active?AERIAL_POUNCE_PROFILES[P.type]:null;
      const bonus=(foxBurst?1.4:1)*(silentHit?(downwindStrike?1.75:1.55)*traitEffect("oneEyedWolf",1):1)*(dive?1.4:1)*(airProfile?.power||1)*(wolfCharge?1.6+Math.min(.45,(P.level-1)*.06):1)*(P.rushActiveStep===5?traitEffect("giantLion",1):1);
    // Species-specific attacks follow natural hunting behavior instead of cosmetic labels.
@@ -6229,6 +6230,26 @@ function pounceImpactOnSegment(x0,y0,x1,y1){
  }
  return nearest;
 }
+let previewActor=null,previewPrey=null,previewAt=-Infinity;
+let downwindAmbushTarget=null;
+function pounceCost(){
+ return P.type==="wolf"?27:P.type==="cat"?19:22;
+}
+function pounceTravel(target){
+ const maximum=P.type==="manul"?190+Math.min(35,(P.level-1)*3):P.type==="shoebill"?160+Math.min(35,(P.level-1)*3):P.type==="cat"?235+Math.min(75,(P.level-1)*5)
+  :P.type==="wolf"?300+Math.min(100,(P.level-1)*8)
+  :235+Math.min(65,(P.level-1)*5);
+ return (target?clamp(dist(P,target)-(P.r+target.r-2),20,maximum):maximum)*.70*traitEffect("giantBoar",1);
+}
+function concealedPrey(){
+ if(!P.hidden||P.revealTimer>0||P.sp<pounceCost()||P.jumpTime>0||P.dash>0||
+    P.pendingStrike||P.pounceTime>0||P.fallTime>0||P.type==="penguin"||P.type==="boar")return null;
+ const target=combatAim(.78,345,0,true);
+ if(!target||!species[target.type]?.prey||Math.abs((P.groundZ||0)-(target.groundZ||0))>=22)return null;
+ const gap=dist(P,target)-P.r-target.r;
+ if(gap>=pounceTravel(target)+37||!unawareOfPlayer(target)||!routeClear(P,target,P.r))return null;
+ return target;
+}
 function dash(){
  if(mode!=="play"||!P||isControlBlocked())return false;
  if(P.jumpTime>0&&AERIAL_POUNCE_PROFILES[P.type])return leapPounce();
@@ -6247,16 +6268,14 @@ function dash(){
   notify("滑走頭突き → くちばし高速連撃！");
   return true;
  }
- const cost=P.type==="wolf"?27:P.type==="cat"?19:22;
+ const cost=pounceCost();
  if(P.sp<cost){notify("持久力が足りない");return false}
  const axis=getAxes();if(Math.hypot(axis.x,axis.y)>.15)P.dir=Math.atan2(axis.y,axis.x);
  const target=combatAim(.78,345);
  const angle=target?Math.atan2(target.y-P.y,target.x-P.x):P.dir;
- const maximum=P.type==="manul"?190+Math.min(35,(P.level-1)*3):P.type==="shoebill"?160+Math.min(35,(P.level-1)*3):P.type==="cat"?235+Math.min(75,(P.level-1)*5)
-  :P.type==="wolf"?300+Math.min(100,(P.level-1)*8)
-  :235+Math.min(65,(P.level-1)*5);
- const travel=(target?clamp(dist(P,target)-(P.r+target.r-2),20,maximum):maximum)*.70*traitEffect("giantBoar",1);
+ const travel=pounceTravel(target);
  ambushTarget=target&&unawareOfPlayer(target)?target:null;
+ downwindAmbushTarget=ambushTarget&&isDownwindStalk(ambushTarget)?ambushTarget:null;
  P.dir=angle;P.sp-=cost;P.dash=P.type==="cat"?.65:P.type==="wolf"?1.3:.88;P.chargeStrike=P.type==="wolf";
  P.pounceDir=angle;P.pounceDuration=P.type==="wolf"?.37:P.type==="cat"?.31:.30;
  P.pounceTime=P.pounceDuration;P.pounceRemaining=travel;
@@ -11146,10 +11165,21 @@ function drawScene(){
  if(P&&P.hunger<22&&mode==="play"){ctx.fillStyle="rgba(138,30,20,"+(.06+Math.sin(elapsed*5)*.03)+")";ctx.fillRect(0,0,vw,vh)}
  
  if(P&&P.hidden&&mode==="play"){
-  const pos=projectGroundLabel(P.x,P.y,Math.max(0,P.groundZ||0,P.jumpHeight||0)),labelY=pos.y;ctx.save();ctx.fillStyle="#102c23e8";ctx.strokeStyle="#c5e4a8";ctx.lineWidth=1.5;
-  ctx.beginPath();ctx.roundRect(pos.x-39,labelY-80,78,25,8);ctx.fill();ctx.stroke();
-  ctx.fillStyle="#e9f9d9";ctx.textAlign="center";ctx.font="800 12px sans-serif";ctx.fillText("潜伏中",pos.x,labelY-62);ctx.restore();
- }
+  if(previewActor!==P||elapsed<previewAt||elapsed-previewAt>=.16){
+   previewActor=P;previewAt=elapsed;previewPrey=concealedPrey();
+  }
+  const pos=projectGroundLabel(P.x,P.y,Math.max(0,P.groundZ||0,P.jumpHeight||0));
+  ctx.save();ctx.textAlign="center";ctx.font="600 11px sans-serif";ctx.lineJoin="round";
+  ctx.lineWidth=2.5;ctx.strokeStyle="#152019";ctx.strokeText("潜伏中",pos.x,pos.y-62);
+  ctx.fillStyle="#e9f9d9";ctx.fillText("潜伏中",pos.x,pos.y-62);
+  if(previewPrey&&previewPrey.hp>0&&!previewPrey.flee&&!previewPrey.alert){
+   const foot=projectGroundLabel(previewPrey.x,previewPrey.y,previewPrey.groundZ||0);
+   ctx.beginPath();ctx.ellipse(foot.x,foot.y,13,5,0,.12*Math.PI,.88*Math.PI);
+   ctx.strokeStyle="#11291f";ctx.lineWidth=4;ctx.stroke();
+   ctx.strokeStyle="#c9f2ad";ctx.lineWidth=2;ctx.stroke();
+  }
+  ctx.restore();
+ }else{previewActor=null;previewPrey=null;}
 
  if(mode!=="dying"){
   window.WildUFO?.draw?.(ctx,project,{mode,P,

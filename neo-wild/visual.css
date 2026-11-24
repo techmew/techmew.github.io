@@ -1813,3 +1813,10 @@
 }
 
 #app .practice-control{outline:3px solid #ffdf80;outline-offset:2px}
+
+/* Routine field hints sit directly on the landscape. */
+#shelter-hint,#stockpile-guide,#survival-goal {
+ background:transparent;border:0;border-radius:0;box-shadow:none;padding:1px 4px;
+ color:#f3f6e9;font-size:clamp(11px,1.5vw,13px);line-height:1.4;
+ text-shadow:0 1px 2px #101911,1px 0 2px #101911,-1px 0 2px #101911;
+}
