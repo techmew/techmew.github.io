@@ -1394,9 +1394,9 @@ function withSpeciesLocomotion(data,rig){
      const strike=active&&arm.side===(index%2===0?-1:1)?Math.sin(Math.PI*local):0;
      const guard=elapsed>=0?.55:0;
      arm.sh.rotation.x=(-.18-.28*jump)*effort-guard-1.05*strike;
-     arm.sh.rotation.y=-1.48*strike;
+     arm.sh.rotation.y=(rig.boxingSide||-1)*1.48*strike;
      arm.sh.scale.setScalar(1+.23*strike);
-     if(active)body.rotation.y=-.25+.13*Math.sin(beat*Math.PI);
+     if(active)body.rotation.y=(rig.boxingSide||-1)*.25+.13*Math.sin(beat*Math.PI);
     }
    if(tail){
     tail.rotation.x=(.38*stance-.52*jump+.12*Math.cos(phase*.5))*effort;
@@ -1745,14 +1745,9 @@ const recordedVoices={
  dog:{file:'Dog.ogg',begin:1.0,length:2.2},
  greyhound:{file:'Dog.ogg',begin:1.0,length:2.2},
  lion:{file:'Lion_raring-sound1TamilNadu178.ogg',begin:0,length:2.5},
- tiger:{file:'Lion_raring-sound1TamilNadu178.ogg',begin:0,length:2.5},
  wolf:{file:'Wolf_howls.ogg',begin:.3,length:2.8},
  horse:{file:'Wiehern.ogg',begin:0,length:2.3},
- zebra:{file:'Wiehern.ogg',begin:0,length:2.3},
- unicorn:{file:'Wiehern.ogg',begin:0,length:2.3},
- pegasus:{file:'Wiehern.ogg',begin:0,length:2.3},
- elephant:{file:'Elephant_voice_-_trumpeting.ogg',begin:0,length:1.4},
- mammoth:{file:'Elephant_voice_-_trumpeting.ogg',begin:0,length:1.4}
+ elephant:{file:'Elephant_voice_-_trumpeting.ogg',begin:0,length:1.4}
 };
 const loadedCalls={};
 function prefetchVoice(kind){
@@ -1763,14 +1758,6 @@ function prefetchVoice(kind){
   const media=new Audio(url);
   media.preload='auto';media.volume=.12;
   loadedCalls[entry.file]=media;
-  media.addEventListener('canplay',()=>{
-   // Asynchronously loaded animal audio should still be heard even on a slow connection.
-   const current=animals[save.chosen]?.kind;
-   if(sfx&&mode==='race'&&race?.phase==='running'&&race.time<2.5&&
-      recordedVoices[current]?.file===entry.file&&!race.voiceLatePlayed){
-    race.voiceLatePlayed=true;playRecordedVoice(current);
-   }
-  },{once:true});
   media.load();
  }catch(err){console.warn('Voice preload',err)}
 }
@@ -1783,8 +1770,8 @@ function playRecordedVoice(kind){
  try{
   if(voiceStopTimer){clearTimeout(voiceStopTimer);voiceStopTimer=null}
   player.pause();player.currentTime=Math.min(data.begin,Math.max(0,(player.duration||9)-1));
-  player.volume=.14;
-  const promise=player.play();if(promise?.catch)promise.catch(e=>{console.warn('Animal recording playback',e);synthesizeCreatureCall(kind)});
+  player.volume=.22;
+  const activeRace=race;const promise=player.play();if(promise?.catch)promise.catch(e=>{if(sfx&&race===activeRace&&mode==='race'&&race?.phase==='running')synthesizeCreatureCall(kind);});
   voiceStopTimer=setTimeout(()=>{player.pause();voiceStopTimer=null},data.length*1000);
   return true;
  }catch(err){console.warn('Recorded voice',err);return false}
@@ -1795,32 +1782,41 @@ function animalCall(kind){
  if(playRecordedVoice(kind))return;
  synthesizeCreatureCall(kind);
 }
+// Distinct original synthetic calls, including quiet species and fictional creatures.
+const CREATURE_VOICES={"dog":["bark",155],"cat":["meow",530],"fox":["yip",630],"dodo":["cluck",270],"rabbit":["squeak",860],"greyhound":["bark",205],"zebra":["whinny",420],"boar":["grunt",112],"ostrich":["boom",92],"kangaroo":["grunt",210],"moa":["boom",73],"horse":["whinny",340],"wolf":["howl",270],"giantsloth":["grunt",80],"lion":["roar",99],"deer":["bleat",350],"smilodon":["roar",87],"gazelle":["bleat",480],"pronghorn":["snort",255],"tiger":["roar",115],"unicorn":["whinny",510],"cheetah":["chirp",720],"gorilla":["hoot",135],"elephant":["trumpet",310],"hippo":["grunt",65],"rhino":["snort",100],"mammoth":["trumpet",180],"woollyrhino":["snort",75],"direwolf":["howl",170],"terrorbird":["screech",410],"cavebear":["roar",76],"triceratops":["boom",81],"stegosaurus":["grunt",95],"ankylosaurus":["snort",67],"parasaurolophus":["horn",155],"gallimimus":["chirp",550],"velociraptor":["screech",690],"deinonychus":["screech",490],"carnotaurus":["roar",140],"trex":["roar",59],"spinosaurus":["roar",82],"pegasus":["whinny",390],"cerberus":["bark",105],"griffin":["screech",750],"minotaur":["grunt",105],"dragon":["roar",72],"golem":["rumble",49],"giantrobot":["robot",190],"alien":["alien",440],"kaiju":["roar",48],"spinetitan":["rumble",53],"velka":["screech",240],"dorogan":["rumble",43],"giraffe":["hum",125]};
 function synthesizeCreatureCall(kind){
  if(!sfx)return;
- const quietTone=(frequency,length,type,volume,delay=0,toFreq=0)=>soundTone(frequency,length,type,Math.min(.018,volume*.22),delay,toFreq);
- const quietNoise=(duration,volume,low,high,delay=0,pan=0)=>soundNoise(duration,Math.min(.019,volume*.22),low,high,delay,pan);
- const bird=['ostrich','dodo','moa','terrorbird','griffin'].includes(kind);
- const roar=['lion','tiger','dragon','trex','spinosaurus','kaiju','smilodon','cavebear','gorilla'].includes(kind);
- const giant=['mammoth','elephant','rhino','hippo','triceratops','golem','giantrobot'].includes(kind);
- if(kind==='boar'){
-  quietNoise(.26,.083,55,680);
-  quietTone(128,.24,'sawtooth',.033,0,80);
-  quietTone(82,.20,'triangle',.030,.065,52);
- }else if(bird){
-  quietTone(520,.18,'triangle',.045,0,350);
-  quietTone(635,.25,'sine',.038,.065,420);
- }else if(roar){
-  quietNoise(.42,.080,85,630);
-  quietTone(102,.45,'sawtooth',.033,0,67);
-  quietTone(151,.32,'triangle',.027,.09,92);
- }else if(giant){
-  quietNoise(.35,.061,42,440);
-  quietTone(77,.46,'sawtooth',.032,0,47);
- }else{
-  quietNoise(.19,.041,165,1100);
-  quietTone(195,.23,'triangle',.023,0,124);
+ const [style,f]=CREATURE_VOICES[kind]||['grunt',130];
+ const tone=(hz,len,type='triangle',v=.036,at=0,to=hz)=>soundTone(hz,len,type,Math.min(.047,v),at,to);
+ const noise=(len,v,lo,hi,at=0)=>soundNoise(len,Math.min(.043,v),lo,hi,at);
+ switch(style){
+ case 'bark':for(let i=0;i<3;i++){const at=i*.19;noise(.12,.033,180,1350,at);tone(f*1.4,.14,'sawtooth',.040,at,f*.65);tone(f*2.9,.09,'triangle',.024,at,f*1.2);}break;
+ case 'meow':tone(f*.72,.42,'triangle',.043,0,f*1.25);tone(f*1.2,.38,'sine',.027,.25,f*.65);noise(.22,.012,600,2100,.25);break;
+ case 'yip':case 'chirp':for(let i=0;i<3;i++){tone(f,.13,'sine',.038,i*.16,f*(i===2?.65:1.5));tone(f*.63,.10,'triangle',.022,i*.16,f);}break;
+ case 'squeak':tone(f,.17,'sine',.036,0,f*1.4);tone(f*1.15,.13,'triangle',.024,.17,f*.65);break;
+ case 'cluck':for(let i=0;i<4;i++){tone(f,.10,'triangle',.038,i*.12,f*.65);noise(.07,.023,300,1600,i*.12);}break;
+ case 'whinny':tone(f,.48,'triangle',.046,0,f*1.75);for(let i=0;i<4;i++)tone(f*(1.1-i*.12),.14,'sawtooth',.027,.37+i*.13,f*.6);break;
+ case 'howl':tone(f*.65,.38,'triangle',.036,0,f);tone(f,.83,'sine',.042,.30,f*.82);tone(f*2,.76,'triangle',.019,.32,f*1.6);break;
+ case 'bleat':for(let i=0;i<3;i++)tone(f*(1-i*.07),.19,'triangle',.04,i*.14,f*.72);break;
+ case 'grunt':case 'snort':for(let i=0;i<2;i++){noise(.23,.04,50,850,i*.25);tone(f,.24,'sawtooth',.033,i*.25,f*.65);}break;
+ case 'boom':tone(f,.68,'sine',.047,0,f*.69);tone(f*2,.45,'triangle',.026,.07,f);break;
+ case 'roar':noise(.57,.043,65,1350);tone(f*1.4,.63,'sawtooth',.046,0,f*.70);tone(f*2.1,.47,'triangle',.033,.08,f);break;
+ case 'hoot':for(let i=0;i<3;i++){tone(f,.22,'triangle',.040,i*.23,f*1.4);noise(.12,.023,75,700,i*.23);}break;
+ case 'trumpet':tone(f,.48,'sawtooth',.046,0,f*1.8);tone(f*2,.39,'triangle',.03,.05,f*1.2);tone(f*1.3,.35,'sawtooth',.038,.4,f*.72);break;
+ case 'screech':tone(f*.8,.27,'sawtooth',.038,0,f*1.7);tone(f*1.6,.36,'triangle',.037,.22,f*.7);noise(.30,.03,400,2500,.12);break;
+ case 'horn':tone(f,.62,'triangle',.046,0,f*.95);tone(f*2,.60,'sawtooth',.023,0,f*1.9);break;
+ case 'rumble':noise(.7,.043,30,350);tone(f,.70,'sawtooth',.041,0,f*.70);break;
+ case 'robot':for(let i=0;i<3;i++)tone(f*(1+i*.38),.15,'square',.025,i*.17,f*1.4);break;
+ case 'alien':tone(f,.34,'sine',.035,0,f*2.1);tone(f*1.7,.35,'triangle',.028,.29,f*.52);break;
+ case 'hum':tone(f,.65,'triangle',.039,0,f*.90);tone(f*2,.52,'sine',.022,.06,f*1.8);break;
  }
 }
+function rivalVocal(r,kind,force=false){
+ if(!sfx||r.phase!=='running')return;
+ if(r.time<(r.nextVoiceAt??.55))return;
+ animalCall(kind);r.nextVoiceAt=r.time+(force?2.3:2.8);
+}
+
 function effect(name){
  if(!sfx)return;
  if(name==='start'){
@@ -3419,6 +3415,30 @@ function updateRace(dt){
   if(!race||race.phase==='finished'||race.phase==='results'||race.phase==='pegasusExit')break;
  }
 }
+// Bounded, autonomous pursuit: leave the lane even if the player stays in theirs.
+// Stop pursuing when the target escapes, stops tapping, or reaches the finish.
+function rivalPursuit(r,a,dt,normalSpeed){
+ const spec=MEME_ATTACKS[a.kind],reach=spec?spec[4]:2.2;
+ const active=r.hFinish===null&&r.eFinish===null&&r.humanV>1&&r.enemyD<96&&(!['unicorn','pegasus'].includes(a.kind)||r.enemyD<12);
+ r.pursuitCooldown=Math.max(0,(r.pursuitCooldown||0)-dt);
+ if(r.memeElapsed>=0||r.boxingElapsed>=0){
+  r.pursuit=null;
+  if(active&&Math.abs(r.enemyD-r.humanD)<reach+2)return clamp(r.humanV+(r.humanD-r.enemyD)*2.4,Math.max(1.5,normalSpeed*.48),normalSpeed*1.12);
+  return normalSpeed;
+ }
+ if(!r.pursuit&&active&&r.time>.6&&r.pursuitCooldown===0&&(r.memeCooldown||0)===0&&(r.boxingCooldown||0)===0&&Math.abs(r.humanD-r.enemyD)<Math.min(9,reach+4.5)&&Math.abs(r.lateral-r.enemyLateral)<5.5){
+  r.pursuit={origin:r.enemyLateral,age:0,side:r.lateral<r.enemyLateral?-1:1};
+ }
+ const p=r.pursuit;if(!p)return normalSpeed;
+ p.age+=dt;
+ if(!active||p.age>1.6||Math.abs(r.humanD-r.enemyD)>10||Math.abs(r.lateral-p.origin)>5.8){
+  r.enemyLateral=p.origin;r.pursuit=null;r.pursuitCooldown=1.2;return normalSpeed;
+ }
+ const target=clamp(r.lateral-p.side*.98,p.origin-4.0,p.origin+2.8);
+ const step=dt*(a.kind==='kangaroo'?6.8:4.8);
+ r.enemyLateral+=clamp(target-r.enemyLateral,-step,step);
+ return clamp(r.humanV+(r.humanD-r.enemyD)*2.8,Math.max(1.5,normalSpeed*.48),normalSpeed*1.16);
+}
 function updateMemeAttack(r,a,dt,rig){
  const spec=MEME_ATTACKS[a.kind];if(!spec)return;
  const [type,count,interval,loss,reach]=spec,total=.24+count*interval+.22;
@@ -3428,7 +3448,7 @@ function updateMemeAttack(r,a,dt,rig){
  const active=r.hFinish===null&&r.eFinish===null&&r.humanV>1&&(!['unicorn','pegasus'].includes(a.kind)||r.enemyD<14);
  const gap=Math.abs(r.humanD-r.enemyD),lat=Math.abs(r.enemyLateral-r.lateral);
  if(r.memeElapsed<0&&active&&gap<reach+.55&&lat<Math.min(3.0,1.8+reach*.22)&&r.memeCooldown===0){
-  r.memeElapsed=0;r.memeOrigin=r.enemyLateral;r.memeSide=r.lateral<r.enemyLateral?-1:1;r.memeHit=-1;
+  r.memeElapsed=0;r.memeOrigin=r.pursuit?.origin??r.enemyLateral;r.memeSide=r.pursuit?.side??(r.lateral<r.enemyLateral?-1:1);r.memeHit=-1;r.pursuit=null;
  }
  if(r.memeElapsed>=0){
   r.memeElapsed+=dt;
@@ -3448,11 +3468,11 @@ function updateMemeAttack(r,a,dt,rig){
     kickDust(r.lateral,r.humanD,8);soundNoise(.09,.037,100,1500);
    }
   }
-  if(e>=total||!active){r.enemyLateral=r.memeOrigin;rig.root.position.x=r.enemyLateral;r.memeElapsed=-1;r.memeCooldown=1.3;}
+  if(e>=total||!active){r.enemyLateral=r.memeOrigin;rig.root.position.x=r.enemyLateral;r.memeElapsed=-1;r.memeCooldown=1.3;r.pursuitCooldown=.8;}
  }
  rig.memeElapsed=r.memeElapsed;rig.memeSide=r.memeSide;
 }
-function updateRaceStep(dt){const r=race;if(!r)return;if(r.phase==='countdown'){r.count-=dt;const n=Math.ceil(clamp(r.count,0,3));if(n>0){$('countdown').textContent=n;if(n!==r.lastCount){effect('count');r.lastCount=n}}else{$('countdown').textContent='GO!';r.phase='running';r.time=0;showNotice('GO!',.7);effect('start');startAmbience();animalCall(animals[Number.isInteger(r.opponentIndex)?r.opponentIndex:save.chosen].kind);setTimeout(()=>{if(race===r&&r.phase==='running'&&mode==='race')$('countdown').style.display='none'},450)}return}
+function updateRaceStep(dt){const r=race;if(!r)return;if(r.phase==='countdown'){r.count-=dt;const n=Math.ceil(clamp(r.count,0,3));if(n>0){$('countdown').textContent=n;if(n!==r.lastCount){effect('count');r.lastCount=n}}else{$('countdown').textContent='GO!';r.phase='running';r.time=0;showNotice('GO!',.7);effect('start');startAmbience();r.nextVoiceAt=.55;setTimeout(()=>{if(race===r&&r.phase==='running'&&mode==='race')$('countdown').style.display='none'},450)}return}
  if(r.phase!=='running')return;const dtSafe=Math.min(.065,dt);if(r.hitMotion){r.hitMotion.age+=dtSafe;if(r.hitMotion.age>=r.hitMotion.duration)r.hitMotion=null;}r.time+=dtSafe;r.drive=Math.max(0,r.drive-dtSafe*.15);r.bumpCooldown=Math.max(0,r.bumpCooldown-dtSafe);r.enemyStumble=Math.max(0,r.enemyStumble-dtSafe);if(r.combo>0&&r.time-r.lastTap>1.15)r.combo=0;
  const prevLateral=r.lateral;const moveFactor=1-Math.exp(-dtSafe*8.4);
  r.lateral+=(r.lateralTarget-r.lateral)*moveFactor;
@@ -3490,12 +3510,12 @@ function updateRaceStep(dt){const r=race;if(!r)return;if(r.phase==='countdown'){
   const hopImpulse=a.profile==='hopper'?Math.pow(Math.max(0,Math.sin(r.rivalStridePhase)),2)*.12:0;
   let enemyTarget=maxB*(pace+hopImpulse)*stridePace*(r.enemyStumble>0?.62:1);const acc=a.acc*accMult*challenge;
   // Stay alongside the moving runner during a combo, without stopping either racer.
-  if(a.kind==='kangaroo'&&r.boxingElapsed>=0&&r.humanV>1&&Math.abs(r.enemyD-r.humanD)<3.5)enemyTarget=clamp(r.humanV+(r.humanD-r.enemyD)*3.5,1.5,enemyTarget);
+  enemyTarget=rivalPursuit(r,a,dtSafe,enemyTarget);
   if(r.enemyV<enemyTarget)r.enemyV=Math.min(enemyTarget,r.enemyV+acc*dtSafe);
   else r.enemyV=Math.max(enemyTarget,r.enemyV-acc*1.4*dtSafe);
   r.enemyD+=r.enemyV*dtSafe;
   // Impact effects follow the 3D rig's foot contacts, not distance-only timers.
-  if(r.enemyD>60&&r.lastRivalCall<0){r.lastRivalCall=r.time;animalCall(a.kind)}
+  rivalVocal(r,a.kind,!!(r.pursuit||r.memeElapsed>=0||r.boxingElapsed>=0));
   if(r.enemyD>=100){const before=r.enemyD-r.enemyV*dtSafe;r.eFinish=r.time-dtSafe+(100-before)/Math.max(.01,r.enemyV);r.enemyD=100;r.enemyV=0}
  }
  r.burstLeft=Math.max(0,r.burstLeft-dtSafe);const ready=r.burstCharge>=99&&r.burstLeft<=0;const button=$('burstBtn');if(button.disabled===ready){button.disabled=!ready;button.classList.toggle('ready',ready)}
@@ -3524,12 +3544,12 @@ function updateRaceStep(dt){const r=race;if(!r)return;if(r.phase==='countdown'){
   r.boxingRecoil=Math.max(0,(r.boxingRecoil||0)-dtSafe*7);
   if(r.boxingElapsed==null)r.boxingElapsed=-1;
   if(r.boxingElapsed<0&&near&&r.boxingCooldown===0){
-   r.boxingElapsed=0;r.boxingHitIndex=-1;r.boxingOrigin=r.enemyLateral;
+   r.boxingElapsed=0;r.boxingHitIndex=-1;r.boxingOrigin=r.pursuit?.origin??r.enemyLateral;r.boxingSide=r.pursuit?.side??(r.lateral<r.enemyLateral?-1:1);r.pursuit=null;
   }
   if(r.boxingElapsed>=0){
    r.boxingElapsed+=dtSafe;
    const e=r.boxingElapsed, envelope=Math.min(clamp(e/.25,0,1),clamp((1.90-e)/.21,0,1));
-   const target=clamp(r.lateral+.82,r.boxingOrigin-3.65,r.boxingOrigin+1.1);
+   const target=clamp(r.lateral-(r.boxingSide||-1)*.82,r.boxingOrigin-3.65,r.boxingOrigin+2.8);
    r.enemyLateral=mix(r.boxingOrigin,target,envelope);
    opponent.root.position.x=r.enemyLateral;
    // Eight alternating jabs, each with its own contact window.
@@ -3537,21 +3557,21 @@ function updateRaceStep(dt){const r=race;if(!r)return;if(r.phase==='countdown'){
    if(hitIndex>=0&&hitIndex>r.boxingHitIndex){
     r.boxingHitIndex=hitIndex;
     if(eligible&&r.humanV>1&&Math.abs(r.humanD-r.enemyD)<1.7&&Math.abs(r.enemyLateral-r.lateral)<1.35){
-     r.humanV*=.94;r.drive*=.96;r.boxingRecoil=1;r.hitMotion={type:'punch',side:-1,age:0,duration:.20};
+     r.humanV*=.94;r.drive*=.96;r.boxingRecoil=1;r.hitMotion={type:'punch',side:r.boxingSide||-1,age:0,duration:.20};
      r.bumpCooldown=Math.max(r.bumpCooldown,.35);
      kickDust(r.lateral,r.humanD,7);soundNoise(.075,.042,100,1500);soundTone(125,.075,'sine',.028,0,65);
     }
    }
    if(e>=1.90||!eligible){
     r.enemyLateral=r.boxingOrigin;opponent.root.position.x=r.enemyLateral;
-    r.boxingElapsed=-1;r.boxingCooldown=.45;
+    r.boxingElapsed=-1;r.boxingCooldown=.65;r.pursuitCooldown=.65;
    }
   }
-  opponent.boxingElapsed=r.boxingElapsed;
+  opponent.boxingElapsed=r.boxingElapsed;opponent.boxingSide=r.boxingSide;
  }
  updateMemeAttack(r,a,dtSafe,opponent);
  const flying=['pegasus','unicorn','griffin','dragon'].includes(a.kind)&&opponent.flight>.4;
- if(r.bumpCooldown===0&&r.hFinish===null&&r.eFinish===null&&!airborne&&!flying&&!(a.kind==='kangaroo'&&r.boxingElapsed>=0)&&!(r.memeElapsed>=0)
+ if(r.bumpCooldown===0&&r.hFinish===null&&r.eFinish===null&&!airborne&&!flying&&!(a.kind==='kangaroo'&&r.boxingElapsed>=0)&&!(r.memeElapsed>=0)&&!r.pursuit
   &&Math.abs(r.lateral-r.enemyLateral)<collisionWidth
   &&Math.abs(r.humanD-r.enemyD)<collisionDepth){
    r.bumpCooldown=massive?1.65:1.2;
