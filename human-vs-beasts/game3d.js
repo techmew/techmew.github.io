@@ -2592,6 +2592,15 @@ function podiumCanvas2D(canvas){
  }
  return null;
 }
+// Three.js setViewport/setScissor accept logical pixels on the default framebuffer.
+function podiumPhysicalViewport(x,y,w,h){
+ const ratio=renderer.getPixelRatio()||1;
+ renderer.setViewport(x/ratio,y/ratio,w/ratio,h/ratio);
+}
+function podiumPhysicalScissor(x,y,w,h){
+ const ratio=renderer.getPixelRatio()||1;
+ renderer.setScissor(x/ratio,y/ratio,w/ratio,h/ratio);
+}
 function capturePodiumFromGPU(ctx,w,h,lowMemory=false){
  // A fresh offscreen framebuffer is essential on Android: the visible WebGL
  // drawing buffer may already have been discarded by the compositor.
@@ -2924,7 +2933,7 @@ function captureCeremonyPhoto(){
    renderer.setRenderTarget(null);
    renderer.setScissorTest(false);
    const liveBuffer=renderer.getDrawingBufferSize(new T.Vector2());
-   renderer.setViewport(0,0,liveBuffer.x,liveBuffer.y);
+   podiumPhysicalViewport(0,0,liveBuffer.x,liveBuffer.y);
    const live=renderer.domElement;
    if(!live.width||!live.height)throw Error('Podium preview framebuffer unavailable');
    const liveAspect=live.width/live.height;
@@ -2937,10 +2946,10 @@ function captureCeremonyPhoto(){
    const portraitX=Math.floor((liveBuffer.x-portraitW)/2);
    const portraitY=Math.floor((liveBuffer.y-portraitH)/2);
    fitPodiumCamera(ceremonyStage,portraitW/portraitH);
-   renderer.setScissor(0,0,liveBuffer.x,liveBuffer.y);
+   podiumPhysicalScissor(0,0,liveBuffer.x,liveBuffer.y);
    renderer.autoClear=true;
    renderer.clear(true,true,true);
-   renderer.setViewport(portraitX,portraitY,portraitW,portraitH);
+   podiumPhysicalViewport(portraitX,portraitY,portraitW,portraitH);
    ceremonyStage.scene.updateMatrixWorld(true);
    ceremonyStage.camera.updateMatrixWorld(true);
    renderer.render(ceremonyStage.scene,ceremonyStage.camera);
@@ -3157,8 +3166,8 @@ function captureCeremonyPhoto(){
     // viewport active. Reset all clipping state before presenting the live
     // podium, otherwise Android may show a narrow/grey partial frame.
     renderer.setScissorTest(false);
-    renderer.setViewport(0,0,renderer.domElement.width,renderer.domElement.height);
-    renderer.setScissor(0,0,renderer.domElement.width,renderer.domElement.height);
+    podiumPhysicalViewport(0,0,renderer.domElement.width,renderer.domElement.height);
+    podiumPhysicalScissor(0,0,renderer.domElement.width,renderer.domElement.height);
     fitPodiumCamera(ceremonyStage,pw/ph);
     if(!success){
      renderer.clear(true,true,true);
@@ -4161,7 +4170,7 @@ function renderCeremonyFrame(){
   // only part of the drawing buffer and produce a blank/cropped photograph.
   renderer.setScissorTest(false);
   const podiumBuffer=renderer.getDrawingBufferSize(new T.Vector2());
-  renderer.setViewport(0,0,podiumBuffer.x,podiumBuffer.y);
+  podiumPhysicalViewport(0,0,podiumBuffer.x,podiumBuffer.y);
   fitPodiumCamera(ceremonyStage,podiumBuffer.x/Math.max(1,podiumBuffer.y));
   renderer.render(ceremonyStage.scene,ceremonyStage.camera);
   if(ceremonyStage.photoCaptured||podiumRetryAttempts>=4)return;
@@ -4223,7 +4232,7 @@ renderer.domElement.addEventListener('webglcontextrestored',()=>{
     renderer.setPixelRatio(Math.min(1.4,devicePixelRatio||1));
     renderer.setSize(w,h,false);
     const buffer=renderer.getDrawingBufferSize(new T.Vector2());
-    renderer.setViewport(0,0,buffer.x,buffer.y);
+    podiumPhysicalViewport(0,0,buffer.x,buffer.y);
     fitPodiumCamera(ceremonyStage,w/h);
     renderer.render(ceremonyStage.scene,ceremonyStage.camera);
    }catch(err){
@@ -4239,7 +4248,7 @@ renderer.domElement.addEventListener('webglcontextrestored',()=>{
      renderer.setPixelRatio(previousPixelRatio);
      renderer.setSize(previousSize.x,previousSize.y,false);
      const buffer=renderer.getDrawingBufferSize(new T.Vector2());
-     renderer.setViewport(0,0,buffer.x,buffer.y);
+     podiumPhysicalViewport(0,0,buffer.x,buffer.y);
      renderer.setScissorTest(false);
     }catch(err){console.warn('Renderer resize after context restore deferred',err)}
    }
