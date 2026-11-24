@@ -3518,6 +3518,9 @@ function waitForPodiumFrames(count=2,timeoutMs=900){
  });
 }
 async function raceImageBlob(){
+ const resultRace=race;
+ const current=()=>mode==='race'&&race===resultRace&&race?.phase==='results';
+ if(!current())return null;
  // A successfully captured 3D photo lives in a 2D canvas and does NOT
  // require a functioning WebGL context for encoding, download or sharing.
  // Android often loses WebGL when the system share sheet opens.
@@ -3543,6 +3546,7 @@ async function raceImageBlob(){
      console.warn('Podium frame wait timed out; trying immediate GPU capture');
     }
    }
+   if(!current())return null;
    if(webglUnavailable||!ceremonyStage)break;
    podiumRetryAttempts=attempt;
    try{
@@ -3554,7 +3558,7 @@ async function raceImageBlob(){
    }catch(err){console.warn('Manual 3D podium capture failed',err)}
   }
  }
- if(!racePicture)return null;
+ if(!current()||!racePicture)return null;
  if(raceShareCanvas===racePicture&&raceShareBlob)return raceShareBlob;
  const canvas=racePicture;
  // A captured photo remains exportable after WebGL context loss or stage disposal.
@@ -3563,7 +3567,7 @@ async function raceImageBlob(){
  // Keep the async operation bounded and reject callbacks from an obsolete race.
  if(typeof canvas.toBlob==='function'){
   for(const format of ['image/png','image/jpeg']){
-   if(canvas!==racePicture)return null;
+   if(!current()||canvas!==racePicture)return null;
    try{
     const blob=await new Promise(resolve=>{
      let settled=false;
@@ -3572,7 +3576,7 @@ async function raceImageBlob(){
      try{canvas.toBlob(complete,format,format==='image/jpeg'?.88:undefined)}
      catch(err){complete(null)}
     });
-    if(canvas!==racePicture)return null;
+    if(!current()||canvas!==racePicture)return null;
     if(blob&&blob.size>=2048&&blob.type===format){raceShareCanvas=canvas;raceShareBlob=blob;return blob}
    }catch(err){console.warn('Canvas '+format+' export unavailable',err)}
   }
@@ -3580,7 +3584,7 @@ async function raceImageBlob(){
  // Both asynchronous encoders can be missing or time out. Try synchronous
  // formats against the same validated 3D pixels, with a minimum file size.
  for(const format of ['image/png','image/jpeg']){
-  if(canvas!==racePicture)return null;
+  if(!current()||canvas!==racePicture)return null;
   try{
    const data=format==='image/jpeg'?canvas.toDataURL(format,.88):canvas.toDataURL(format);
    const match=/^data:(image\/(?:png|jpeg));base64,([A-Za-z0-9+/=]+)$/.exec(data);
@@ -3597,12 +3601,16 @@ async function raceImageBlob(){
  return null;
 }
 async function saveRacePhoto(){
+ const resultRace=race;
+ const current=()=>mode==='race'&&race===resultRace&&race?.phase==='results';
+ if(!current())return false;
  const button=$('downloadRace');
  if(button.disabled)return false;
  button.disabled=true;
  try{
   const photo=racePicture;
   const blob=await raceImageBlob();
+  if(!current())return false;
   if(!blob){$('shareHelp').textContent='3D写真を保存できません。再撮影してからお試しください。';return false}
   // Never save a previous race's asynchronous export after the user retries.
   if(photo&&photo!==racePicture)return false;
@@ -3628,6 +3636,7 @@ async function saveRacePhoto(){
    setTimeout(()=>URL.revokeObjectURL(url),45000);
   }
  }catch(err){
+  if(!current())return false;
   if(err?.name!=='AbortError')console.warn('3D photo download failed',err);
   $('shareHelp').textContent=err?.name==='AbortError'?'保存をキャンセルしました。':'写真を保存できません。再撮影してからお試しください。';
   return false;
@@ -3686,6 +3695,9 @@ async function recaptureRacePhoto(){
 }
 $('recaptureRace')?.addEventListener('click',recaptureRacePhoto);
 $('shareRace')?.addEventListener('click',async()=>{
+ const resultRace=race;
+ const current=()=>mode==='race'&&race===resultRace&&race?.phase==='results';
+ if(!current())return;
  const button=$('shareRace'),msg=raceCaption()+' '+raceUrl;
  // An X web-intent cannot attach files. Never silently post text-only.
  if(manualXSharePrepared){
@@ -3702,6 +3714,7 @@ $('shareRace')?.addEventListener('click',async()=>{
    try{
     if(!navigator.canShare||navigator.canShare({files:[file]})){
      await navigator.share({files:[file],title:'動物と100m走',text:msg});
+     if(!current())return;
      $('shareHelp').textContent='写真付きで共有できます。Xを選択してください。';
      return;
     }
@@ -3710,7 +3723,9 @@ $('shareRace')?.addEventListener('click',async()=>{
     console.warn('Native photo sharing unavailable',err);
    }
   }
+  if(!current())return;
   const blob=cached||await raceImageBlob();
+  if(!current())return;
   if(!blob){
    $('shareHelp').textContent='3D写真がありません。「3D写真を再撮影」で写真を作成してください。画像なしのX投稿画面には移動しません。';
    return;
