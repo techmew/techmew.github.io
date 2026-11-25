@@ -1,6 +1,11 @@
 // WILD RECLAIM player-visible English translations; Japanese remains the source language.
 // Loaded before i18n.js. Keep gameplay/save keys unchanged.
 window.WildI18nPhrases = [
+ ["危険をかわす","Evade danger"],
+ ["横に移動しながら ×／L で跳ぶ","Move sideways and press × / L to jump."],
+ ["飛んで離れる","Fly clear"],
+ ["×／L で飛び立つ。もう一度で着地","Press × / L to take off. Press again to land."],
+ ["矢印の食料へ。○／Eで食べる","Follow the arrow to food. Press ○ / E to eat."],
  ["東部踏破 8/8","Eastern trail complete · 8/8"],
  ["水域探索 4/4","Water trail complete · 4/4"],
  ["食料を置く空きがありません","No room for food here."],

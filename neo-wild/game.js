@@ -6418,7 +6418,7 @@ function eat(){
  finishSpecialistContests(contests,true);
  label(P.x,P.y-30,foodName(c)+" 満腹+"+gain+" 生命+"+heal+(woundRelief>0?" 出血緩和":""),"#bfe89e");
  blood(P.x,P.y,"#d6c17f",7,45);playEffect("collect");checkMission();syncHUD();
- if(P.hunger>before.hunger)window.WildFirstSteps?.event?.("meal");return true;
+ window.WildFirstSteps?.event?.("meal");return true;
 }
 function inheritStrongTrait(type){
  if(mode!=="inventory"||!P||!atDen()||!STRONG_TRAITS[type])return false;
@@ -6589,7 +6589,7 @@ function eatFromDen(kind){
   else notify("世界セーブに失敗したため食事を取り消しました。肉・満腹度・体力は維持しました");
   syncHUD();renderDenInventory();return false;
  }
- if(P.hunger>beforeVitals.hunger)window.WildFirstSteps?.event?.("meal");
+ window.WildFirstSteps?.event?.("meal");
  checkMission();syncHUD();renderDenInventory();
  notify((kind==="meat"?"肉":kind==="berries"?"食草":"以前の備蓄")+"を食べた：満腹+"+satiety+"・生命+"+recovery+(woundRelief>0?"・出血緩和":""));
  return true;
@@ -6884,7 +6884,7 @@ function getObjective(){
    const gap=dist(P,m);
    if(gap<range&&!lineBlocked(P,m)&&routeClear(P,m,P.r)){range=gap;prey=m;}
   }
-  if(prey)return {x:prey.x,y:prey.y,label:"獲物に近づいて△で狩る"};
+  if(prey)return {x:prey.x,y:prey.y,practice:true,label:"獲物に近づいて△で狩る"};
  }
  if(!P.carry&&((P.type!=="carp"&&P.hunger<25)||training)){
   let nearest=null,limit=360;
@@ -6900,7 +6900,7 @@ function getObjective(){
    }
    limit=gap;nearest=food;
   }
-  if(nearest)return {x:nearest.x,y:nearest.y,food:true,label:foodName(nearest)+(limit<65?"｜○で食べる":"｜近づいて食べる")};
+  if(nearest)return {x:nearest.x,y:nearest.y,food:true,practice:!!training,label:foodName(nearest)+(limit<65?"｜○で食べる":"｜近づいて食べる")};
  }
  // Eastern random starts need the real live P3 objective before tutorial
  // completion; keep the original western tutorial and title untouched.
@@ -9340,9 +9340,10 @@ function syncHUD(hour){
  $("mission-nav").classList.toggle("hidden",mission>=7);
  $("mission-bar").parentElement.classList.toggle("hidden",false);
  setBar("mission-bar",info.progress*100);
+ window.WildFirstSteps?.pointToFood?.(!!(objective?.practice&&objective.food));
  const waypoint=objective&&guidancePoint(objective);
  guideWisp=waypoint&&!waypoint.blocked?{x:waypoint.x,y:waypoint.y}:null;
- guideGoal=objective&&Number.isFinite(objective.x)&&Number.isFinite(objective.y)?{x:objective.x,y:objective.y,label:objective.label||objectiveShortLabel(),eastTrail:!!objective.eastTrail}:null;
+ guideGoal=objective&&Number.isFinite(objective.x)&&Number.isFinite(objective.y)?{x:objective.x,y:objective.y,label:objective.label||objectiveShortLabel(),eastTrail:!!objective.eastTrail,practice:!!objective.practice}:null;
  $("nav-distance").textContent=waypoint&&!waypoint.blocked?"目的地まで約"+Math.round(dist(P,objective))+"m":"目的地を探索中";
  const speciesSkill=$("species-skill-status");
  if(speciesSkill){
@@ -10669,7 +10670,7 @@ function drawOccludedSilhouettes(entities){
 }
 // Route-aware mission navigation: two discreet direction chevrons, never a large floating HUD.
 function drawMissionChevrons(){
- if(!P||mode!=="play"||(mission>=7&&!guideGoal?.eastTrail)||!guideWisp||!guideGoal)return;
+ if(!P||mode!=="play"||(mission>=7&&!guideGoal?.eastTrail&&!guideGoal?.practice)||!guideWisp||!guideGoal)return;
  const dx=guideWisp.x-P.x,dy=guideWisp.y-P.y,waypointDistance=Math.hypot(dx,dy);
  const goalDistance=Math.hypot(guideGoal.x-P.x,guideGoal.y-P.y);
  if(!Number.isFinite(waypointDistance)||!Number.isFinite(goalDistance)||waypointDistance<12||goalDistance<42)return;

@@ -19,7 +19,7 @@ function make(){
  return {data,els,localStorage,w,$:id=>els.get(id),guide:w.WildFirstSteps};
 }
 {
- const q=make(),guide=q.guide;eq(guide.STEPS.length,4,"four survival actions");
+ const q=make(),guide=q.guide;eq(guide.STEPS.length,5,"five survival actions");
  const player={x:100,y:100,hp:100};ok(guide.begin(player),"begin");
  eq(q.$("first-steps-title").textContent,"移動する","live UI title");
  ok(!guide.event("attack"),"out of order rejected");
@@ -27,8 +27,8 @@ function make(){
  for(const x of [5024,5049,5076])guide.tick({x,y:100,hp:100},.035);
  eq(guide.status().step,1,"world-space 76 units accepted");
  ok(!guide.event("attack")&&!guide.event("interact"),"empty swings and item pickups do not teach a hunt or meal");
- for(const kind of ["hunt","meal"]){ok(guide.event(kind),"step "+kind);}
- eq(guide.status().step,3,"now open map");
+ for(const kind of ["hunt","meal","jump"]){ok(guide.event(kind),"step "+kind);}
+ eq(guide.status().step,4,"now open map");
  const env={mode:"play",window:q.w,$:q.$,resetControls:()=>{},drawWorldMap:()=>{}};
  const toggle=new Function("env","with(env){"+part("function toggleWorldMap(){","const MINI_SPANS=")+"return toggleWorldMap;}")(env);
  toggle();eq(env.mode,"map","real map opened");ok(guide.done(),"after actual map open completed");
@@ -61,15 +61,30 @@ for(const type of ["deer","carp","pigeon","cat"]){
  const q=make(),g=q.guide;
  g.begin({type,hp:100,x:0,y:0});g.event("move");
  eq(g.status().kind,type==="cat"?"hunt":"meal",type+" lesson");
+ if(type==="cat"){g.pointToFood(true);eq(q.$("first-steps-title").textContent,"最初の食事","fallback food hint");g.pointToFood(false);eq(q.$("first-steps-title").textContent,"獲物を狩る","prey returns");}
  ok(!g.event("interact"),"unrelated interaction does not feed the animal");
- ok(g.event("meal"),"a successful meal teaches survival");eq(g.status().kind,"map","now explore");
+ ok(g.event("meal"),"a successful meal teaches survival");eq(g.status().kind,"jump","escape practice after eating");
+ ok(g.event("jump"),"successful jump or flight");eq(g.status().kind,"map","now explore");
+}
+{
+ const q=make(),actor={type:"cat",hp:100,maxHp:100,hunger:100,x:0,y:0,carry:{type:"berries",amount:20}};
+ q.guide.begin(actor);q.guide.event("move");
+ const noop=()=>{};
+ const env={P:actor,window:q.w,mode:"play",meals:0,carcasses:[],foodBalance:()=>({satiety:1,healing:1}),
+  clamp:(n,lo,hi)=>Math.min(hi,Math.max(lo,n)),sootheStrongWound:()=>0,saveAuto:()=>false,
+  finishSpecialistContests:noop,label:noop,foodName:()=>"食草",blood:noop,playEffect:noop,checkMission:noop,syncHUD:noop,notify:noop};
+ const eat=new Function("env","with(env){"+part("function eat(){","function inheritStrongTrait(")+"return eat;}")(env);
+ eq(eat(),false,"failed save");eq(q.guide.status().kind,"hunt","failed meal keeps lesson");
+ eq(actor.carry.amount,20,"food restored");
+ env.saveAuto=()=>true;eq(eat(),true,"full animal can eat");
+ eq(q.guide.status().kind,"jump","saved bite teaches meal even at full hunger");
 }
 for(const needle of [
  "firstStepsPending=!!newWorld&&!debugTutorialSession",
  "window.WildFirstSteps?.tick?.(P,dt)",
  "if(code===\"jump\"&&jump())window.WildFirstSteps?.event?.(\"jump\")",
  "if(species[m.type]?.prey)window.WildFirstSteps?.event?.(\"hunt\")",
- "if(P.hunger>before.hunger)window.WildFirstSteps?.event?.(\"meal\")",
+ "window.WildFirstSteps?.event?.(\"meal\")",
  "window.WildFirstSteps?.event?.(\"map\")",
  "$(\"tutorial-next\")?.addEventListener(\"click\"",
  "$(\"first-steps-skip\")?.addEventListener(\"click\""

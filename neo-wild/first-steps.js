@@ -9,29 +9,34 @@
   Object.freeze({kind:"move",title:"移動する",tip:"左スティック／WASD・矢印キーで少し歩く"}),
   Object.freeze({kind:"hunt",title:"獲物を狩る",tip:"小動物に近づき△／Jで攻撃。近くの食料を○／Eで食べても進める"}),
   Object.freeze({kind:"meal",title:"最初の食事",tip:"地図の目印へ。食料のそばで○／Eを短く押す（鳥は着地）"}),
+  Object.freeze({kind:"jump",title:"危険をかわす",tip:"横に移動しながら ×／L で跳ぶ"}),
   Object.freeze({kind:"map",title:"地図を開く",tip:"ミニマップを長押し／Mで周囲の道を確認"})
  ]);
- const controls={move:"joystick",hunt:"attack-touch",meal:"action-touch",map:"mini-map-control"};
- let lessons=STEPS;
+ const controls={move:"joystick",hunt:"attack-touch",meal:"action-touch",jump:"jump-touch",map:"mini-map-control"};
+ let lessons=STEPS,forager=false,foodTarget=false;
  let active=false,step=0,moved=0,last=null,finished=false;
  try{finished=global.localStorage.getItem(KEY)==="1"}catch(_){}
  const el=id=>global.document?.getElementById?.(id)||null;
  function display(){
   const card=el("first-steps"),title=el("first-steps-title"),detail=el("first-steps-detail"),
     fraction=el("first-steps-count"),progress=el("first-steps-progress");
-  for(const [kind,id] of Object.entries(controls))el(id)?.classList.toggle("practice-control",active&&kind===lessons[step]?.kind);
+  const lesson=lessons[step],foodInstead=lesson?.kind==="hunt"&&foodTarget;
+  for(const [kind,id] of Object.entries(controls))el(id)?.classList.toggle("practice-control",active&&kind===(foodInstead?"meal":lesson?.kind));
   if(!card)return;
   card.classList.toggle("hidden",!active);
   if(!active)return;
-  if(title)title.textContent=lessons[step].title;
-  if(detail)detail.textContent=lessons[step].tip;
+  if(title)title.textContent=foodInstead?"最初の食事":lesson.title;
+  if(detail)detail.textContent=foodInstead?"矢印の食料へ。○／Eで食べる":lesson.tip;
   if(fraction)fraction.textContent=(step+1)+" / "+lessons.length;
   if(progress){progress.max=lessons.length;progress.value=step;}
  }
  function done(){return finished}
  function begin(actor,force=false){
   if((finished&&!force)||active||!actor||actor.hp<=0)return false;
-  lessons=["carp","deer","rabbit","pigeon","gorilla","giraffe","elephant","zebra","hippo","serow","rhino","kangaroo","mountainGoat"].includes(actor.type)?STEPS.filter(s=>s.kind!=="hunt"):STEPS;
+  forager=["carp","deer","rabbit","pigeon","gorilla","giraffe","elephant","zebra","hippo","serow","rhino","kangaroo","mountainGoat"].includes(actor.type);
+  lessons=forager?STEPS.filter(s=>s.kind!=="hunt"):STEPS;
+  if(["crow","pigeon"].includes(actor.type))lessons=lessons.map(s=>s.kind==="jump"?{...s,title:"飛んで離れる",tip:"×／L で飛び立つ。もう一度で着地"}:s);
+  foodTarget=false;
   step=0;moved=0;last={x:actor.x,y:actor.y};
   active=true;display();return true;
  }
@@ -56,7 +61,7 @@
   if(!active)return;
   if(!actor||actor.hp<=0){reset();return;}
   if(!Number.isFinite(actor.x)||!Number.isFinite(actor.y))return;
-  if(lessons[step].kind!=="move"){last={x:actor.x,y:actor.y};return;}
+  if(lessons[step].kind!=="move")return;
   if(last&&Number.isFinite(dt)&&dt>0){
    const distance=Math.hypot(actor.x-last.x,actor.y-last.y);
    // Teleports/restore/squad switch cannot fulfill a movement tutorial.
@@ -69,5 +74,8 @@
   active=false;step=0;moved=0;last=null;display();
  }
  global.WildFirstSteps=Object.freeze({KEY,STEPS,done,begin,event,tick,skip:()=>complete(true),reset,
-  status:()=>({active,step,kind:lessons[step]?.kind,forager:lessons!==STEPS,finished,moved})});
+  pointToFood(value){
+   if(active&&lessons[step].kind==="hunt"&&foodTarget!==value){foodTarget=value;display();}
+  },
+  status:()=>({active,step,kind:lessons[step]?.kind,forager,finished,moved})});
 })(window);
