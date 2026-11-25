@@ -21,7 +21,7 @@ function traverse(type){
  world.window=world;vm.createContext(world);
  function run(code,file){return vm.runInContext(code,world,{filename:file});}
  run("let seed=42;Math.random=()=>((seed=(Math.imul(seed,1664525)+1013904223)>>>0)/4294967296);","seed");
- for(const file of ["mountain.js","east-expedition.js","world-time.js","era-ecology.js","fauna.js","boss-patterns.js","pack-tactics.js","disaster-world.js","wild-arsenal.js"])
+ for(const file of ["mountain.js","east-expedition.js","world-time.js","era-ecology.js","fauna.js","boss-patterns.js","pack-tactics.js","disaster-world.js","wild-arsenal.js","dodge-counter.js"])
   run(read(file),file);
  const game=read("game.js"),end=game.lastIndexOf("})();");
  run(game.slice(0,end)+`

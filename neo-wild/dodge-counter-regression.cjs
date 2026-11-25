@@ -1,0 +1,25 @@
+const fs=require("node:fs"),path=require("node:path"),assert=require("node:assert/strict");
+const read=file=>fs.readFileSync(path.join(__dirname,file),"utf8");
+const window={};new Function("window",read("dodge-counter.js"))(window);
+const duel=window.WildDodgeCounter,a={x:38,y:0,r:12,hp:80},
+ m={x:0,y:0,r:16,hp:80,strikeDir:0,windup:.5},other={...m};
+const clear=()=>false;
+assert(duel.begin(a,m,0,70));assert(!duel.begin(a,other,.01,70));
+const paths=[];const ctx=new Proxy({},{get:(o,k)=>(...v)=>paths.push([k,...v])});
+const project=(x,y)=>({x,y});
+duel.draw(ctx,a,.1,project);assert(paths.some(([k])=>k==="lineTo"));
+assert(!duel.miss(a,m,.5,clear));
+a.x+=16;assert(!duel.miss(a,m,.5,clear));
+a.y+=32;assert(!duel.miss(a,m,.5,()=>true));
+a.inv=.1;assert(!duel.miss(a,m,.5,clear));a.inv=0;
+assert(duel.miss(a,m,.5,clear));
+paths.length=0;duel.draw(ctx,a,.6,project);assert(paths.some(([k])=>k==="ellipse"));
+assert(!duel.strike(a,other,.6));assert(!duel.strike({...a},m,.6));
+const src=read("game.js");let sounds=0;
+const damage=new Function("window","P","elapsed","playEffect",src.slice(src.indexOf("function weaponHitDamage("),src.indexOf("function nearestWeaponScrap("))+"return weaponHitDamage")(window,a,.65,()=>sounds++);
+assert.equal(damage(m,20),25);assert.equal(damage(m,20),20);assert.equal(sounds,1);
+paths.length=0;duel.draw(ctx,a,.70,project);assert(paths.some(([k])=>k==="rotate"));
+paths.length=0;duel.draw(ctx,a,.90,project);assert.equal(paths.length,0);
+assert(duel.begin(a,m,2,70));a.y-=32;assert(duel.miss(a,m,2.4,clear));assert(!duel.strike(a,m,3.26));
+for(const key of ["strongBoss","salvageCacheId","worldEndBoss","companion"])assert(!duel.begin(a,{...m,[key]:true},4,70));
+console.log("PASS directional evasion, timed cue, identity, single counter, protected encounters");

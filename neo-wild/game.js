@@ -5180,6 +5180,9 @@ function weaponHitDamage(enemy,amount){
   label(enemy.x,enemy.y-(enemy.r||18)-36,"見切り反撃 ＋30％","#a1f4db");
   return Math.round(equippedDamage*1.30);
  }
+ if(equippedDamage>0&&window.WildDodgeCounter?.strike(P,enemy,elapsed)){
+  playEffect("impact",{volume:.12,rate:1.22});return Math.round(equippedDamage*1.25);
+ }
  return enemy?.worldEndBoss&&enemy.worldEndOpening>0?Math.round(equippedDamage*1.35):equippedDamage;
 }
 function nearestWeaponScrap(range=95){
@@ -9153,7 +9156,11 @@ function update(dt){
         P.sp=clamp(P.sp-8,0,100);
        }
        if(m.type==="giantLion"){if(m.lionCombo){m.lionCombo=0;}else{m.lionCombo=1;m.windup=.48;m.windupTotal=.48;m.strikeDir=aim;label(m.x,m.y-m.r-24,"連撃！","#ffc589");}}}
-      }else if(dist(P,m)<reach+50){if(m.salvageCacheId)m.salvageOpeningUntil=elapsed+1.6;m.stun=Math.max(m.stun,.24);label(m.x,m.y-m.r-16,"空振りの隙！","#a6f5d8");}
+      }else if(dStrike<reach+50){
+       if(m.salvageCacheId)m.salvageOpeningUntil=elapsed+1.6;
+       const evaded=m.stun<=0&&window.WildDodgeCounter?.miss(P,m,elapsed,lineBlocked);
+       m.stun=Math.max(m.stun,.24);
+       if(evaded)playEffect("wing",{volume:.09,rate:1.3});else label(m.x,m.y-m.r-16,"空振りの隙！","#a6f5d8");}
      }
     }
    }
@@ -9193,7 +9200,8 @@ function update(dt){
      label(m.x,m.y-m.r-20,"激突！","#bdf6cc");
     }else if(m.chargeTime<=0){
      m.stun=Math.max(m.stun,.55);
-     label(m.x,m.y-m.r-20,"隙！","#bdf6cc");
+     if(!m.chargeHit&&window.WildDodgeCounter?.miss(P,m,elapsed,lineBlocked))playEffect("wing",{volume:.09,rate:1.3});
+     else label(m.x,m.y-m.r-20,"隙！","#bdf6cc");
     }
    }
    if(charging&&!m.chargeHit&&m.chargeTime<=0&&m.salvageCacheId)m.salvageOpeningUntil=elapsed+1.6;
@@ -9204,7 +9212,8 @@ function update(dt){
     m.windupTotal=(STRONG_ATTACK_PROFILES[m.type]?.windup??(m.type==="boar"?.68:m.type==="alpha"?.60:.45))*(variant?.windup||1);
     m.windup=m.windupTotal;P.lastCombatAt=elapsed;m.strikeDir=angle;
     m.attack=(STRONG_ATTACK_PROFILES[m.type]?.cooldown??(m.type==="boar"?1.32:m.type==="alpha"?1.42:.98))*(variant?.cooldown||1);
-    m.dir=angle;label(m.x,m.y-m.r-24,variant?.name||(STRONG_ATTACK_PROFILES[m.type]?.tell??(m.type==="boar"?"突進予兆！":m.type==="alpha"?"跳躍予兆！":"危険！")),"#ffb76d");
+    m.dir=angle;
+    if(!window.WildDodgeCounter?.begin(P,m,elapsed,ordinaryMeleeReach(m)))label(m.x,m.y-m.r-24,variant?.name||(STRONG_ATTACK_PROFILES[m.type]?.tell??(m.type==="boar"?"突進予兆！":m.type==="alpha"?"跳躍予兆！":"危険！")),"#ffb76d");
     playEffect("snarl");
    }
  }
@@ -11212,6 +11221,7 @@ function drawScene(){
   window.WildFloodRescue?.draw?.(ctx,project,{P,mobs,elapsed,mode,lineBlocked,
    floodDepth:(x,y)=>window.WildDisaster?.floodDepth?.(x,y,elapsed/120)||0,
    isPrey:m=>!!species[m.type]?.prey});
+  if(mode==="play"&&P)window.WildDodgeCounter?.draw(ctx,P,elapsed,projectGroundLabel);
   drawLightning();drawMissionChevrons();drawShelterEntranceMarker();drawEastTrailScreenMarkers();drawWeaponScrapLabels();if(!use3D)drawThreatNames(false);drawRemainsLabels();
   if(mode==="play"&&P)window.WildPackTactics?.draw?.(ctx,project(P.x,P.y),dpr,elapsed);
  }else if(deathSharePending){
