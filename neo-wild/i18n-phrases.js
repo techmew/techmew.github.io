@@ -1,6 +1,10 @@
 // WILD RECLAIM player-visible English translations; Japanese remains the source language.
 // Loaded before i18n.js. Keep gameplay/save keys unchanged.
 window.WildI18nPhrases = [
+ ["詳細","Details"],
+ ["横へ回避","Dodge sideways"],
+ ["反撃","Counter"],
+ ["番人","Guardian"],
  ["危険をかわす","Evade danger"],
  ["横に移動しながら ×／L で跳ぶ","Move sideways and press × / L to jump."],
  ["飛んで離れる","Fly clear"],

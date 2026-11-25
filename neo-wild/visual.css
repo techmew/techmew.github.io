@@ -1818,3 +1818,29 @@
  color:#f3f6e9;font-size:clamp(11px,1.5vw,13px);line-height:1.4;
  text-shadow:0 1px 2px #101911,1px 0 2px #101911,-1px 0 2px #101911;
 }
+
+#hud-details{display:none}
+@media (orientation:portrait) and (max-width:700px){
+ #hud{display:grid;grid-template-columns:minmax(0,1fr) 126px;grid-template-rows:auto auto;
+   align-items:start;align-content:start;gap:3px 9px}
+ #hud .hud-center{grid-area:1/1;position:static;transform:none;margin:0;text-align:left;min-width:0;max-width:100%;width:100%}
+ #hud .hud-right{grid-area:1/2/3/3;min-width:0;width:100%}
+ #hud .hud-left{grid-area:2/1;min-width:0;max-width:100%;width:100%;position:relative}
+ #hud #district{font-size:12px;letter-spacing:0}
+ #hud #day-label{display:inline;font-size:10px;letter-spacing:0;margin-left:4px}
+ #hud #survival-goal{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0;font-size:10px}
+ #hud #survival-goal.hidden{display:none}
+ #hud .vital{margin-bottom:3px}
+ #hud .vital label{letter-spacing:0;font-size:10px}
+ #hud .vital b{font-size:11px;letter-spacing:0}
+ #hud #hud-details{display:inline-block;width:auto;height:28px;min-width:44px;float:right;
+   background:transparent;border:0;text-decoration:underline;backdrop-filter:none;font-size:11px}
+ #hud:not(.hud-expanded) :is(#hud-age,#den-status,#weapon-equipped-hud,#species-skill-status,#den-stash-panel,#den-inventory-btn,#objective-toggle,#moon-label,#district-tag){display:none!important}
+ #hud.hud-expanded #survival-goal{white-space:normal;overflow-wrap:anywhere}
+ #hud .hud-right button{backdrop-filter:none}
+}
+@media (orientation:portrait) and (max-width:700px){
+ #hud:not(.hud-expanded) #season-indicator{display:none!important}
+ #hud #district{display:inline}
+ #hud #district,#hud #day-label{overflow-wrap:anywhere}
+}

@@ -1933,7 +1933,8 @@ function generateWorld(){
  for(let i=0;i<85;i++)rain.push({x:rnd(0,2000),y:rnd(0,1200),s:rnd(320,730),z:rnd(9,21)});
  buildScenicProps();
 }
-function resize(){vw=window.innerWidth;vh=window.innerHeight;dpr=Math.min(window.devicePixelRatio||1,1.8);canvas.width=Math.floor(vw*dpr);canvas.height=Math.floor(vh*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);if(mode==="guide"||mode==="milestone")guideNeedsFrame=true;}
+let coarseDisplay=false;
+function resize(){coarseDisplay=!!window.matchMedia?.("(pointer: coarse)").matches;vw=window.innerWidth;vh=window.innerHeight;dpr=Math.min(window.devicePixelRatio||1,1.8);canvas.width=Math.floor(vw*dpr);canvas.height=Math.floor(vh*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);if(mode==="guide"||mode==="milestone")guideNeedsFrame=true;}
 window.addEventListener("resize",resize,{passive:true});resize();
 // World building is deferred until Play; its failure must never disable title controls.
 let worldReady=false;
@@ -4040,7 +4041,9 @@ function move(o,dx,dy){
 }
 function lineBlocked(a,b){
  if(MOUNTAIN?.sightBlocked(a,b))return true;
+ const left=Math.min(a.x,b.x),right=Math.max(a.x,b.x),top=Math.min(a.y,b.y),bottom=Math.max(a.y,b.y);
  for(const box of buildings){
+  if(box.x>right||box.y>bottom||box.x+box.w<left||box.y+box.h<top)continue;
   if(box.interior){
    if(shelterWalls(box).some(w=>segmentRect(a,b,w))||shelterFurniture(box).some(w=>segmentRect(a,b,w)))return true;
    continue;
@@ -5527,6 +5530,10 @@ function drawWeaponScrapLabels(){
    }
   }
   const open=living===1&&drop.siegeTotal===1&&sentry?.salvageOpeningUntil>elapsed;
+  if(sentry){
+   const anchor=projectGroundLabel(sentry.x,sentry.y,Math.max(30,sentry.r||18));
+   if(Math.abs(anchor.x-pos.x)<85&&Math.abs(anchor.y-pos.y)<26)pos.y=anchor.y+28;
+  }
   if(open){
    ctx.fillStyle="#8df1d2";
    ctx.fillRect(pos.x-44,pos.y,88*Math.min(1,(sentry.salvageOpeningUntil-elapsed)/1.6),2);
@@ -5558,12 +5565,13 @@ function drawWeaponScrapLabels(){
    ctx.beginPath();ctx.moveTo(-Math.hypot(tip.x-base.x,tip.y-base.y),0);ctx.lineTo(0,0);
    ctx.lineTo(-8,-5);ctx.moveTo(0,0);ctx.lineTo(-8,5);ctx.stroke();ctx.restore();
   }
-  ctx.fillStyle=opening?"#153e37ed":"#69282ce8";ctx.fillRect(pos.x-60,pos.y-25,120,26);
-  ctx.strokeStyle=opening?"#91eacb":"#ff998c";ctx.lineWidth=1.4;ctx.strokeRect(pos.x-60,pos.y-25,120,26);
-  ctx.fillStyle="#fff3de";ctx.fillText(opening?"隙！ 攻撃で反撃":winding?"攻撃予告｜横へ回避":"番人｜討伐対象",pos.x,pos.y-12);
+  const cue=opening?"反撃":winding?"横へ回避":"番人";
+  ctx.font="700 11px sans-serif";ctx.strokeStyle="#1b201d";ctx.lineWidth=3;
+  ctx.strokeText(cue,pos.x,pos.y-12);ctx.fillStyle=opening?"#a7efd1":winding?"#ffbf91":"#f2e2c2";
+  ctx.fillText(cue,pos.x,pos.y-12);
   if(opening||winding){
    const fraction=opening?(guard.salvageOpeningUntil-elapsed)/1.6:1-guard.windup/(guard.windupTotal||guard.windup);
-   ctx.fillStyle=opening?"#91eacb":"#ffcc8c";ctx.fillRect(pos.x-58,pos.y-2,116*Math.min(1,Math.max(0,fraction)),2);
+   ctx.fillStyle=opening?"#91eacb":"#ffcc8c";ctx.fillRect(pos.x-17,pos.y-4,34*Math.min(1,Math.max(0,fraction)),2);
   }
  }
  ctx.restore();
@@ -9247,7 +9255,7 @@ function update(dt){
    danger:mobs.some(m=>m.hp>0&&!m.companion&&!species[m.type].prey&&dist(P,m)<(m.strongBoss?515:290))});
  }
  window.WildFirstSteps?.tick?.(P,dt);
- uiTimer+=dt;if(uiTimer>.14){uiTimer=0;syncHUD(hr);drawMini()}
+ uiTimer+=dt;if(uiTimer>(coarseDisplay ? .24 : .14)){uiTimer=0;syncHUD(hr);drawMini()}
  autosaveClock+=dt;if(autosaveClock>=1){autosaveClock=0;saveAuto();}
  // First rendered game frame, after squad/boss leader placement, with all
  // original saves untouched. No popups on Continue/checkpoint restore.
@@ -9279,7 +9287,8 @@ function syncHUD(hour){
  syncSquadHud();
  const setBar=(name,v)=>$(name).style.width=clamp(v,0,100)+"%";
  setBar("hp-bar",P.hp/P.maxHp*100);setBar("food-bar",P.hunger);setBar("sp-bar",P.sp);
- $("hp-text").textContent=Math.ceil(P.hp)+" / "+P.maxHp+(P.strongWound>0?"｜出血 "+Math.ceil(P.strongWound)+"秒":"")+(Number.isFinite(P.ageYears)?(P.squadIndividualId?"｜年齢 "+P.ageYears.toFixed(1)+"歳":"｜年齢 "+P.ageYears.toFixed(1)+"歳"):"");
+ $("hp-text").textContent=Math.ceil(P.hp)+" / "+P.maxHp+(P.strongWound>0?"｜出血 "+Math.ceil(P.strongWound)+"秒":"");
+ $("hud-age").textContent=Number.isFinite(P.ageYears)?"｜年齢 "+P.ageYears.toFixed(1)+"歳":"";
  $("poison-status").classList.toggle("hidden",!(P.poisonTime>0));
  if(P.poisonTime>0)$("poison-status").textContent="☠ 毒 "+Math.ceil(P.poisonTime)+"秒｜生命が減少";
  $("food-text").textContent=Math.ceil(P.hunger)+"%"+(P.hunger<=0?"｜飢餓：生命 -2.4/秒":P.hunger<=16?"｜空腹に注意":"");$("sp-text").textContent=Math.ceil(P.sp)+"%";
@@ -10752,15 +10761,15 @@ function drawThreatNames(use3D=false){
  if(!P||mode!=="play")return;
  ctx.save();ctx.textAlign="center";ctx.font="700 10px sans-serif";
  for(const m of mobs){
-  if(m.hp<=0||(use3D&&m.strongBoss)||(species[m.type].prey&&m.type!=="zebra"&&!m.releasedIndividualId)||dist(P,m)>280||!visible(m.x,m.y,55)||lineBlocked(P,m))continue;
+  if(m.hp<=0||m.salvageCacheId||(use3D&&m.strongBoss)||(species[m.type].prey&&m.type!=="zebra"&&!m.releasedIndividualId)||dist(P,m)>280||!visible(m.x,m.y,55)||lineBlocked(P,m))continue;
   const rise=m.type==="giantEagle"?(m.airHeight||125):Math.max(0,m.evadeHeight||0);
   const pos=projectGroundLabel(m.x,m.y,rise),names=ENEMY_LABEL_NAMES,y=pos.y-m.r*cameraZoom-20;
   const targetLevel=COMBAT_LEVELS?.level(m.type)||1,levelGap=Math.max(0,targetLevel-P.level);
   const threatName=(m.releasedIndividualId&&m.name?m.name+"（野生に帰還）":names[m.type]||STRONG_NAMES[m.type]||"危険")+(m.packId?"・群れ":"")+(m.damageScale>1.23&&!m.strongBoss?" 強化":"");
-  ctx.globalAlpha=m.windup>0||m.alert>0?.95:.78;ctx.fillStyle="#172321";ctx.fillRect(pos.x-69,y-14,138,31);
-  ctx.fillStyle=m.type==="venomSnake"?"#e2e98a":m.windup>0?"#ffad9a":"#ecdfca";ctx.fillText(threatName,pos.x,y-2);
+  ctx.globalAlpha=m.windup>0||m.alert>0?.95:.78;ctx.lineWidth=3;ctx.strokeStyle="#16201a";
+  ctx.fillStyle=m.type==="venomSnake"?"#e2e98a":m.windup>0?"#ffad9a":"#ecdfca";const caption=threatName+" Lv."+targetLevel;ctx.strokeText(caption,pos.x,y);
   ctx.fillStyle=levelGap>=5?"#ffad91":levelGap>0?"#ffe19b":"#b6e8c7";
-  ctx.fillText("推奨LV"+targetLevel+(levelGap>=5?"｜非常に危険":levelGap>0?"｜格上":"｜適正"),pos.x,y+10);
+  ctx.fillText(caption,pos.x,y);
  }
  ctx.restore();
 }
@@ -10781,7 +10790,7 @@ function drawAligned3DActorStatus(){
  };
  // Preserve nearby enemy labels during melee. The player ownership label has
  // its own fixed anchor and must not suppress enemy names or health bars.
- const ordered=P?mobs.filter(m=>m.hp>0&&Math.abs(m.x-P.x)<=900&&Math.abs(m.y-P.y)<=900&&visible(m.x,m.y,130)&&!lineBlocked(P,m))
+ const ordered=P?mobs.filter(m=>m.hp>0&&!m.salvageCacheId&&dist(P,m)<=(m.strongBoss||m.releasedIndividualId?900:550)&&visible(m.x,m.y,130)&&!lineBlocked(P,m))
   .sort((a,b)=>Number(!!b.strongBoss)-Number(!!a.strongBoss)||dist(P,a)-dist(P,b)):[];
  for(const m of ordered){
   const distance=dist(P,m);
@@ -10822,11 +10831,11 @@ function drawAligned3DActorStatus(){
      (ENEMY_LABEL_NAMES[m.type]||STRONG_NAMES[m.type]||animals[m.type]?.name||"野生動物")+
      (m.packId?"・群れ":"")+(m.damageScale>1.23&&!m.strongBoss?" 強化":"");
     ctx.globalAlpha=m.windup>0||m.alert>0?.95:.87;
-    ctx.fillStyle="#172321";ctx.fillRect(feet.x-w/2,y-16,w,32);
+    ctx.lineWidth=3;ctx.strokeStyle="#16201a";
     ctx.font="700 10px sans-serif";ctx.fillStyle=m.windup>0?"#ffad9a":"#ecdfca";
-    ctx.fillText(name,feet.x,y-7);
+    const caption=name+" Lv."+lv;ctx.strokeText(caption,feet.x,y);
     ctx.fillStyle=gap>=5?"#ffad91":gap>0?"#ffe19b":"#b6e8c7";
-    ctx.fillText("推奨LV"+lv+(gap>=5?"｜非常に危険":gap>0?"｜格上":"｜適正"),feet.x,y+7);
+    ctx.fillText(caption,feet.x,y);
     ctx.globalAlpha=1;
    }
    cursor-=40;
@@ -10973,7 +10982,7 @@ function drawScene(){
  $("vignette").classList.toggle("boss-close",mode==="play"&&P&&activeStrongBosses().some(m=>dist(P,m)<370));
  const x=cam.x+quakeOffset.x+(mode==="dying"?0:shake?rnd(-shake,shake):0),y=cam.y+quakeOffset.y+(mode==="dying"?0:shake?rnd(-shake,shake):0);
  let use3D=false;
- if(window.Wild3D?.available&&debugRendererPreference!=="2d")use3D=window.Wild3D.render({vw,vh,dpr,cam,quakeOffset,VIEW,cameraZoom,buildings,plants,mobs,P,elapsed,weather,snowpack:currentSnowpack(),WORLD,species,carcasses,weaponScraps,equippedWeapon:equippedWeapon(),streetProps,birdFlocks,scenicProps,disasterEvents:window.WildDisaster?.events?.()||[],standingFallTrees:window.WildDisaster?.standingTrees?.()||[],roadsX,roadsY,landmarks:[...EXPLORE_SITES,...(window.WildEastExpedition?.stops||[]),...(window.WildEastExpedition?.waterStations||[])],cityWater,cityBridges,waterAt:waterDepth,lightProfile:dayLightProfile(elapsed),nightVision:P?nightVisionProfile():null,dens:denSites.map(site=>({x:site.x,y:site.y,z:site.z,kind:site.kind,level:denLevel,stash:denStash,meatLots:denMeatLots,type:choice}))});
+ if(window.Wild3D?.available&&debugRendererPreference!=="2d")use3D=window.Wild3D.render({vw,vh,dpr:coarseDisplay?Math.min(dpr,1.25):dpr,cam,quakeOffset,VIEW,cameraZoom,buildings,plants,mobs,P,elapsed,weather,snowpack:currentSnowpack(),WORLD,species,carcasses,weaponScraps,equippedWeapon:equippedWeapon(),streetProps,birdFlocks,scenicProps,disasterEvents:window.WildDisaster?.events?.()||[],standingFallTrees:window.WildDisaster?.standingTrees?.()||[],roadsX,roadsY,landmarks:[...EXPLORE_SITES,...(window.WildEastExpedition?.stops||[]),...(window.WildEastExpedition?.waterStations||[])],cityWater,cityBridges,waterAt:waterDepth,lightProfile:dayLightProfile(elapsed),nightVision:P?nightVisionProfile():null,dens:denSites.map(site=>({x:site.x,y:site.y,z:site.z,kind:site.kind,level:denLevel,stash:denStash,meatLots:denMeatLots,type:choice}))});
  // All screen overlays and effects now use the very same world-camera offset as the renderer.
  renderedSceneCamera=use3D?{x:cam.x+quakeOffset.x,y:cam.y+quakeOffset.y}:{x,y};
  // Keep Canvas2D shadows fixed to world coordinates and actual paused game time.
@@ -11930,6 +11939,10 @@ for(const key of ["meat","berries","legacy"])$("den-eat-"+key).addEventListener(
 $("objective-toggle").addEventListener("click",()=>openTutorial());
 $("tutorial-close").addEventListener("click",closeTutorial);
 window.WildFirstStepsOnDone=()=>{if(P&&(mode==="play"||mode==="map"))notify("操作練習完了。世界を探索しよう",2.8);};
+$("hud-details")?.addEventListener("click",()=>{
+ const button=$("hud-details"),open=button.getAttribute("aria-expanded")!=="true";
+ button.setAttribute("aria-expanded",String(open));$("hud").classList.toggle("hud-expanded",open);
+});
 $("first-steps-skip")?.addEventListener("click",()=>window.WildFirstSteps?.skip?.());
 $("tutorial-next")?.addEventListener("click",()=>{
  if(mode!=="guide"||debugTutorialSession)return;

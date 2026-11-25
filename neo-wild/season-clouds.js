@@ -154,7 +154,7 @@ function drawGroundShadows(o,weather){
  ctx.restore();
 }
 let shadowEnabled=true;
-let lastFrame=0,lastHudClock="",fallbackAnchor=0,fallbackTime=0;
+let lastSeasonText="",lastFrame=0,lastHudClock="",fallbackAnchor=0,fallbackTime=0;
 function fallbackScene(ms,day,hud,dw,dh){
  // On low-end devices without WebGL, the normal 2D canvas is still playable.
  // HUD provides the existing game clock and weather without touching game state.
@@ -180,6 +180,18 @@ function frame(ms){
  requestAnimationFrame(frame);
  if(ms-lastFrame<32)return;
  lastFrame=ms;
+ const hud=document.getElementById("day-label")?.textContent||"";
+ const match=/DAY\s+(\d+)/.exec(hud);
+ const day=match?Number(match[1]):1;
+ const opts=current||fallbackScene(ms,day,hud,innerWidth,innerHeight);
+ const season=window.WildWorldClock?.at?.(opts.elapsed) || seasonOfDay(day);
+ const seasonText=season.name+" "+season.month+"月";
+ if(lastSeasonText!==seasonText){lastSeasonText=seasonText;label.textContent=seasonText;}
+ const menu=document.getElementById("menu");
+ const show=!!match&&(!menu||menu.classList.contains("hidden"));
+ const visibility=show?"visible":"hidden";
+ if(layer.style.visibility!==visibility)layer.style.visibility=visibility;
+ if(!show)return;
  const sourceW=main.width,sourceH=main.height;
  if(sourceW!==layer.width||sourceH!==layer.height){
   layer.width=Math.max(1,sourceW);layer.height=Math.max(1,sourceH);
@@ -188,16 +200,6 @@ function frame(ms){
  const ratioX=layer.width/dw,ratioY=layer.height/dh;
  ctx.setTransform(1,0,0,1,0,0);
  ctx.clearRect(0,0,layer.width,layer.height);
- const hud=document.getElementById("day-label")?.textContent||"";
- const match=/DAY\s+(\d+)/.exec(hud);
- const day=match?Number(match[1]):1;
- const opts=current||fallbackScene(ms,day,hud,dw,dh);
- const season=window.WildWorldClock?.at?.(opts.elapsed) || seasonOfDay(day);
- label.textContent=season.name+" "+season.month+"月";
- const menu=document.getElementById("menu");
- const show=!!match&&(!menu||menu.classList.contains("hidden"));
- layer.style.visibility=show?"visible":"hidden";
- if(!show)return;
  const sc={...opts,vw:dw,vh:dh};
  ctx.setTransform(ratioX,0,0,ratioY,0,0);
  // Disabled: these three-oval seasonal decals looked like unexplained white blobs.
