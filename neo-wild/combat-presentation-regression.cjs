@@ -56,5 +56,8 @@ const baseline=renderer.stats.dynamicTriangles;
 browser.window.WildMovementTrail.record(actor,"water",120,scene.elapsed,0,()=>12);
 assert(renderer.render(scene));
 assert.equal(renderer.stats.dynamicTriangles,baseline+4,"swimming wake adds only four triangles");
-assert(uploads.filter(n=>n>65536).length>=3);
+// Alpine snow now uploads after several frames in the same camera sector.
+for(let i=0;i<160&&!renderer.stats.snowTriangles;i++)assert(renderer.render(scene));
+assert(renderer.stats.snowTriangles>0,"completed alpine mesh");
+assert(uploads.some(n=>n>65536),"large finite terrain mesh uploaded");
 console.log("Combat contacts, clean misses and six finite mesh frames passed (mock WebGL).");

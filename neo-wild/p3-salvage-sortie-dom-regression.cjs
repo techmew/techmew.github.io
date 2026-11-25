@@ -37,7 +37,7 @@ const canvasLabels=[];
 const ctx={
  save(){},restore(){},setTransform(){},translate(){},rotate(){},fillRect(){},strokeRect(){},
  beginPath(){},ellipse(){},arc(){},fill(){},stroke(){},moveTo(){},lineTo(){},
- fillText:(label,x,y)=>canvasLabels.push({label,x,y})
+ strokeText:()=>{},fillText:(label,x,y)=>canvasLabels.push({label,x,y})
 };
 const code=part(game,"function nearestWeaponScrap(range=95){","function drawEquippedWeapon2D(actor){")+
  part(game,"function contextAction(longPress=false){","const RUSH_COST=")+
@@ -221,7 +221,7 @@ eq(env.totalScore,scoreAfter,"weapon extraction cannot grant repeated reward");
 ok(game.includes('const climate=weather==="THUNDER"?"storm"'),"storm/rain/snow climate routed into eastern survival");
 ok(game.includes('m.alert=Math.max(Number(m.alert)||0,1.5+pressure*.35)'),"weather exposure wakes real regional NPC combat");
 ok(game.includes('if(exposure>0)P.sp=Math.max(0,P.sp-tick*exposure)'),"regional exposure drains real player stamina");
-ok(game.includes('ctx.fillText(site.index>=6?"強敵・雪山"'),"world-coordinate eastern screen markers describe hazard");
+ok(game.includes('else if(hazard&&P.type!=="carp")')&&game.includes("雪山の冷気でスタミナ消耗"),"active eastern hazards keep their contextual warning");
 // Waterborne ecology is routed through a distinct live AI path; a carp
 // never triggers dry-land predator pursuit or terrestrial salvage pressure.
 ok(game.includes('route.aquaticEncounter?.(P,mobs,species,weather'),"live eastern water encounter invoked by tick");

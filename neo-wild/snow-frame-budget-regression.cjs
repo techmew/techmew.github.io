@@ -60,6 +60,18 @@ const drawStart=game.indexOf("function drawWorldSnow2D(");
 const drawEnd=game.indexOf("function drawScene()",drawStart);
 ok(drawStart>0&&drawEnd>drawStart&&game.slice(drawStart,drawEnd).includes("ctx.fill();ctx.restore();"),
  "Canvas fallback snow combines contour fills");
+// Exercise the actual fallback path: beginPath inside the tile loop would
+// discard all but the final polygon before the single fill.
+let contours=0,painted=0,paints=0;
+const fallback={save(){},restore(){},beginPath(){contours=0},moveTo(){contours++},
+ lineTo(){},closePath(){},fill(){painted=contours;paints++}};
+const drawFallback=new Function("env","with(env){"+game.slice(drawStart,drawEnd)+";return drawWorldSnow2D}")({
+ ctx:fallback,MOUNTAIN:null,WORLD:{w:192,h:128},vw:192,vh:128,visible:()=>true,
+ window:{},elapsed:0,noise:()=>0,waterDepth:(x)=>x>=192?1:0,
+ snowTiles2D:new Map(),tileSnowAmount:-1
+});
+drawFallback(1,0,0);
+ok(paints===1&&painted===8,"four solid tiles and four shoreline triangles survive one paint");
 ok(index.includes("webgl3d.js?rev=snow-frame-budget-20261124")&&
-   index.includes("game.js?rev=snow-frame-budget-20261124"),"cache revisions include both fixes");
+   index.includes("game.js?rev=east-snow-20261125"),"cache revisions include both fixes");
 console.log("SNOW GPU/CPU BUDGET PASS "+checks+" checks, mobile mesh "+mobileSize+" floats (mock, not Android FPS)");

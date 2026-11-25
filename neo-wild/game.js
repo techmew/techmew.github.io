@@ -661,6 +661,7 @@ function eastTrailFoodDrop(site,amount,wet=false){
  }
  return false;
 }
+let eastArrival=null;
 function eastTrailClaim(site,revisit=false){
  const route=window.WildEastExpedition;
  if(!route||!site||!P||mode!=="play"||P.hp<=0||debugTutorialSession)return false;
@@ -677,7 +678,7 @@ function eastTrailClaim(site,revisit=false){
  P.hp=Math.min(P.maxHp,P.hp+(first?Math.min(24,10+site.index*2):6));
  P.sp=Math.min(P.maxSp||100,P.sp+(first?Math.min(40,18+site.index*3):12));
  const amount=first?site.amount:Math.max(15,Math.floor(site.amount*.45));
- const food=eastTrailFoodDrop(site,amount);
+ const placed=eastTrailFoodDrop(site,amount);
  worldEventJournal.push({year,at:Date.now(),kind:"east-expedition",
   label:(first?"東部踏破：":"補給再訪：")+site.name+"（"+site.area+"）"});
  worldEventJournal=worldEventJournal.slice(-40);
@@ -702,9 +703,9 @@ function eastTrailClaim(site,revisit=false){
   }
   window.WildTrophies?.record?.("explore-site",{site:site.id},notify);
  }
- label(P.x,P.y-P.r-42,(first?"踏破 ":"補給 ")+site.name+" +"+points,"#d9ebbd");
- notify((first?"東部探索 ":"物資回収 ")+site.name+"｜"+site.info+
-  "｜得点+"+points+(food?"・食料"+amount:"・食料配置上限")+"｜進捗"+route.count(eastTrailMask)+"/8",4);
+ eastArrival={site,points,at:elapsed,actor:P};
+ if(first&&eastTrailMask===route.all)notify("東部踏破 8/8");
+ else if(!placed)notify("食料を置く空きがありません");
  syncHUD();
  return true;
 }
@@ -722,7 +723,7 @@ function eastAquaticClaim(site,revisit=false){
  totalScore+=points;P.hp=Math.min(P.maxHp,P.hp+(known?6:18));
  P.sp=Math.min(P.maxSp||100,P.sp+(known?12:30));
  const amount=known?Math.max(15,Math.floor(site.amount*.45)):site.amount;
- const food=eastTrailFoodDrop(site,amount,true);
+ const placed=eastTrailFoodDrop(site,amount,true);
  worldEventJournal.push({year,at:Date.now(),kind:"east-aquatic",label:(known?"水中補給再訪：":"水域発見：")+site.name});
  worldEventJournal=worldEventJournal.slice(-40);
  if(saveAuto()!==true){
@@ -736,9 +737,9 @@ function eastAquaticClaim(site,revisit=false){
   if(cleared%2===0)awardGameplayGachaTicket("east-aquatic",cleared/2);
   window.WildTrophies?.record?.("explore-site",{site:site.id},notify);
  }
- label(P.x,P.y-P.r-40,site.name+" +"+points,"#8de9e1");
- notify(site.name+"｜得点+"+points+(food?"・水中食料"+amount:"・食料配置上限")+
-  "｜水域探索"+route.waterStations.filter(s=>route.waterVisited(eastWaterMask,s.index)).length+"/4",4);
+ eastArrival={site,points,at:elapsed,actor:P};
+ if(!known&&eastWaterMask===15)notify("水域探索 4/4");
+ else if(!placed)notify("食料を置く空きがありません");
  syncHUD();return true;
 }
 
@@ -859,38 +860,36 @@ function tickEastTrail(dt){
     snowy?"雪山の冷気でスタミナ消耗。洞窟前に補給":
     waterRisk?"水源の増水で持久力を消耗。周辺の獣にも注意":
     "洞窟の強敵が接近。遮蔽物を使い、補給地点へ戻れる",3);
-  }else if(P.type!=="carp"&&P.x>=7600&&P.x<13380){
-   const goal=getObjective();
-   if(goal?.eastTrail){
-    eastTrailHazardNoticeAt=elapsed;
-    notify(goal.label,3);
-   }
   }
  }
 }
 function drawEastTrailScreenMarkers(){
  const route=window.WildEastExpedition;
- if(!route||!P||mode!=="play"||P.x<7600)return;
+ if(!route||!P||mode!=="play")return;
+ const water=P.type==="carp",stations=water?route.waterStations:route.stops;
+ if(!water&&P.x<stations[0].x-370)return;
+ let nearest=null,best=370;
+ for(const site of stations){
+  const d=Math.hypot(site.x-P.x,site.y-P.y);
+  if(d<best&&!lineBlocked(P,site)){nearest=site;best=d;}
+ }
+ if(!nearest)return;
+ const p=projectGroundLabel(nearest.x,nearest.y,65);
+ if(p.x<38||p.x>vw-38||p.y<52||p.y>vh-30)return;
+ const known=water?route.waterVisited(eastWaterMask,nearest.index):route.visited(eastTrailMask,nearest.index);
+ const age=eastArrival?.actor===P&&eastArrival.site===nearest?elapsed-eastArrival.at:Infinity;
+ const arriving=age>=0&&age<1.8;
  ctx.save();ctx.setTransform(dpr,0,0,dpr,0,0);ctx.textAlign="center";ctx.textBaseline="middle";
- ctx.font="bold 12px sans-serif";let shown=0;
- for(const site of route.stops){
-  if(Math.hypot(site.x-P.x,site.y-P.y)>370||lineBlocked(P,site))continue;
-  const p=projectGroundLabel(site.x,site.y,65);
-  if(p.x<74||p.x>vw-74||p.y<95||p.y>vh-40)continue;
-  const known=route.visited(eastTrailMask,site.index);
-  ctx.fillStyle=known?"#163b35e8":"#403521e8";
-  ctx.fillRect(p.x-68,p.y-22,136,29);
-  ctx.strokeStyle=known?"#8eddb5":"#f1d08a";ctx.lineWidth=1.2;
-  ctx.strokeRect(p.x-68,p.y-22,136,29);
-  ctx.fillStyle="#fff3d6";ctx.fillText((site.index+1)+"/8 "+site.name,p.x,p.y-8);
-  // Hazard and resupply are bound to the actual site XY in both render modes.
-  // The underlying 3D waypoint remains unchanged and cannot drift.
-  if(site.index>=4&&!known){
-   ctx.fillStyle="#f4ad88";ctx.font="bold 10px sans-serif";
-   ctx.fillText(site.index>=6?"強敵・雪山":site.index===4?"雨天・渓谷":"水源・高地",p.x,p.y+19);
-   ctx.font="bold 12px sans-serif";
-  }
-  if(++shown>=2)break;
+ ctx.font="600 11px sans-serif";ctx.lineJoin="round";ctx.lineWidth=2.8;ctx.strokeStyle="#14221c";
+ const caption=localizedCanvasLabel(nearest.name)+(arriving?"  +"+eastArrival.points:"");
+ ctx.strokeText(caption,p.x,p.y-8);
+ ctx.fillStyle=known?"#c3ecd1":water?"#b6eaf3":"#ffe5a3";
+ ctx.fillText(caption,p.x,p.y-8);
+ if(arriving){
+  const ground=projectGroundLabel(nearest.x,nearest.y);
+  const t=age/1.8;
+  ctx.globalAlpha=1-t;ctx.strokeStyle=ctx.fillStyle;ctx.lineWidth=2;
+  ctx.beginPath();ctx.ellipse(ground.x,ground.y,9+t*27,4+t*10,0,0,TWO);ctx.stroke();
  }
  ctx.restore();
 }
@@ -5517,8 +5516,7 @@ function drawWeaponScrapLabels(){
   if(Math.hypot(drop.x-P.x,drop.y-P.y)>230||lineBlocked(P,drop))continue;
   const pos=projectGroundLabel(drop.x,drop.y,28);
   if(pos.x<42||pos.x>vw-42||pos.y<60||pos.y>vh-35)continue;
-  ctx.fillStyle="#25302ce8";ctx.fillRect(pos.x-46,pos.y-24,92,27);
-  ctx.strokeStyle="#d9c6a0";ctx.lineWidth=1.3;ctx.strokeRect(pos.x-46,pos.y-24,92,27);
+  ctx.lineJoin="round";ctx.lineWidth=2.8;ctx.strokeStyle="#201f19";
   const guarded=drop.guardState==="engaged",locked=drop.guardState==="pending";
   ctx.fillStyle=guarded?"#ffaaa0":locked?"#ffcf9c":"#bde9be";
   let sentry=null,living=0;
@@ -5533,8 +5531,9 @@ function drawWeaponScrapLabels(){
    ctx.fillStyle="#8df1d2";
    ctx.fillRect(pos.x-44,pos.y,88*Math.min(1,(sentry.salvageOpeningUntil-elapsed)/1.6),2);
   }
-  ctx.fillText(open?"○ 今だ・奪取":guarded?"！番人 残り"+Math.max(living,salvageRemaining(drop))+"体":
-   locked?"！番人 残り"+salvageRemaining(drop)+"体":"？ ガラクタ",pos.x,pos.y-11);
+  const caption=open?"○ 今だ・奪取":guarded?"！番人 残り"+Math.max(living,salvageRemaining(drop))+"体":
+   locked?"！番人 残り"+salvageRemaining(drop)+"体":"？ ガラクタ";
+  ctx.strokeText(caption,pos.x,pos.y-11);ctx.fillText(caption,pos.x,pos.y-11);
   if(++count>=5)break;
  }
  // A living guardian, not an arbitrary nearby predator, carries the combat
@@ -10680,8 +10679,7 @@ function drawMissionChevrons(){
  if(Math.hypot(forward.x-start.x,forward.y-start.y)<8)return;
  const count=waypointDistance>=155&&goalDistance>=190?2:1;
  ctx.save();ctx.setTransform(dpr,0,0,dpr,0,0);
- ctx.textAlign="center";ctx.textBaseline="middle";ctx.lineJoin="round";
- ctx.font="900 "+(vh<=520?18:21)+"px sans-serif";
+ ctx.lineJoin="round";
  for(let i=0;i<count;i++){
   const step=Math.min(waypointDistance*.82,62+i*64);
   const pos=projectGroundLabel(P.x+ux*step,P.y+uy*step);
@@ -10689,8 +10687,9 @@ function drawMissionChevrons(){
      pos.y<Math.min(72,vh*.16)||pos.y>vh-42)continue;
   ctx.save();ctx.translate(pos.x,pos.y);ctx.rotate(bearing);
   ctx.globalAlpha=.68+.15*(.5+.5*Math.sin(elapsed*4-i*.8));
-  ctx.strokeStyle="rgba(4,28,32,.88)";ctx.lineWidth=3.6;ctx.strokeText("〉〉",0,0);
-  ctx.fillStyle="#9ef4de";ctx.fillText("〉〉",0,0);ctx.restore();
+  ctx.beginPath();ctx.moveTo(-4,-4);ctx.lineTo(2,0);ctx.lineTo(-4,4);
+  ctx.strokeStyle="#17332d";ctx.lineWidth=4;ctx.stroke();
+  ctx.strokeStyle="#9ef4de";ctx.lineWidth=2;ctx.stroke();ctx.restore();
  }
  ctx.restore();
 }
@@ -10945,14 +10944,16 @@ function drawWorldSnow2D(snow,viewX,viewY){
   let polygons=volatile?null:snowTiles2D.get(key);
   if(!polygons){
    const points=[[x,y],[x2,y],[x2,y2],[x,y2]].map(([px,py])=>[px,py,mask(px,py)]);
-   polygons=[[0,1,2],[0,2,3]].map(indices=>clip(indices.map(i=>points[i]))).filter(poly=>poly.length>=3);
+   if(points.every(point=>point[2]>=0))polygons=[points];
+   else if(points.every(point=>point[2]<0))polygons=[];
+   else polygons=[[0,1,2],[0,2,3]].map(indices=>clip(indices.map(i=>points[i]))).filter(poly=>poly.length>=3);
    if(!volatile){
     if(snowTiles2D.size>=4096)snowTiles2D.delete(snowTiles2D.keys().next().value);
     snowTiles2D.set(key,polygons);
    }
   }
   for(const poly of polygons){
-   ctx.beginPath();ctx.moveTo(poly[0][0],poly[0][1]);
+   ctx.moveTo(poly[0][0],poly[0][1]);
    for(let i=1;i<poly.length;i++)ctx.lineTo(poly[i][0],poly[i][1]);
    ctx.closePath();
   }

@@ -1,6 +1,9 @@
 // WILD RECLAIM player-visible English translations; Japanese remains the source language.
 // Loaded before i18n.js. Keep gameplay/save keys unchanged.
 window.WildI18nPhrases = [
+ ["東部踏破 8/8","Eastern trail complete · 8/8"],
+ ["水域探索 4/4","Water trail complete · 4/4"],
+ ["食料を置く空きがありません","No room for food here."],
  ["餓死。空腹ゲージが減ったら、地図の食料目印へ。食べ物のそばで○／E。","Starvation. Follow the food marker when hungry and press ○ / E beside food."],
  ["毒で力尽きた。毒が残っている間は、敵から離れて食事で生命を補おう。","Poison. Get away from enemies and eat to recover health while poisoned."],
  ["地割れに落ちた。揺れたら亀裂から離れよう。","Fissure. Move away from cracks when the ground shakes."],
