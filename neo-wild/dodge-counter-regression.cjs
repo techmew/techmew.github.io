@@ -23,3 +23,26 @@ paths.length=0;duel.draw(ctx,a,.90,project);assert.equal(paths.length,0);
 assert(duel.begin(a,m,2,70));a.y-=32;assert(duel.miss(a,m,2.4,clear));assert(!duel.strike(a,m,3.26));
 for(const key of ["strongBoss","salvageCacheId","worldEndBoss","companion"])assert(!duel.begin(a,{...m,[key]:true},4,70));
 console.log("PASS directional evasion, timed cue, identity, single counter, protected encounters");
+function timedEvade(cross,guard=false){
+ const w={};new Function("window",read("dodge-counter.js"))(w);
+ const d=w.WildDodgeCounter,p={x:38,y:0,r:12,hp:80},e={...m,salvageCacheId:guard?"g":null};
+ d.begin(p,e,0,70);p.y=24;d.track(p,cross);
+ assert(d.miss(p,e,.5,clear));return {d,p,e};
+}
+for(const guard of [false,true]){
+ const {d,p}=timedEvade(.38,guard);
+ assert.equal(d.timeScale(p,.016),.22);
+ assert(d.timeScale(p,.23)>.22);
+ assert.equal(d.timeScale(p,.21),1);
+}
+{
+ const {d,p}=timedEvade(.18);assert.equal(d.timeScale(p,.016),1);
+ const late=timedEvade(.48);assert.equal(late.d.timeScale(null,.02),1);assert.equal(late.d.timeScale(late.p,.02),1);
+}
+const burstStart=src.indexOf("function drawContactBurst(");
+const burst=new Function(src.slice(burstStart,src.indexOf("function drawCombatFX(",burstStart))+"return drawContactBurst")();
+for(const [style,polygons] of [["claw",4],["jaw",3],["body",9]]){
+ paths.length=0;burst(ctx,{x:2,y:3},1,12,.25,style,"#fff");
+ assert.equal(paths.filter(([k])=>k==="closePath").length,polygons);
+ assert.equal(paths.filter(([k])=>k==="fill").length,2);
+}

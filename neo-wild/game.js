@@ -4311,6 +4311,32 @@ function tickCombatFX(dt){
   if(combatFX[i].time>=combatFX[i].last)combatFX.splice(i,1);
  }
 }
+// The silhouette is built at the projected impact point and batched into two paints.
+function drawContactBurst(c,origin,angle,size,u,style,color){
+ const expand=1-(1-u)*(1-u);
+ c.save();c.translate(origin.x,origin.y);c.rotate(angle);
+ c.scale(size,size);c.globalAlpha=(1-u)*.9;c.fillStyle=color;c.beginPath();
+ if(style==="claw"||style==="paw"||style==="wing"){
+  for(let k=-1;k<=1;k++){
+   const y=k*.32,tip=.75+expand*1.8;
+   c.moveTo(-.65+u*.7,y+.4);c.quadraticCurveTo(.3,y-.18,tip,y-.65);
+   c.quadraticCurveTo(.35,y+.14,-.65+u*.7,y+.4);c.closePath();
+  }
+ }else if(style==="jaw"||style==="beak"||style==="tusk"||style==="horn"){
+  for(const side of [-1,1]){
+   const h=side*(.44+.65*expand);
+   c.moveTo(-.85,h);c.lineTo(.5+expand,side*.12);c.lineTo(-.24,h+side*.22);c.closePath();
+  }
+ }else{
+  for(let k=0;k<8;k++){
+   const a=k*Math.PI/4,l=(k%2?1.2:1.65)*(.5+expand);
+   c.moveTo(.26*Math.cos(a-.45),.21*Math.sin(a-.45));c.lineTo(l*Math.cos(a),l*.72*Math.sin(a));
+   c.lineTo(.26*Math.cos(a+.45),.21*Math.sin(a+.45));c.closePath();
+  }
+ }
+ c.fill();c.fillStyle="#fff4d2";c.globalAlpha=Math.max(0,1-u*2.4);
+ c.beginPath();c.moveTo(-.62,0);c.lineTo(0,-.24);c.lineTo(1+expand,0);c.lineTo(0,.24);c.closePath();c.fill();c.restore();
+}
 function drawCombatFX(){
  if(mode==="dying"||mode==="over")return;
  if(!combatFX.length){drawMacaqueStones();return;}
@@ -4364,13 +4390,22 @@ function drawCombatFX(){
    const water=fx.surface==="water",snow=fx.surface==="snow",guard=fx.kind==="guard";
    const tint=guard?"#eee6c6":water?"#adede5":snow?"#f4fafb":"#c7a27e";
    const spread=1-Math.pow(1-u,2);
+   const origin=pt(0,0,r*.42),ahead=pt(r,0,r*.42);
+   if(origin&&ahead&&!guard){
+    const style=combatMotion(fx.type,fx.step||1,fx.kind!=="melee");
+    drawContactBurst(ctx,origin,Math.atan2(ahead.y-origin.y,ahead.x-origin.x),
+     Math.min(42,Math.max(12,r*zoom)),u,style,water?"#91eaff":snow?"#dfedff":"#ffb362");
+   }
    if(water)oval(pt(0,0),r*(.32+spread),r*(.13+spread*.38),tint,.82);
-   for(let k=0;k<5;k++){
-    const ray=(k-2)*.53,travel=r*(.16+spread*(k%2?.78:1.18));
-    const lift=r*(.28+Math.sin(u*Math.PI)*(water?.91:snow?.70:.48));
-    const dx=Math.cos(ray)*travel,dy=Math.sin(ray)*travel;
-    trace([pt(dx*.73,dy*.73,lift),pt(dx,dy,lift+r*(guard?.22:.10))],
-     guard?2.8:water?2.2:3.1,tint,.9);
+   if(origin&&ahead){
+    ctx.save();ctx.translate(origin.x,origin.y);ctx.rotate(Math.atan2(ahead.y-origin.y,ahead.x-origin.x));
+    ctx.strokeStyle=tint;ctx.lineWidth=(guard?2:1.6)*zoom;ctx.globalAlpha=fade;ctx.beginPath();
+    for(let k=-2;k<=2;k++){
+     const ray=k*.53,length=Math.min(52,r*zoom)*(.25+spread*(k%2?1.15:1.65));
+     const dx=Math.cos(ray)*length,dy=Math.sin(ray)*length;
+     ctx.moveTo(dx*.7,dy*.7);ctx.lineTo(dx,dy);
+    }
+    ctx.stroke();ctx.restore();
    }
    if(guard)curve(pt(0,-r*.44,r*.35),pt(-r*.35,0,r*.9),pt(0,r*.44,r*.35),3,tint,.9);
    continue;
@@ -5177,6 +5212,7 @@ function weaponHitDamage(enemy,amount){
  const equippedDamage=window.WildArsenal?.damage?.(P,enemy,amount)??amount;
  if(enemy?.salvageCacheId&&enemy.salvageOpeningUntil>elapsed&&equippedDamage>0){
   enemy.salvageOpeningUntil=0;
+  window.WildDodgeCounter?.strike(P,enemy,elapsed);
   label(enemy.x,enemy.y-(enemy.r||18)-36,"見切り反撃 ＋30％","#a1f4db");
   return Math.round(equippedDamage*1.30);
  }
@@ -8651,6 +8687,7 @@ function update(dt){
  updateFieldQuest();
  if(strongRegionCurrent!==strongHabitatKey(P.x,P.y))enterStrongStage();
  maintainBossHunter();
+ window.WildDodgeCounter?.track(P,elapsed);
  const chaseRange=weather==="FOG"?195:260;
  for(const m of mobs){
   if(P.hp<=0)break; // A fatal hit ends this frame; no extra attackers or stacked damage.
@@ -11264,7 +11301,8 @@ function loop(t){
  // advance while selecting a scenario. Closing it resumes the actual event.
  if(!window.WildDebugMode?.open)window.WildGamepad?.poll?.(dt);
  if(mode==="play"&&!window.WildDebugMode?.open)presentQueuedBossRecruit();
- if(mode==="play"&&!window.WildDebugMode?.open)update(dt*(t<huntSlowUntil?.28:1));
+ const dodgeScale=window.WildDodgeCounter?.timeScale(mode==="play"&&!window.WildDebugMode?.open?P:null,frameSeconds)??1;
+ if(mode==="play"&&!window.WildDebugMode?.open)update(dt*Math.min(dodgeScale,t<huntSlowUntil?.28:1));
  else if(mode==="dying"&&!window.WildDebugMode?.open)advanceDeath(Math.min(.20,frameSeconds));
  else huntSlowUntil=0;
  // Freeze 2D/WebGL gameplay behind achievement and tutorial.
