@@ -2739,6 +2739,8 @@ function render(o){
   // Continuous snow coverage sampled in world coordinates. Adjacent mesh
   // triangles share identical edge intersections; no square tile silhouettes.
   const snow=clamp(o.snowpack||0,0,1);
+  // Rebuild visual snow only at 5% intervals; precise physics is unchanged.
+  const renderSnow=Math.round(snow*20)/20;
   // Permanent high-altitude snow remains visible in clear weather. Avoid
   // tessellating the entire city when there is no falling/ground snow.
   const snowMountain=window.WildMountain;
@@ -2754,7 +2756,7 @@ function render(o){
   // Recheck water and disaster state every five seconds without recomputing per frame.
   const flood=(o.disasterEvents||[]).find(e=>e.kind==="flood"&&elapsed/120>=e.year&&elapsed/120<e.year+e.duration);
   const snowKey=[snowCellX,snowCellY,vw,vh,Math.round(VIEW.a*8),Math.round(VIEW.b*8),Math.round(VIEW.c*8),Math.round(VIEW.d*8),
-   WORLD.w,WORLD.h,snow.toFixed(3),alpineInView?1:0,flood?Math.floor(elapsed/5):-1,flood?.x,flood?.y].join(":");
+   WORLD.w,WORLD.h,renderSnow.toFixed(2),alpineInView?1:0,flood?Math.floor(elapsed/5):-1,flood?.x,flood?.y].join(":");
   if(snowKey!==snowCacheKey){
    // Spread expensive snow contour clipping across frames. Retain the last
    // finished GPU buffer until the new field is complete; never stall the
@@ -2763,14 +2765,14 @@ function render(o){
     snowBuild={key:snowKey,x:NaN,y:NaN,parts:[],floats:0};
    const build=snowBuild,snowDataStart=meshLength;
    let complete=true;
-   if(snow>.06||alpineInView){
+   if(renderSnow>.06||alpineInView){
    // Mobile GPU needs fewer ground triangles. Retain the same smooth
    // world-space contour and 8-edge fan, with a modestly wider sampling grid.
-   const step=dpr>=1.25?64:48,margin=snowViewMargin;
-   const firstX=Math.max(snow>.06?0:8300,Math.floor((snowAnchorX-margin)/step)*step);
-   const firstY=Math.max(snow>.06?0:2600,Math.floor((snowAnchorY-margin)/step)*step);
-   const endX=Math.min(snow>.06?WORLD.w:13600,snowAnchorX+vw+margin);
-   const endY=Math.min(snow>.06?WORLD.h:5100,snowAnchorY+vh+margin);
+   const step=dpr>=1.25?96:72,margin=snowViewMargin;
+   const firstX=Math.max(renderSnow>.06?0:8300,Math.floor((snowAnchorX-margin)/step)*step);
+   const firstY=Math.max(renderSnow>.06?0:2600,Math.floor((snowAnchorY-margin)/step)*step);
+   const endX=Math.min(renderSnow>.06?WORLD.w:13600,snowAnchorX+vw+margin);
+   const endY=Math.min(renderSnow>.06?WORLD.h:5100,snowAnchorY+vh+margin);
    // Batch-local world-coordinate caches share edge heights and snow masks.
    // Snow geometry does not need rebuilding with every moving animal.
    const heightCache=new Map(),maskCache=new Map();
@@ -2783,7 +2785,7 @@ function render(o){
     heightCache.set(k,safe);return safe;
    };
    const water=typeof o.waterAt==="function"?o.waterAt:null;
-   const snowZ=1.15+snow*.48;
+   const snowZ=1.15+renderSnow*.48;
    // Smooth lattice noise is stable across cells and camera movement.
    const hash=(ix,iy)=>detailNoise(ix*17.13+iy*43.71);
    const smooth=(v)=>v*v*(3-2*v);
@@ -2805,8 +2807,8 @@ function render(o){
     const waterMask=water?clamp((.015-water(px,py))/.015,0,1):1;
     // Align visible mountain snow with the continuous elevation/slope field used by terrain.
     const alpine=typeof window.WildMountain?.snowCover==="function"?window.WildMountain.snowCover(px,py):0;
-    const weatherField=snow*.97-(broad*.78+fine*.22);
-    const alpineField=alpine>0?alpine*(.28+.45*snow)-.13:-1;
+    const weatherField=renderSnow*.97-(broad*.78+fine*.22);
+    const alpineField=alpine>0?alpine*(.28+.45*renderSnow)-.13:-1;
     const result=Math.min(Math.max(weatherField,alpineField),waterMask-.5);
     maskCache.set(key,result);
     return result;
@@ -2861,7 +2863,7 @@ function render(o){
    };
    if(!Number.isFinite(build.x)){build.x=firstX;build.y=firstY;}
    // Maximum snow tiles generated in a single rendered frame.
-   let budget=dpr>=1.25?160:280;
+   let budget=dpr>=1.25?72:120;
    snowRows: for(let x=build.x;x<endX;x+=step){
     for(let y=x===build.x?build.y:firstY;y<endY;y+=step){
      if(budget--<=0){

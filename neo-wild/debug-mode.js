@@ -79,7 +79,7 @@ panel.innerHTML=[
 '<button type="button" data-action="tutorial-stage">指定の段階へ移動</button>',
 '<button type="button" data-action="tutorial-stop" class="wr-danger">テストを終了し、元に戻す</button>',
 '</div></details>',
-'<details class="wr-section"><summary>2. 強敵20種類を試す</summary><div class="wr-inside">',
+'<details class="wr-section"><summary>2. 強敵・最終ボス21種類を試す</summary><div class="wr-inside">',
 '<p class="wr-mini">名前を選び、地域へ移動して1体出現させます。強敵は同時に1体まで。</p>',
 '<label>強敵の種類<select id="wr-debug-boss"></select></label>',
 '<p class="wr-note" id="wr-debug-boss-info">強敵を読み込み中</p>',
@@ -101,7 +101,7 @@ panel.innerHTML=[
 '</div></details>',
 '<details class="wr-section"><summary>4. 時刻・天候・場所を試す</summary><div class="wr-inside">',
 '<div class="wr-row"><label>時刻<select id="wr-debug-hour"><option value="6">06時 朝</option><option value="12">12時 昼</option><option value="17">17時 夕方</option><option value="21">21時 夜</option><option value="0">00時 深夜</option></select></label>',
-'<label>天気<select id="wr-debug-weather"><option value="auto">通常（自動）</option><option value="CLEAR">晴れ</option><option value="CLOUDY">曇り</option><option value="RAIN">雨</option><option value="THUNDER">雷雨</option><option value="WIND">強風</option><option value="FOG">霧</option></select></label></div>',
+'<label>天気<select id="wr-debug-weather"><option value="auto">通常（自動）</option><option value="CLEAR">晴れ</option><option value="CLOUDY">曇り</option><option value="RAIN">雨</option><option value="THUNDER">雷雨</option><option value="WIND">強風</option><option value="FOG">霧</option><option value="SNOW">雪・積雪（負荷検証）</option></select></label></div>',
 '<div class="wr-row"><button type="button" data-action="hour">時刻を適用</button><button type="button" data-action="weather">天気を適用</button></div>',
 '<label>移動先<select id="wr-debug-location"><option value="home">巣周辺</option><option value="zoo">廃動物園</option><option value="forest">森林</option><option value="factory">工業区</option><option value="canal">運河沿い</option><option value="river">河川敷</option></select></label>',
 '<button type="button" data-action="warp">選んだ場所へ移動</button>',
@@ -316,7 +316,12 @@ function fillOptions(){
 }
 function updateBossInfo(){
  const b=bridge()?.listBosses?.().find(x=>x.id===$("wr-debug-boss").value);
- $("wr-debug-boss-info").textContent=b?"獲得能力："+b.effect+" ／ 出現地域："+b.regions.join("・"):"ゲームを読み込むと20種類から選べます";
+ $("wr-debug-boss-info").textContent=b?(b.id==="worldEnd"?"最終ボス：":"獲得能力：")+b.effect+" ／ 出現地域："+b.regions.join("・"):"ゲームを読み込むと強敵を選べます";
+ const final=b?.id==="worldEnd";
+ for(const action of ["boss-area","boss-trophy"]){
+  const button=panel.querySelector('[data-action="'+action+'"]');
+  if(button)button.disabled=final;
+ }
 }
 $("wr-debug-boss").addEventListener("change",updateBossInfo);
 function render(){

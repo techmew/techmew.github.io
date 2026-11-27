@@ -38,9 +38,13 @@ frames(140);
 ok(gl.uploads.length===1&&env.snowRebuilds===1,"complete snow uploads exactly once");
 ok(env.snowCount>0,"real snow geometry reaches GPU");
 const mobileSize=gl.uploads[0].length;
-ok(mobileSize<600000,"adaptive mobile grid reduces GPU vertex volume");
+ok(mobileSize<330000,"adaptive mobile grid cuts GPU vertex volume further");
 frames(60);
 ok(gl.uploads.length===1,"unchanged snow state does not rebuild");
+env.o.snowpack=.662;
+frames(60);
+ok(gl.uploads.length===1,"tiny snowpack fluctuations do not trigger GPU rebuild");
+env.o.snowpack=.66;
 env.cam.x+=256;
 frames(140);
 ok(gl.uploads.length===2,"new camera sector updates snow surface");
@@ -72,6 +76,6 @@ const drawFallback=new Function("env","with(env){"+game.slice(drawStart,drawEnd)
 });
 drawFallback(1,0,0);
 ok(paints===1&&painted===8,"four solid tiles and four shoreline triangles survive one paint");
-ok(index.includes("webgl3d.js?rev=snow-frame-budget-20261124")&&
+ok(index.includes("webgl3d.js?rev=debug-end-snow-lod-20261127")&&
    /game\.js\?rev=[\w-]+/.test(index),"cache revisions include both fixes");
 console.log("SNOW GPU/CPU BUDGET PASS "+checks+" checks, mobile mesh "+mobileSize+" floats (mock, not Android FPS)");

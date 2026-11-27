@@ -8413,8 +8413,10 @@ function update(dt){
  window.WildTrophies?.record?.("weather",{weather},notify);
  window.WildTrophies?.record?.("progress",{level:P.level},notify);
  if(currentWorldYear!==previousWorldYear)notify(currentWorldYear+"年目",2.6);
- if(currentWorldYear>=100&&!debugTutorialSession){
-  window.WildWorldEnd?.tick?.({P,mobs,year:currentWorldYear,elapsed,dt,WORLD,collides,notify,
+ if((currentWorldYear>=100||(window.WildDebugSandbox?.active===true&&mobs.some(m=>m.worldEndBoss&&m.hp>0)))&&!debugTutorialSession){
+  // An explicit QA summon uses the real 100-year boss combat, without
+  // advancing the game clock or opening early summons in normal play.
+  window.WildWorldEnd?.tick?.({P,mobs,year:Math.max(100,currentWorldYear),elapsed,dt,WORLD,collides,notify,
    onSpawn:()=>{
     worldEventJournal.push({year:currentWorldYear,at:Date.now(),kind:"world-end",
      label:"世界100年：この世の終わりが現れた"});
@@ -12366,10 +12368,26 @@ window.WildDebugBridge={
   syncHUD(Math.floor(dayLightProfile(elapsed).hour));
   return saveAuto();
  },
- listBosses(){return Object.keys(STRONG_TRAITS).map(id=>({id,name:STRONG_NAMES[id],effect:STRONG_TRAITS[id].effect,regions:Object.entries(STRONG_REGIONS).filter(([,types])=>types.includes(id)).map(([index])=>districts[Number(index)])}));},
+ listBosses(){
+  const bosses=Object.keys(STRONG_TRAITS).map(id=>({id,name:STRONG_NAMES[id],effect:STRONG_TRAITS[id].effect,
+   regions:Object.entries(STRONG_REGIONS).filter(([,types])=>types.includes(id)).map(([index])=>districts[Number(index)])}));
+  bosses.push({id:"worldEnd",name:"この世の終わり（最終ボス）",
+   effect:"8触手で実戦闘（QA専用・通常は世界100年で出現）",regions:["現在地付近"]});
+  return bosses;
+ },
  bossState(){const boss=strongBossAlive();return boss?{id:boss.type,name:STRONG_NAMES[boss.type]||boss.type,hp:Math.max(0,Math.ceil(boss.hp))}:null;},
  spawnBoss(type){
-  if(mode!=="play"||!P||!Object.prototype.hasOwnProperty.call(STRONG_TRAITS,type)||strongBossAlive())return false;
+  if(mode!=="play"||!P||strongBossAlive())return false;
+  if(type==="worldEnd"){
+   if(window.WildDebugSandbox?.active!==true||!window.WildWorldEnd?.tick)return false;
+   const state=window.WildWorldEnd.read?.();
+   if(state?.stage==="corrupt")return false;
+   if(state?.stage==="defeated"&&!window.WildWorldEnd.reset?.())return false;
+   const success=window.WildWorldEnd.tick({P,mobs,year:100,elapsed,dt:0,WORLD,collides,notify});
+   if(!success||!mobs.some(m=>m.worldEndBoss&&m.hp>0))return false;
+   syncHUD(Math.floor(dayLightProfile(elapsed).hour));saveAuto();return true;
+  }
+  if(!Object.prototype.hasOwnProperty.call(STRONG_TRAITS,type))return false;
   const success=spawnStrongBoss(type,regionAt(P.x,P.y));
   if(success){syncHUD(Math.floor(dayLightProfile(elapsed).hour));saveAuto();}
   return success;
@@ -12378,11 +12396,23 @@ window.WildDebugBridge={
   if(mode!=="play"||!P)return false;
   const boss=strongBossAlive();if(!boss)return false;
   const index=mobs.indexOf(boss);if(index<0)return false;
+  if(boss.worldEndBoss){
+   if(window.WildDebugSandbox?.active!==true)return false;
+   const state=window.WildWorldEnd?.read?.();
+   // A debug clear must also suppress a new spawn on the next YEAR 100 tick.
+   if(state?.stage!=="active"||!window.WildWorldEnd.persist?.({...state,stage:"defeated",
+    hp:0,defeatedYear:Math.floor(elapsed/120),updatedAt:Date.now()}))return false;
+  }
   mobs.splice(index,1);saveAuto();return true;
  },
  weakenBoss(){
   if(mode!=="play"||!P)return false;
   const boss=strongBossAlive();if(!boss)return false;
+  if(boss.worldEndBoss){
+   if(window.WildDebugSandbox?.active!==true)return false;
+   const state=window.WildWorldEnd?.read?.();
+   if(state?.stage!=="active"||!window.WildWorldEnd.persist?.({...state,hp:1,updatedAt:Date.now()}))return false;
+  }
   boss.hp=1;boss.attack=0;boss.windup=0;boss.chargeTime=0;saveAuto();return true;
  },
  giveTrophy(type){
