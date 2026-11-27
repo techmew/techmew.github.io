@@ -105,7 +105,7 @@ function writeVertex(p,nx,ny,nz,t){
 function triangle(a,b,c,t){
  const ux=b[0]-a[0],uy=b[1]-a[1],uz=b[2]-a[2],vx=c[0]-a[0],vy=c[1]-a[1],vz=c[2]-a[2];
  let nx=uy*vz-uz*vy,ny=uz*vx-ux*vz,nz=ux*vy-uy*vx;
- const len=Math.hypot(nx,ny,nz)||1;nx/=len;ny/=len;nz/=len;
+ const len=Math.sqrt(nx*nx+ny*ny+nz*nz)||1;nx/=len;ny/=len;nz/=len;
  reserveTriangle();writeVertex(a,nx,ny,nz,t);writeVertex(b,nx,ny,nz,t);writeVertex(c,nx,ny,nz,t);
 }
 function quad(a,b,c,d,t){triangle(a,b,c,t);triangle(a,c,d,t)}
@@ -141,21 +141,22 @@ function ellipsoid(x,y,z,rx,ry,rz,col,heading=0,segments=9,rings=5){z+=animalLif
   grid={unit:[],world:[]};
   for(let j=0;j<=rings;j++)for(let i=0;i<=segments;i++){
    const phi=-Math.PI/2+j*Math.PI/rings,theta=i*TAU/segments;
-   grid.unit.push([Math.cos(phi),Math.cos(theta),Math.sin(theta),Math.sin(phi)]);
+   const radial=(j===0||j===rings)?0:Math.cos(phi);
+   grid.unit.push([radial*Math.cos(theta),radial*Math.sin(theta),Math.sin(phi)]);
    grid.world.push([0,0,0]);
   }
   sphereGrids.set(key,grid);
  }
  const c=color(col),cos=Math.cos(heading),sin=Math.sin(heading),points=grid.world;
  for(let i=0;i<points.length;i++){
-  const unit=grid.unit[i],v=points[i],lx=rx*unit[0]*unit[1],ly=ry*unit[0]*unit[2];
-  v[0]=x+lx*cos-ly*sin;v[1]=y+lx*sin+ly*cos;v[2]=z+rz*unit[3];
+  const unit=grid.unit[i],v=points[i],lx=rx*unit[0],ly=ry*unit[1];
+  v[0]=x+lx*cos-ly*sin;v[1]=y+lx*sin+ly*cos;v[2]=z+rz*unit[2];
   if(animalCollapseTransform)points[i]=collapseVertex(v);
  }
  for(let j=0;j<rings;j++)for(let i=0;i<segments;i++){
   const a=j*(segments+1)+i,b=a+segments+1;
   if(j>0)triangle(points[a],points[a+1],points[b+1],c);
-  triangle(points[a],points[b+1],points[b],c);
+  if(j<rings-1)triangle(points[a],points[b+1],points[b],c);
  }
 }
 

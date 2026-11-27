@@ -27,3 +27,9 @@ assert.equal(renderer.stats.staticRebuilds,1);
 scene.cam.x+=170;assert(renderer.render(scene));assert.equal(renderer.stats.staticRebuilds,2);
 scene.vw++;assert(renderer.render(scene));assert.equal(renderer.stats.staticRebuilds,3);
 console.log("City boundary reuse, travel, resize and verified save ownership passed.");
+scene.mobs=["cat","dog","fox","wolf"].map((type,i)=>({
+ type,id:i+1,x:scene.cam.x+120+i*40,y:scene.cam.y+300,r:16,hp:10,flash:.18,dir:0
+}));
+assert(renderer.render(scene));
+assert(renderer.stats.dynamicTriangles>0 && renderer.stats.dynamicTriangles<=5000,"four combat models exceed the triangle budget");
+console.log("Combat triangles",renderer.stats.dynamicTriangles);
