@@ -4054,7 +4054,7 @@ async function recaptureRacePhoto(){
    renderer.setRenderTarget(null);
    renderer.render(ceremonyStage.scene,ceremonyStage.camera);
    if(captureCeremonyPhoto())break;
-   if(attempt<3&&!await waitForPodiumFrames(2,900))break;
+   if(attempt<3&&!await waitForPodiumFrames(2,900))console.warn('Podium frame wait timed out; continuing lower-resolution capture');
   }
   if(!isCurrent())return false;
   if(!racePicture){$('shareHelp').textContent='3D表彰台の撮影に失敗しました。再撮影できます。';return false}
@@ -4388,7 +4388,7 @@ function frame(){requestAnimationFrame(frame);
  }
  const previewSpeed=mode==='beasts'?(previewGait==='heavyTrot'||previewGait==='giantBiped'||previewGait==='giantQuad'?5.4:previewGait==='kangarooHop'||previewGait==='bound'||previewGait==='pronk'?8.2:previewGait==='mechanicalRun'?6.5:10):0;
  const espeed=visualSky?(race.pegasusFlightSpeed||22):mode==='race'&&race?.phase==='running'&&race.eFinish===null?(race.enemyV||0):previewSpeed;
- if(hspeed>.13)humanGait+=dt*(6.8+clamp(hspeed/8,0,1.7)*4.3);if(espeed>.13)beastGait+=dt*animalGaitRate(animals[Number.isInteger(race?.opponentIndex)?race.opponentIndex:save.chosen].kind,espeed);human.resetComedy();human.animate(humanGait,hspeed,mode==='race'?race.stamina:1,mode==='race'?race.legTaps:null,mode==='race'?race.time:0,dt);if(hspeed>.13&&race.legTaps&&!race.hitMotion)human.applyComedy(save.stats,humanGait,race.time,race.legTaps,race.burstLeft>0);
+ if(hspeed>.13)humanGait+=dt*(6.8+clamp(hspeed/8,0,1.7)*4.3);if(espeed>.13)beastGait+=dt*animalGaitRate(animals[Number.isInteger(race?.opponentIndex)?race.opponentIndex:save.chosen].kind,espeed);human.resetComedy();human.animate(humanGait,hspeed,mode==='race'?race.stamina:1,mode==='race'?race.legTaps:null,mode==='race'?race.time:0,dt);if(mode==='race'&&race?.phase==='running'&&hspeed>.13&&race.legTaps&&!race.hitMotion)human.applyComedy(save.stats,humanGait,race.time,race.legTaps,race.burstLeft>0);
  
  if(mode==='race'&&race?.phase==='running'){
  const h=race.hitMotion;
