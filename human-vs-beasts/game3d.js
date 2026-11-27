@@ -309,6 +309,51 @@ function buildStadium(){
 buildStadium();
 function lineShadow(parent,scale=1){const shadow=new T.Mesh(new T.CircleGeometry(1,20),new T.MeshBasicMaterial({color:0x09141b,transparent:true,opacity:.22,depthWrite:false}));shadow.rotation.x=-Math.PI/2;shadow.scale.set(scale,.5*scale,1);shadow.position.y=.115;parent.add(shadow);return shadow}
 const humanX=-1.6,animalX=1.6;
+// Cosmetic training rewards: no race physics or save-format change.
+function humanComedyPose(stats,t,time,L,R,burst){
+ const lv=k=>clamp(Number(stats[k])||1,1,50),s=lv('speed'),p=lv('power'),h=lv('stamina'),f=lv('technique');
+ const v=(s-1)/49,b=(p-1)/49,c=(h-1)/49,phase=t*(1+v*1.7)*(burst?1.3:1),spin=t*(1+v*3)*(burst?1.3:1),w=Math.sin(phase),pulse=Math.max(L,R);
+ const q={kind:'run',rx:0,ry:0,rz:0,tx:-.14-b*.22*pulse,ty:0,tz:(L-R)*.07,drop:0,hx:0,hy:0,hz:0,cheek:1,chest:1,yawn:0,legs:[],arms:[]};
+ for(let i=0;i<2;i++){
+  const d=i===0?-1:1,foot=i===0?L:R,opp=i===0?R:L,a=phase+i*Math.PI;
+  let hip=foot*(.65+1.8*v),knee=foot*(.65+.7*v),spread=d*.18*v;
+  if(s>=20){hip+=Math.sin(a)*(.35+v*.65);spread+=d*.65*foot;}
+  if(s>=30){hip=spin*(s>=50?1.65:s>=40?1.3:1)+i*Math.PI+foot*.3;knee=.3+.9*Math.abs(Math.sin(a));}
+  let arm=-opp*(.6+1.5*b),elbow=-.32-opp*.55,az=d*(.1+.2*b);
+  if(p>=20)az+=d*Math.sin(a)*b*.7;
+  if(p>=40){arm=spin*.8+i*Math.PI;elbow=-.25-.55*Math.abs(w);}
+  q.legs.push([hip,knee,spread]);q.arms.push([arm,elbow,az]);
+ }
+ if(p>=10)q.drop=-b*.12*pulse;
+ if(p>=30)q.tx-=b*.25*pulse;
+ if(p>=50){q.tx+=.75*pulse;q.hx=-.5*pulse;q.hz=(L-R)*.28;}
+ if(h>=10)q.chest=1+c*.16*(1+Math.sin(t*.8));
+ if(h>=20)q.cheek=1+c*(.85+.65*Math.sin(t*.7));
+ if(h>=30)q.chest=1+c*(.23+.32*Math.sin(t*.9));
+ if(h>=40)q.yawn=Math.pow(Math.max(0,Math.sin(time*1.8)),8);
+ if(h>=50){q.hx=.30+.15*Math.sin(t*.25);q.yawn=.25+.25*Math.pow(Math.max(0,Math.sin(time)),6);}
+ const limbs=(list,fn)=>list.forEach((a,i)=>fn(a,i,i===0?-1:1,Math.sin(phase+i*Math.PI)));
+ if(f>=5&&f<10){q.kind='windmill';limbs(q.arms,(a,i)=>a[0]=spin+i*Math.PI);}
+ if(f>=10&&f<15){q.kind='racewalk';q.ty=w*.55;q.tz=w*.5;limbs(q.legs,(a,i,d,z)=>{a[0]+=z*.65;a[2]+=d*.32;});}
+ if(f>=15&&f<20){q.kind='crab';q.ry=Math.PI*.5;q.drop-=.24;limbs(q.legs,(a,i,d,z)=>{a[0]=.45+.5*(i===0?L:R);a[1]=.75;a[2]=d*(.45+.48*z);});limbs(q.arms,(a,i,d)=>{a[0]=-.65;a[1]=-1.35;a[2]=d*1.05;});}
+ if(f>=20&&f<25){q.kind='backward';q.ry=Math.PI;q.hy=.55*Math.sin(time*2);}
+ if(f>=25&&f<30){q.kind='quadruped';q.rx=Math.PI*.48;limbs(q.legs,(a,i,d,z)=>{a[0]=-1+z*(.8+v);a[1]=.85;});limbs(q.arms,(a,i,d,z)=>{a[0]=1.05+z*(.85+b);a[1]=-.45;});}
+ if(f>=30&&f<35){q.kind='gorilla';q.tx=.95;q.drop=-.35;limbs(q.legs,(a,i,d,z)=>{a[0]=-.3+z*(.9+v);a[1]=.65;});limbs(q.arms,(a,i,d,z)=>{a[0]=z*(1.1+b);a[1]=-.14;a[2]=d*.22;});}
+ if(f>=35&&f<40){q.kind='handstand';q.rz=Math.PI;limbs(q.legs,(a,i,d,z)=>{a[0]=z*(.35+v*.35);a[1]=.35;a[2]=d*.28;});limbs(q.arms,(a,i,d,z)=>{a[0]=Math.PI+z*(.42+b*.3);a[1]=-.1;a[2]=d*.13;});}
+ if(f>=40&&f<45){q.kind='bridge';q.rx=-1.25;q.tx=-1.1;limbs(q.legs,(a,i,d,z)=>{a[0]=1+z*.55;a[1]=1.3;});limbs(q.arms,(a,i,d,z)=>{a[0]=-2.15+z*.45;a[1]=-.4;});}
+ if(f>=45&&f<50){q.kind='twist';q.ty=spin*.75;q.tz=w*.18;}
+ if(f>=50){q.kind='wheel';q.rx=spin*.72;q.tx=.78;limbs(q.legs,(a,i,d,z)=>{a[0]=-1.65+.35*z;a[1]=1.8;});limbs(q.arms,(a,i,d)=>{a[0]=-1.25;a[1]=-1.8;a[2]=d*.18;});}
+ if(h>=50&&p<40&&['run','windmill','racewalk','backward','twist'].includes(q.kind))limbs(q.arms,(a,i,d)=>{a[0]=-2.75;a[1]=-1.65;a[2]=d*.75;});
+ if(s>=50&&p>=50&&h>=50&&f>=50){
+  const n=Math.floor(Math.max(0,time)/2.2)%5;q.rx=q.ry=q.rz=q.tx=q.ty=q.tz=q.drop=0;
+  if(n===0){q.kind='max-reclining';q.rx=-Math.PI*.5;limbs(q.legs,(a,i)=>{a[0]=spin+i*Math.PI;a[1]=.7;});limbs(q.arms,a=>{a[0]=-2.65;a[1]=-1.65;});}
+  if(n===1){q.kind='max-kneeling';q.drop=-.64;limbs(q.legs,a=>{a[0]=-.05;a[1]=2.55;});limbs(q.arms,(a,i,d,z)=>{a[0]=-.72+.12*z;a[1]=-1.25;});q.tz=w*.14;}
+  if(n===2){q.kind='max-wheel';q.rx=spin*.82;q.tx=.88;limbs(q.legs,a=>{a[0]=-1.75;a[1]=2.15;});limbs(q.arms,a=>{a[0]=-1.45;a[1]=-1.85;});}
+  if(n===3){q.kind='max-wave';q.ry=Math.PI*.5;limbs(q.legs,(a,i)=>{a[0]=spin+i*Math.PI;a[1]=.55;});q.arms[0]=[-2.8,-.65+w*.55,-.65];q.arms[1]=[-.35,-1.1,.12];q.hy=.4;}
+  if(n===4){q.kind='max-footclap';q.rz=Math.PI;limbs(q.legs,(a,i,d)=>{a[0]=.15;a[1]=.25;a[2]=d*(.1+.85*Math.abs(w));});limbs(q.arms,(a,i,d,z)=>{a[0]=Math.PI+z*.62;a[1]=-.16;});}
+ }
+ return q;
+}
 function makeRawHuman(a){
  const morph=k=>clamp((Number(a[k]??defaultAvatar[k]??50)-50)/50,-1,1);
  const root=new T.Group(),skeleton=new T.Group();root.add(skeleton);
@@ -332,7 +377,7 @@ function makeRawHuman(a){
  if(a.shirtStyle%3===2){box(torso,.48,.095,.04,white,0,.3,.244)}if(a.shirtStyle>=4){for(let s of [-1,1])box(torso,.035,.46,.024,white,s*.25,.34,.20,true)}
  if(a.topPattern>0){for(let i=0;i<Math.min(5,a.topPattern);i++)box(torso,.23,.025,.025,a.topPattern%2?white:dark,0,.15+i*.10,.255,true)}
  // shoulder joints and articulated arms
- const arms=[],legs=[];
+ const arms=[],legs=[],cheeks=[];
  for(const side of [-1,1]){
   const sh=new T.Group();sh.position.set(side*.42*bulky*shoulderWidth,.72,-.01);sh.scale.set(armBulk,armLength,armBulk);torso.add(sh);
   ball(sh,shirt,0,-.1,0,.158,.185,.165);
@@ -367,10 +412,10 @@ function makeRawHuman(a){
   const ew=(.037+a.eyes*.0017)*(1+.25*morph('eyeWidth')),eh=(.018+a.eyes*.00085)*(1+.25*morph('eyeHeight'));const e=ball(head,white,eyeX,eyeY,eyeZ,ew,eh,.011,24);e.rotation.z=side*morph('eyeTilt')*.20;ball(head,skin,eyeX,eyeY+eh*.95+.007*morph('eyelid'),eyeZ+.008,ew*1.12,.012+.007*morph('eyelid'),.014,20);
   ball(head,iris,eyeX,eyeY,eyeZ+.012,.014+.004*morph('irisSize'),.016+.006*morph('irisSize'),.006,24);ball(head,dark,eyeX,eyeY,eyeZ+.018,.006,.009,.004,16);ball(head,white,eyeX-.005,eyeY+.006,eyeZ+.023,.003,.003,.002,12);
   const brow=ball(head,hair,eyeX+side*.016*morph('browGap'),.296+(a.brow-5)*.006+.026*morph('browHeight'),faceZ*.95,.08*(1+.30*morph('browLength')),.014+a.brow*.001+.008*morph('browThick'),.018,20);brow.rotation.z=side*((a.brow-5)*-.03+.30*morph('browAngle')+.15*morph('browCurve'));
-  ball(head,skin,side*.145,.086,faceZ*.47,.057,.052,.046);if(a.lash>20)for(let j=0;j<3;j++)ball(head,hair,eyeX+(j-1)*.025,eyeY+.035,eyeZ+.020,.005,.010+a.lash*.0002,.006,12);if(a.freckles>10)for(let j=0;j<Math.floor(a.freckles/12);j++)ball(head,dark,side*(.14+j*.011),.04+(j%3)*.018,faceZ*.83,.004,.004,.006,10);
+  cheeks.push(ball(head,skin,side*.145,.086,faceZ*.47,.057,.052,.046));if(a.lash>20)for(let j=0;j<3;j++)ball(head,hair,eyeX+(j-1)*.025,eyeY+.035,eyeZ+.020,.005,.010+a.lash*.0002,.006,12);if(a.freckles>10)for(let j=0;j<Math.floor(a.freckles/12);j++)ball(head,dark,side*(.14+j*.011),.04+(j%3)*.018,faceZ*.83,.004,.004,.006,10);
  }
  ball(head,skin,0,.09,faceZ*.91+.006*morph('noseBridge'),(.030+a.nose*.002)*(1+.23*morph('noseWidth')),.067+.018*morph('noseLength'),.042+.011*morph('noseBridge'),24);ball(head,skin,0,.018,faceZ+.028+.012*morph('noseTip'),.044+.014*morph('noseTip'),.029,.035,22);for(let s of [-1,1])ball(head,lipMat,s*(.035+.008*morph('nostril')),.000,faceZ+.041,.009+.004*morph('nostril'),.005,.004,14);
- const mouthY=-.049+.026*morph('mouthHeight'),mouthW=(.051+a.mouth*.0027)*(1+.25*morph('mouthWidth'));ball(head,lipMat,0,mouthY+.009,faceZ*.94,mouthW,.011+.010*morph('upperLip'),.012,20);ball(head,lipMat,0,mouthY-.010,faceZ*.95,mouthW*.96,.013+.010*morph('lowerLip'),.012,20);for(let s of [-1,1])ball(head,dark,s*mouthW,mouthY+.015*morph('smile'),faceZ*.93,.006,.005,.007,12);
+ const mouthY=-.049+.026*morph('mouthHeight'),mouthW=(.051+a.mouth*.0027)*(1+.25*morph('mouthWidth'));ball(head,lipMat,0,mouthY+.009,faceZ*.94,mouthW,.011+.010*morph('upperLip'),.012,20);const lowerLip=ball(head,lipMat,0,mouthY-.010,faceZ*.95,mouthW*.96,.013+.010*morph('lowerLip'),.012,20);const yawnMouth=ball(head,dark,0,mouthY-.025,faceZ*.965,mouthW*.72,.045,.011,16);yawnMouth.visible=false;for(let s of [-1,1])ball(head,dark,s*mouthW,mouthY+.015*morph('smile'),faceZ*.93,.006,.005,.007,12);
  const style=a.hairStyle%10;const hairGroup=new T.Group();head.add(hairGroup);hairGroup.position.set(.055*morph('part'),-.023*morph('bangs'),0);hairGroup.scale.set(1+.22*morph('hairVolume'),1+.26*morph('hairLength'),1+.16*morph('hairVolume'));
  const hairCap=ball(hairGroup,hair,0,.365,-.034,.282,.11,.273);
  // Continuous temple/occipital volume avoids the isolated clump-like helmet look.
@@ -403,7 +448,29 @@ function makeRawHuman(a){
  if(a.accessory===4){ball(head,mat(0xd9b769,.3,.8),-.31,.12,0,.04,.07,.034);ball(head,mat(0xd9b769,.3,.8),.31,.12,0,.04,.07,.034)}
  if(a.accessory===5||a.accessory===9){ball(torso,m.gold,0,.46,.268,.08,.08,.023)}
  lineShadow(root,.5);
- return {root,skeleton,torso,head,arms,legs,animate(t,speed,stamina=1,legTaps=null,raceTime=0,dt=.016){
+ const chestBase=chest.scale.clone(),cheekBases=cheeks.map(c=>c.scale.clone()),point=new T.Vector3();
+ const supports=[[head,0,.46,0],[head,0,-.2,.12],[torso,0,.12,-.2],[torso,0,.72,.22]];
+ for(const v of legs)supports.push([v.knee,0,-.58,.15],[v.knee,0,-.55,.4],[v.hip,0,-.27,0]);
+ for(const v of arms)supports.push([v.elbow,0,-.63,.09],[v.sh,0,-.25,0]);
+ let comedyActive=false;
+ function resetComedy(){
+  if(!comedyActive)return;comedyActive=false;skeleton.rotation.set(0,0,0);skeleton.position.y=0;torso.rotation.set(0,0,0);torso.position.y=baseTorsoY;head.rotation.set(0,0,0);
+  for(const v of legs){v.hip.rotation.set(0,0,0);v.knee.rotation.set(0,0,0);}for(const v of arms){v.sh.rotation.set(0,0,0);v.elbow.rotation.set(0,0,0);}
+  chest.scale.copy(chestBase);cheeks.forEach((v,i)=>v.scale.copy(cheekBases[i]));lowerLip.position.y=mouthY-.01;yawnMouth.visible=false;
+ }
+ function applyComedy(stats,t,time,taps,burst){
+  const pulse=side=>{const age=time-taps[side];return age>=0&&age<.28?Math.sin(Math.PI*age/.28):0};
+  const c=humanComedyPose(stats,t,time,pulse('L'),pulse('R'),burst);comedyActive=true;
+  skeleton.rotation.set(c.rx,c.ry,c.rz);torso.rotation.set(c.tx+morph('posture')*.06,c.ty,c.tz);torso.position.y=baseTorsoY+c.drop*.3;
+  head.rotation.set(c.hx-c.tx*.22,c.hy,c.hz-c.tz*.4);
+  chest.scale.copy(chestBase);chest.scale.y*=c.chest;chest.scale.z*=1+(c.chest-1)*.55;
+  cheeks.forEach((v,i)=>{v.scale.copy(cheekBases[i]);v.scale.x*=c.cheek;v.scale.z*=c.cheek;});
+  lowerLip.position.y=mouthY-.01-c.yawn*.045;yawnMouth.visible=c.yawn>.04;yawnMouth.scale.y=.045*Math.max(.05,c.yawn);
+  legs.forEach((v,i)=>{const g=c.legs[i];v.hip.rotation.set(g[0],0,g[2]);v.knee.rotation.x=g[1];});
+  arms.forEach((v,i)=>{const g=c.arms[i];v.sh.rotation.set(g[0],0,g[2]);v.elbow.rotation.x=g[1];});
+  if(c.kind!=='run'||stats.speed>=20){let floor=Infinity;for(const [node,x,y,z] of supports){point.set(x,y,z);node.localToWorld(point);floor=Math.min(floor,point.y);}if(Number.isFinite(floor))skeleton.position.y=clamp((root.position.y-floor)/Math.max(.001,root.scale.y),-3.5,3.5);}
+ }
+ return {root,skeleton,torso,head,arms,legs,resetComedy,applyComedy,animate(t,speed,stamina=1,legTaps=null,raceTime=0,dt=.016){
  const moving=speed>.13,intensity=moving?clamp(speed/9,.15,1.25):0;
  torso.rotation.y=0;
  const pulse=side=>{if(!moving||!legTaps)return 0;const age=raceTime-legTaps[side];return age>=0&&age<.28?Math.sin(Math.PI*age/.28):0};
@@ -2032,7 +2099,7 @@ function tap(side,overlapping=false){
  r.lastFoot=side;r.lastTap=now;
  if(!overlapping)showTapRating(r,side,alternate&&elapsed<=.45?'JUST!':'GOOD!');
  footstep(Math.max(2.5,r.humanV),side);
- if(r.humanV>2){kickDust(r.lateral+(side==='L'?.18:-.18),r.humanD,r.humanV);markFootfall(r.lateral,r.humanD,r.humanV,side)}
+ if(r.humanV>2){kickDust(r.lateral+(side==='L'?.18:-.18),r.humanD,r.humanV);markFootfall(r.lateral,r.humanD,r.humanV,side);const p=save.stats.power;if(p>=10)kickDust(r.lateral,r.humanD,r.humanV);if(p>=30&&now-(r.lastHumanFx??-1)>.15){r.lastHumanFx=now;emitMemeFx(p>=50?'shock':'stomp',r.lateral,r.humanD);}}
  const btn=$(side==='L'?'leftTap':'rightTap');btn.classList.add('hit');
  setTimeout(()=>btn.classList.remove('hit'),75);
  if(r.combo>0&&r.combo%12===0)effect('ready');
@@ -4314,10 +4381,11 @@ function frame(){requestAnimationFrame(frame);
  }
  const previewSpeed=mode==='beasts'?(previewGait==='heavyTrot'||previewGait==='giantBiped'||previewGait==='giantQuad'?5.4:previewGait==='kangarooHop'||previewGait==='bound'||previewGait==='pronk'?8.2:previewGait==='mechanicalRun'?6.5:10):0;
  const espeed=visualSky?(race.pegasusFlightSpeed||22):mode==='race'&&race?.phase==='running'&&race.eFinish===null?(race.enemyV||0):previewSpeed;
- if(hspeed>.13)humanGait+=dt*(6.8+clamp(hspeed/8,0,1.7)*4.3);if(espeed>.13)beastGait+=dt*animalGaitRate(animals[Number.isInteger(race?.opponentIndex)?race.opponentIndex:save.chosen].kind,espeed);human.animate(humanGait,hspeed,mode==='race'?race.stamina:1,mode==='race'?race.legTaps:null,mode==='race'?race.time:0,dt);
+ if(hspeed>.13)humanGait+=dt*(6.8+clamp(hspeed/8,0,1.7)*4.3);if(espeed>.13)beastGait+=dt*animalGaitRate(animals[Number.isInteger(race?.opponentIndex)?race.opponentIndex:save.chosen].kind,espeed);human.resetComedy();human.animate(humanGait,hspeed,mode==='race'?race.stamina:1,mode==='race'?race.legTaps:null,mode==='race'?race.time:0,dt);if(hspeed>.13&&race.legTaps&&!race.hitMotion)human.applyComedy(save.stats,humanGait,race.time,race.legTaps,race.burstLeft>0);
  
  if(mode==='race'&&race?.phase==='running'){
  const h=race.hitMotion;
+ if(hspeed>.13&&!h&&race.time-(race.lastHumanBreathFx??-1)>.32){race.lastHumanBreathFx=race.time;if(save.stats.stamina>=10)emitMemeFx('steam',race.lateral,race.humanD);if(save.stats.speed>=40)emitMemeFx('afterimage',race.lateral,race.humanD);}
  // Visual reactions only; race progress and foot inputs remain authoritative.
  human.root.position.y=.13;
  if(h){const t=clamp(h.age/h.duration,0,1),p=Math.sin(Math.PI*t),side=h.side||-1;
