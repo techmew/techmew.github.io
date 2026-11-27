@@ -42,21 +42,53 @@
   impact={actor,perfect:threat.perfect,x:enemy.x,y:enemy.y,angle:Math.atan2(enemy.y-actor.y,enemy.x-actor.x),at:now};
   threat=null;return true;
  }
+ // One contact drives the cut, the pressure wave and the trailing hot fragments.
+ function perfectImpact(c,u){
+  const cut=Math.min(1,u/.33),tail=Math.min(1,(1-u)*3);
+  c.save();c.rotate(-.42);c.globalAlpha=tail;
+  for(const [half,tint] of [[12,"#ec652a"],[6,"#ffcf4b"],[2,"#fffbd9"]]){
+   const front=12+cut*86,back=-12-cut*38+Math.max(0,u-.32)*100;
+   c.fillStyle=tint;c.beginPath();c.moveTo(back,2);c.lineTo(1,-half*(1-u));
+   c.lineTo(front,-4);c.lineTo(8,half*(1-u));c.closePath();c.fill();
+  }
+  if(u>.13){
+   const wave=(u-.13)/.87,r=10+70*wave;
+   c.globalAlpha=(1-wave)*.88;c.strokeStyle="#ffcb61";c.lineWidth=3*(1-wave)+1;
+   c.beginPath();c.ellipse(0,3,r,r*.54,0,.15,2.85);c.moveTo(-r,3);
+   c.ellipse(0,3,r,r*.54,0,Math.PI,5.95);c.stroke();
+   c.fillStyle="#fff3a4";c.beginPath();
+   for(let k=0;k<10;k++){
+    const a=k*2.4,dx=Math.cos(a),dy=Math.sin(a)*.72,len=(18+(k%3)*9)*(1+wave);
+    const x=dx*len,y=dy*len+wave*wave*8;
+    c.moveTo(x,y);c.lineTo(x+dx*(10-6*wave),y+dy*(10-6*wave));
+    c.lineTo(x-dy*2,y+dx*2);c.closePath();
+   }
+   c.fill();
+  }
+  c.restore();
+ }
  function draw(ctx,actor,now,project){
   if(focus&&focus.actor===actor){
    const start=project(focus.x,focus.y,6),end=project(actor.x,actor.y,6);
    const angle=Math.atan2(end.y-start.y,end.x-start.x),length=Math.min(65,Math.hypot(end.x-start.x,end.y-start.y));
    ctx.save();ctx.translate(end.x,end.y);ctx.rotate(angle);ctx.globalAlpha=.8*(1-focus.age/.44);
-   ctx.strokeStyle="#a8ffed";ctx.lineWidth=2;ctx.beginPath();
+   ctx.fillStyle="#6666ff";ctx.beginPath();
+   for(let i=-1;i<=1;i++){
+    const back=-length-15-Math.abs(i)*7;
+    ctx.moveTo(back,i*11);ctx.quadraticCurveTo(-length*.45,i*7-6,6,i*2);
+    ctx.quadraticCurveTo(-length*.48,i*7+4,back,i*11);ctx.closePath();
+   }
+   ctx.fill();ctx.strokeStyle="#79fff4";ctx.lineWidth=2.5;ctx.beginPath();
    for(let i=-1;i<=1;i++){
     ctx.moveTo(-length-5,i*7);ctx.quadraticCurveTo(-length*.45,i*4,0,i*2);
    }
    ctx.stroke();ctx.restore();
   }
-  if(impact&&impact.actor===actor&&now>=impact.at&&now-impact.at<.18){
-   const u=(now-impact.at)/.18,pos=project(impact.x,impact.y,12);
+  if(impact&&impact.actor===actor&&now>=impact.at&&now-impact.at<(impact.perfect ? .42 : .18)){
+   const u=(now-impact.at)/(impact.perfect ? .42 : .18),pos=project(impact.x,impact.y,12);
    const tip=project(impact.x+Math.cos(impact.angle)*24,impact.y+Math.sin(impact.angle)*24,12);
    ctx.save();ctx.translate(pos.x,pos.y);ctx.rotate(Math.atan2(tip.y-pos.y,tip.x-pos.x));
+   if(impact.perfect)perfectImpact(ctx,u);
    ctx.globalAlpha=1-u;ctx.strokeStyle=impact.perfect?"#fff4a4":"#d4ffee";ctx.lineWidth=impact.perfect?3:2;ctx.beginPath();
    for(let i=-1;i<=1;i++){ctx.moveTo(3+u*7,i*2);ctx.lineTo((impact.perfect?24:11)+u*12,i*(6+5*u));}
    ctx.stroke();ctx.restore();

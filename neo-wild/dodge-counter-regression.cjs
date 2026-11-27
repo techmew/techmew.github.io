@@ -46,3 +46,12 @@ for(const [style,polygons] of [["claw",4],["jaw",3],["body",9]]){
  assert.equal(paths.filter(([k])=>k==="closePath").length,polygons);
  assert.equal(paths.filter(([k])=>k==="fill").length,2);
 }
+{
+ const {d,p,e}=timedEvade(.47);
+ d.timeScale(p,.016);assert(d.strike(p,e,.55));d.timeScale(null,.01);
+ paths.length=0;d.draw(ctx,p,.56,project);
+ assert(paths.some(([k])=>k==="fill"));assert(!paths.some(([k])=>k==="ellipse"));
+ paths.length=0;d.draw(ctx,p,.8,project);
+ assert(paths.some(([k])=>k==="ellipse"));assert(paths.filter(([k])=>k==="closePath").length>=10);
+ paths.length=0;d.draw(ctx,p,.99,project);assert.equal(paths.length,0);
+}

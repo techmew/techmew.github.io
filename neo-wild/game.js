@@ -4375,8 +4375,8 @@ function drawCombatFX(){
    ctx.globalAlpha=fade*opacity;ctx.strokeStyle=color;ctx.lineWidth=2.2*zoom;
    ctx.beginPath();ctx.ellipse(center.x,center.y,Math.max(1,rx*zoom),Math.max(1,ry*zoom),0,0,Math.PI*2);ctx.stroke();
   }
-  const color=ATTACK_TRAIL_COLOR[fx.motion]||"#ddd1b3";
   const heavy=fx.stage==="special",normal=fx.stage==="normal";
+  const color=heavy?"#ffe4a0":ATTACK_TRAIL_COLOR[fx.motion]||"#ddd1b3";
   const width=heavy?6:normal?3.5:2.5;
   // Windup = brief limb recoil at the anatomical attachment point, NOT light rings.
   if(fx.stage==="ready"&&!actor.pendingStrike)continue;
@@ -4421,6 +4421,33 @@ function drawCombatFX(){
   const reach=r*(heavy?1.9:1.15)*(u<.25?.67+u*1.1:1);
   const tipF=baseF+reach,tipSide=side+left*r*(heavy?.21:.11);
   const muzzleHeight=r*.82,footHeight=r*.08,pawHeight=r*.22;
+  if((heavy||normal&&fx.step>=3)&&u<.82){
+   const backwards=fx.motion==="hind"||fx.motion==="tail";
+   const root=pt(backwards?-r*.45:r*.45,0,r*.42),tip=pt((backwards?-1:1)*r*2,0,r*.42);
+   if(root&&tip){
+    ctx.save();ctx.translate(root.x,root.y);ctx.rotate(Math.atan2(tip.y-root.y,tip.x-root.x));
+    const length=Math.min(88,Math.max(21,Math.hypot(tip.x-root.x,tip.y-root.y)))*(.75+u);
+    const size=heavy||fx.step===5?length:length*.67;
+    ctx.scale(size,left*size);ctx.globalAlpha=.8*(1-u);ctx.fillStyle=heavy?"#ff8e28":"#52dce7";
+    if(["body","hoof","hind","fist","foot","stomp"].includes(fx.motion)){
+     const spread=.22+u;
+     ctx.strokeStyle=ctx.fillStyle;ctx.lineWidth=.085;ctx.beginPath();
+     ctx.ellipse(.42,0,spread*.48,spread,0,-1.45,1.45);ctx.stroke();
+     ctx.strokeStyle="#fff2a8";ctx.lineWidth=.035;ctx.beginPath();
+     ctx.ellipse(.4,0,spread*.35,spread*.79,0,-1.48,1.48);ctx.stroke();
+    }else if(["jaw","beak","horn","tusk","tongue"].includes(fx.motion)){
+     ctx.beginPath();ctx.moveTo(-.18,-.12);ctx.lineTo(1.62,0);ctx.lineTo(-.18,.12);ctx.lineTo(.3,0);ctx.fill();
+     ctx.fillStyle="#fff7cb";ctx.beginPath();ctx.moveTo(.02,-.045);ctx.lineTo(1.76,0);ctx.lineTo(.02,.045);ctx.fill();
+    }else{
+     ctx.beginPath();ctx.moveTo(-.24,.2);ctx.quadraticCurveTo(.55,-.56,1.5,-.24);
+     ctx.quadraticCurveTo(.62,-.31,-.24,.2);ctx.closePath();ctx.fill();
+     ctx.fillStyle="#fff3c8";ctx.beginPath();ctx.moveTo(.12,-.09);
+     ctx.quadraticCurveTo(.8,-.55,1.55,-.23);ctx.quadraticCurveTo(.75,-.42,.12,-.09);
+     ctx.closePath();ctx.fill();
+    }
+    ctx.restore();
+   }
+  }
   switch(fx.motion){
    case "claw":{
     // Three scratches move from the SAME left/right forepaw. No central arrows.
