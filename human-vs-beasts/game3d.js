@@ -2672,6 +2672,11 @@ function capturePodiumFromGPU(ctx,w,h,lowMemory=false){
  // A fresh offscreen framebuffer is essential on Android: the visible WebGL
  // drawing buffer may already have been discarded by the compositor.
  const target=new T.WebGLRenderTarget(w,h,{depthBuffer:true,stencilBuffer:false,format:T.RGBAFormat,type:T.UnsignedByteType});
+ // Render-target viewport is in physical pixels, unlike renderer.setViewport
+ // which multiplies by devicePixelRatio on the default framebuffer.
+ target.viewport.set(0,0,w,h);
+ target.scissor.set(0,0,w,h);
+ target.scissorTest=false;
  const previousTarget=renderer.getRenderTarget();
  const previousClearColor=new T.Color();
  renderer.getClearColor(previousClearColor);
@@ -2684,9 +2689,9 @@ function capturePodiumFromGPU(ctx,w,h,lowMemory=false){
  const previousScissor=renderer.getScissor(new T.Vector4());
  const previousScissorTest=renderer.getScissorTest();
  try{
+  // Do not set the global viewport here: binding the target applies its
+  // own physical-pixel viewport without a second DPR multiplication.
   renderer.setScissorTest(false);
-  renderer.setViewport(0,0,w,h);
-  renderer.setScissor(0,0,w,h);
   // Android GPUs can fail allocating a depth texture plus a shadow atlas
   // simultaneously. Retry with a flat-lit REAL 3D scene before giving up.
   if(lowMemory)renderer.shadowMap.enabled=false;
@@ -2838,9 +2843,11 @@ function podiumPixelsValid(ctx,w,h,rgbaPixels=null){
  // Low-memory Android captures can contain valid subjects without both
  // near-white and near-black pixels. Check RGB range plus subject-region edges.
  let total=0,min=255,max=0,minR=255,maxR=0,minG=255,maxG=0,minB=255,maxB=0;
+ let sampled=0;
  const step=Math.max(2,Math.floor(Math.min(w,h)/45));
  for(let y=0;y<h;y+=step)for(let x=0;x<w;x+=step){
   const p=(y*w+x)*4;
+  sampled++;
   if(data[p+3]<245)continue;
   const l=luminance(x,y);total++;
   min=Math.min(min,l);max=Math.max(max,l);
@@ -2849,7 +2856,7 @@ function podiumPixelsValid(ctx,w,h,rgbaPixels=null){
   minB=Math.min(minB,data[p+2]);maxB=Math.max(maxB,data[p+2]);
  }
  const colourRange=Math.max(maxR-minR,maxG-minG,maxB-minB);
- if(!(total>100&&Math.max(max-min,colourRange)>45))return false;
+ if(!(total>100&&total>=sampled*.95&&Math.max(max-min,colourRange)>45))return false;
  // Compare local contrast in the two expected character positions.
  // Large 3D models and podiums must create edges across these regions.
  // The left and center crops exclude the decorative stadium stands.
