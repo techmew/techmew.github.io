@@ -9,6 +9,13 @@
   threat={actor,enemy,x:actor.x,y:actor.y,angle:enemy.strikeDir,reach,until:0,at:now,crossedAt:-Infinity};
   return !enemy.salvageCacheId; // Guardians already draw their own committed direction.
  }
+ function sidestep(actor,now,axis){
+  const t=threat;
+  if(!t||t.actor!==actor||t.until||now<t.at||now-t.at>2||t.enemy.hp<=0||
+     !(t.enemy.windup>0||t.enemy.chargeTime>0)||Math.hypot(actor.x-t.enemy.x,actor.y-t.enemy.y)>t.reach+48)return null;
+  const side=-axis.x*Math.sin(t.angle)+axis.y*Math.cos(t.angle);
+  return t.angle+(side<0?-Math.PI/2:Math.PI/2);
+ }
  function track(actor,now){
   const t=threat;
   if(!t||t.actor!==actor||t.until||Number.isFinite(t.crossedAt)||now<t.at||now-t.at>2)return;
@@ -114,5 +121,5 @@
   ctx.strokeStyle=open?"#a6f2cf":m.windup<.16?"#fff0be":"#efaa79";ctx.lineWidth=2;ctx.stroke();
   ctx.restore();
  }
- global.WildDodgeCounter=Object.freeze({begin,track,timeScale,miss,strike,draw});
+ global.WildDodgeCounter=Object.freeze({begin,sidestep,track,timeScale,miss,strike,draw});
 })(window);

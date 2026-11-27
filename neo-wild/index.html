@@ -41,8 +41,8 @@
 <div id="mission" class="hidden" role="region" aria-label="生存目標"><div class="mission-top"><span class="live-dot"></span><small>ミッション</small><span id="mission-progress">チュートリアル 1 / 4</span><button id="mission-close" type="button" aria-label="目標を閉じる">×</button></div><strong id="mission-title">食料を確保せよ</strong><p id="mission-sub">近くの食料を探して食べる</p><p id="mission-next">次の目的：身を隠せ</p><div id="mission-nav"><span id="nav-distance">目標を探索中</span></div><div class="mission-track"><i id="mission-bar"></i></div></div>
 <div id="zoom-controls"><button id="zoom-out" aria-label="もっと広く見る">−</button><span id="zoom-level">80%</span><button id="zoom-in" aria-label="近くを見る">＋</button></div>
 <div id="toast" role="status"></div>
-<div id="hint"><span class="desktop-hint">WASD 移動　マウスドラッグ 視点回転　－/＋ 広さ変更　J / SPACE 攻撃　SHIFT 飛びつき　L ジャンプ　L＋SHIFT 空中飛びつき（猫・狐・狼など11種）　ペンギンSHIFT 滑走頭突き＋嘴連撃　E 食事・手持ち食事　G 運搬・置く　H 巣育成　C 潜伏　R 本能　P 一時停止</span><span class="mobile-hint">左で移動・△/Y 連続攻撃　□/X 飛びつき・長押しダッシュ　×/A ジャンプ　×＋□ 同時押しで空中飛びつき（猫・狐・狼など11種）　ペンギン□で滑走頭突き＋高速くちばし連撃　○/B 食べる・くわえる（長押しで運搬）</span></div>
-<div id="touch-layer"><div id="joystick" aria-label="移動スティック"><div class="joy-disc"><div id="joy-knob"></div></div><span>MOVE</span></div><div class="touch-actions" aria-label="動物アクション4ボタン"><button id="action-touch" class="touch-btn action" aria-label="○ 右：食べる・くわえる。短押し食事や備蓄、長押しで運搬・置く・巣強化"><span>○</span><small id="context-action-label">食べる</small></button><button id="dash-touch" class="touch-btn dash" aria-label="□ 左：飛びつき。ジャンプ×と同時に押すと11種は空中飛びつき。ペンギンは滑走頭突きと高速くちばし連撃。長押しでダッシュ"><span>□</span><small>飛びつき/走る</small></button><button id="jump-touch" class="touch-btn jump" aria-label="× 下：ジャンプ。猫・マヌルネコ・狐・狼など11種は飛びつき□と同時押しで空中急襲"><span>×</span><small>ジャンプ</small></button><button id="attack-touch" class="touch-btn attack" aria-label="△ 上：連続攻撃、長押しで5段コンボを自動継続"><span>△</span><small>連続攻撃</small></button><button id="species-skill-touch" class="touch-btn skill" aria-label="固有技・本能を使用。種族ごとの狩り方を発動"><span>◎</span><small>固有技</small></button></div></div>
+<div id="hint"><span class="desktop-hint">WASD 移動　マウスドラッグ 視点回転　－/＋ 広さ変更　J / SPACE 攻撃　SHIFT 飛びつき　L ジャンプ　L＋SHIFT 空中飛びつき（猫・狐・狼など11種）　ペンギンSHIFT 滑走頭突き＋嘴連撃　E 食事・手持ち食事　G 運搬・置く　H 巣育成　C 潜伏　R 本能　P 一時停止</span><span class="mobile-hint">左で移動・△/Y 連続攻撃　□/X 飛びつき・敵の予兆中は横回避・長押しダッシュ　×/A ジャンプ　×＋□ 同時押しで空中飛びつき（猫・狐・狼など11種）　ペンギン□で滑走頭突き＋高速くちばし連撃　○/B 食べる・くわえる（長押しで運搬）</span></div>
+<div id="touch-layer"><div id="joystick" aria-label="移動スティック"><div class="joy-disc"><div id="joy-knob"></div></div><span>MOVE</span></div><div class="touch-actions" aria-label="動物アクション4ボタン"><button id="action-touch" class="touch-btn action" aria-label="○ 右：食べる・くわえる。短押し食事や備蓄、長押しで運搬・置く・巣強化"><span>○</span><small id="context-action-label">食べる</small></button><button id="dash-touch" class="touch-btn dash" aria-label="□ 左：飛びつき。敵の予兆中は横回避。ジャンプ×と同時に押すと11種は空中飛びつき。ペンギンは滑走頭突きと高速くちばし連撃。長押しでダッシュ"><span>□</span><small>飛びつき/回避</small></button><button id="jump-touch" class="touch-btn jump" aria-label="× 下：ジャンプ。猫・マヌルネコ・狐・狼など11種は飛びつき□と同時押しで空中急襲"><span>×</span><small>ジャンプ</small></button><button id="attack-touch" class="touch-btn attack" aria-label="△ 上：連続攻撃、長押しで5段コンボを自動継続"><span>△</span><small>連続攻撃</small></button><button id="species-skill-touch" class="touch-btn skill" aria-label="固有技・本能を使用。種族ごとの狩り方を発動"><span>◎</span><small>固有技</small></button></div></div>
 <div id="world-map" class="hidden" role="dialog" aria-label="廃都の地図" aria-modal="true">
  <div class="world-map-panel">
   <div class="world-map-top"><strong>廃都の地図</strong><button id="map-close" aria-label="地図を閉じる">閉じる ×</button></div>
@@ -135,7 +135,7 @@
       </div>
     </div>
 </section>
-<div id="gamepad-menu-guide" hidden role="status" aria-live="off" aria-label="ゲームパッド操作案内"><strong>ゲームパッド操作</strong><span>メニュー：十字キー・左スティックで選択、×/Aで決定、○/Bで戻る　｜　プレイ：△/Y 連続攻撃　□/X 飛びつき・長押しダッシュ　○/B 食べる/くわえる　×/A ジャンプ</span><small id="gamepad-menu-current">選択中：最初の項目</small></div>
+<div id="gamepad-menu-guide" hidden role="status" aria-live="off" aria-label="ゲームパッド操作案内"><strong>ゲームパッド操作</strong><span>メニュー：十字キー・左スティックで選択、×/Aで決定、○/Bで戻る　｜　プレイ：△/Y 連続攻撃　□/X 飛びつき・敵の予兆中は横回避・長押しダッシュ　○/B 食べる/くわえる　×/A ジャンプ</span><small id="gamepad-menu-current">選択中：最初の項目</small></div>
 
     
 <section id="squad-menu-extras" class="squad-menu-extras" aria-label="画面設定と探索記録">
@@ -253,7 +253,7 @@
 })();
 </script>
 <script src="./audio.js?rev=terrain-step-1" defer></script>
-<script src="./mountain.js?rev=strike-contact-20261123" defer></script>
+<script src="./mountain.js?rev=strike-contact-20261123-storm1" defer></script>
 <script src="./east-expedition.js?rev=city-20261124" defer></script>
 <script src="./movement-trail.js?rev=terrain-step-1" defer></script>
 <script src="./webgl3d.js?rev=snow-frame-budget-20261124-mesh-20261127" defer></script>
@@ -263,7 +263,7 @@
 <script src="./era-ecology.js?rev=a6549869e28c" defer></script>
 <script src="./fauna.js?rev=717df4940c08" defer></script>
 <script src="./boss-patterns.js?rev=13c249919b11" defer></script>
-<script src="./pack-tactics.js?rev=47d3c8af1992" defer></script> <script src="./companions.js?rev=ce6ae1d6e652" defer></script> <script src="./ufo-events.js?rev=beam-range-20261123" defer></script> <script src="./disaster-world.js?rev=waterline-20261123" defer></script>
+<script src="./pack-tactics.js?rev=47d3c8af1992" defer></script> <script src="./companions.js?rev=ce6ae1d6e652" defer></script> <script src="./ufo-events.js?rev=beam-range-20261123-storm1" defer></script> <script src="./disaster-world.js?rev=waterline-20261123" defer></script>
 <script src="./apparitions.js?rev=encounters-20261123" defer></script>
 <script src="./trophy-records.js?rev=365eb8e1f970" defer></script> <script src="./squad-core.js?rev=a61bc3c46f5d" defer></script>
 <script src="./boss-roster.js?rev=c9ab5d311eb1" defer></script>
@@ -275,8 +275,9 @@
 <script src="./flood-rescue.js?rev=2d01afce7161" defer></script>
 <script src="./wild-arsenal.js?rev=a26bdae0a37b" defer></script>
 <script src="./first-steps.js?rev=field-practice-2" defer></script>
-<script src="./dodge-counter.js?rev=counter-flare-3" defer></script>
-<script src="./game.js?rev=counter-flare-3" defer></script>
+<script src="./storm-cover.js?rev=1" defer></script>
+<script src="./dodge-counter.js?rev=counter-flare-3-storm1" defer></script>
+<script src="./game.js?rev=counter-flare-3-storm1" defer></script>
 <script src="./world-history.js?rev=3c285da9bcd8" defer></script>
 <script src="./save-backup.js?rev=51e57500c1ce" defer></script>
 <script src="./trophy-view.js?rev=d6fa96931ff5" defer></script>

@@ -228,6 +228,11 @@ for(let x=10680;x<11470;x+=82)for(let j=0;j<5;j++){
  const y=center(x)+690+j*69+Math.sin(x*.027+j*2.1)*14;
  if(meadowAt(x,y))meadowGrass.push({x:x+Math.sin(x*.011+j)*16,y,r:11+j%3*3,z:height(x,y)});
 }
+// Tree and boulder refuges on alternating sides of the open meadow.
+for(const [x,offset,tree] of [[10690,750,true],[10840,900,false],[11120,820,true],[11370,930,false],[11480,790,true]]){
+ const y=center(x)+offset;
+ if(meadowAt(x,y))(tree?trees:rocks).push({x,y,r:tree?31:38,z:height(x,y)});
+}
 // Upper mountain vegetation and cave walls are deterministic; no save migration.
 for(let x=11930;x<13000;x+=176){
  const cy=center(x);

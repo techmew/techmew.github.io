@@ -217,7 +217,7 @@ function tick(dt,world){
   site.rescueCooldown=Math.max(0,(Number(site.rescueCooldown)||0)-dt);
   // Three distinct alien observation behaviours; old saves default to hostile.
   const disposition=["hostile","neutral","friendly"].includes(site.disposition)?site.disposition:"hostile";
-  const d=distance(P,site),visible=!P.hidden&&!safeBlocked(world,P,site);
+  const d=distance(P,site),visible=!P.hidden&&!world.isPlayerConcealed?.()&&!safeBlocked(world,P,site);
   site.pulse=(Number(site.pulse)||0)+dt;
   // An observation base deploys a moving scout. Its patrol is a real hazard, not decoration.
   // Patrol position is deterministic from saved age, so reloads cannot teleport it randomly.
@@ -229,7 +229,7 @@ function tick(dt,world){
   const scout={x:site.x+Math.cos(site.age*.55)*patrolRadius+retreatX*retreat*23,
                y:site.y+Math.sin(site.age*.55)*patrolRadius+retreatY*retreat*23};
   const scoutDistance=distance(P,scout);
-  const scoutVisible=!P.hidden&&!safeBlocked(world,P,scout);
+  const scoutVisible=!P.hidden&&!world.isPlayerConcealed?.()&&!safeBlocked(world,P,scout);
   site.scoutX=scout.x;site.scoutY=scout.y;
   // A real player counterattack: face the drone and time a strike. The
   // 0.24s hit window and per-scout cooldown prevent passive aura farming.
@@ -466,7 +466,7 @@ function tick(dt,world){
    distance(P,e)<(presentEra>=180?Math.max(1800,UFO_DETECTION_RANGE):UFO_DETECTION_RANGE);
   if(playerSeen){
    e.lastSeen=.85;e.lastPlayerX=P.x;e.lastPlayerY=P.y;
-   if(!e.playerSpotted){e.playerSpotted=true;world.notify?.("UFOに発見された！ 建物か草陰に隠れろ")}
+   if(!e.playerSpotted){e.playerSpotted=true;world.notify?.("UFOに発見された！ 木・大岩・建物に隠れろ")}
   }else if(concealed||obstructed){
    e.lastSeen=0;e.playerSpotted=false;e.beam=0;e.lastPlayerX=null;e.lastPlayerY=null;
   }else{
@@ -552,7 +552,8 @@ function tick(dt,world){
       world.onPlayerAbductionStart?.();
       world.notify?.("UFO子機の吸引光線に捕まった！ 遮蔽物へ逃げろ");
      }
-    }else wing.playerBeam=Math.max(0,(Number(wing.playerBeam)||0)-dt*3.5);
+    }else if(concealed)wing.playerBeam=0;
+    else wing.playerBeam=Math.max(0,(Number(wing.playerBeam)||0)-dt*3.5);
    }
   // Rare formation: escort saucers independently lock onto wildlife. They never bypass cover.
   if(!e.lifts.length&&!playerSeen&&Array.isArray(e.wingmen))for(const wing of e.wingmen){

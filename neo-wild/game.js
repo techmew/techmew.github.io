@@ -274,19 +274,32 @@ function scheduleLightning(){
  // Near misses dominate. Trees and wild animals are real strike targets.
  const candidates=[{x:P.x+rnd(-235,235),y:P.y+rnd(-235,235),kind:"ground"}];
  for(const m of mobs)if(m.hp>0&&dist(P,m)<480)candidates.push({x:m.x,y:m.y,kind:"animal"});
- for(const tree of plants)if(dist(P,tree)<440)candidates.push({x:tree.x,y:tree.y,kind:"tree"});
- const target=candidates[Math.floor(Math.random()*candidates.length)];
+ const tree=window.WildStormCover?.target(P,window.WildDisaster?.standingTrees?.()||[]);
+ const target=tree&&Math.random()<.55?{x:tree.x,y:tree.y,kind:"tree"}:candidates[Math.floor(Math.random()*candidates.length)];
  if(!target||!Number.isFinite(target.x)||!Number.isFinite(target.y))return;
  lightningStrike={x:clamp(target.x,24,WORLD.w-24),y:clamp(target.y,24,WORLD.h-24),kind:target.kind,countdown:1.65,afterglow:0};
  notify("落雷予兆！ 地面の光から離れろ",1.8);
 }
+function burnAtTree(actor,fire,dt){
+ if(insideShelter(actor))return;
+ if(actor===P&&!(actor.fireBurnTime>0))label(actor.x,actor.y-28,"火傷！","#ffb36a");
+ actor.hp=Math.max(0,actor.hp-8*dt);
+ if(actor===P)actor.fireBurnTime=1.4;
+ else{
+  actor.flee=Math.max(actor.flee||0,2);actor.fleeThreatX=fire.x;actor.fleeThreatY=fire.y;
+  if(actor.hp===0&&species[actor.type])carcasses.push(animalRemains(actor));
+ }
+}
 function updateLightning(dt){
+ if(P)P.fireBurnTime=Math.max(0,(P.fireBurnTime||0)-dt);
+ window.WildStormCover?.tick(dt,weather,P,mobs,burnAtTree);
  if(weather!=="THUNDER"){lightningStrike=null;return;}
  const e=lightningStrike;if(!e)return;
  if(e.countdown>0){
   e.countdown-=dt;if(e.countdown>0)return;
   e.afterglow=.7;thunderFlash=Math.max(thunderFlash,.9);shake=Math.max(shake,3.2);
   playEffect("thunder",{volume:.8});
+  if(e.kind==="tree"&&Math.random()<.75){window.WildStormCover?.ignite(e.x,e.y);notify("落雷で木が燃えた！");}
   const radius=65;
   if(P&&P.hp>0&&Math.hypot(P.x-e.x,P.y-e.y)<radius&&!insideShelter(P)){
    P.hp=Math.max(0,P.hp-38);P.stun=Math.max(P.stun||0,1.1);
@@ -308,11 +321,23 @@ function updateLightning(dt){
  if(e.afterglow===0)lightningStrike=null;
 }
 function drawLightning(){
+ window.WildStormCover?.draw(ctx,projectGroundLabel,cameraZoom,elapsed,vw,vh);
  const e=lightningStrike;if(!e)return;
  const p=projectGroundLabel(e.x,e.y);if(!Number.isFinite(p.x)||!Number.isFinite(p.y))return;
  ctx.save();ctx.lineWidth=3;ctx.strokeStyle=e.countdown>0?"#ffe47a":"#e6f7ff";
  ctx.fillStyle=e.countdown>0?"rgba(255,201,62,.24)":"rgba(230,247,255,.35)";
  const radius=65*cameraZoom;ctx.beginPath();ctx.arc(p.x,p.y,radius,0,TWO);ctx.fill();ctx.stroke();
+ if(e.countdown<=0&&e.afterglow>.4){
+  ctx.save();ctx.globalAlpha=Math.min(1,(e.afterglow-.4)*5);ctx.lineJoin="round";ctx.beginPath();
+  const top=Math.min(-20,p.y-150);
+  for(let i=0;i<=8;i++){
+   const y=top+(p.y-top)*i/8,x=p.x+(i===8?0:Math.sin(e.x*.1+i*11)*(20+i));
+   if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+   if(i===4){ctx.lineTo(x+32,y-16);ctx.lineTo(x+48,y-46);ctx.moveTo(x,y);}
+  }
+  ctx.strokeStyle="#8cb7ff";ctx.lineWidth=7;ctx.stroke();
+  ctx.strokeStyle="#ffffff";ctx.lineWidth=2;ctx.stroke();ctx.restore();
+ }
  ctx.textAlign="center";ctx.font="bold 13px sans-serif";ctx.fillStyle="#fff4c7";
  ctx.fillText(e.countdown>0?"落雷予兆！ 逃げろ":"落雷！",p.x,p.y-radius-12);ctx.restore();
 }
@@ -1932,6 +1957,7 @@ function generateWorld(){
   dir:i%2?3.0:.13,speed:56+i%4*19,wing:i*1.7,fright:0,type:i%3===0?"crow":"pigeon"});
  for(let i=0;i<85;i++)rain.push({x:rnd(0,2000),y:rnd(0,1200),s:rnd(320,730),z:rnd(9,21)});
  buildScenicProps();
+ window.WildStormCover?.index(MOUNTAIN,scenicProps);
 }
 let coarseDisplay=false;
 function resize(){coarseDisplay=!!window.matchMedia?.("(pointer: coarse)").matches;vw=window.innerWidth;vh=window.innerHeight;dpr=Math.min(window.devicePixelRatio||1,1.8);canvas.width=Math.floor(vw*dpr);canvas.height=Math.floor(vh*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);if(mode==="guide"||mode==="milestone")guideNeedsFrame=true;}
@@ -1965,7 +1991,7 @@ function start(newWorld=false){
  // New games start in free survival, never require 4 popup quests to unlock exploration.
  gameIntroPending=!!newWorld&&!gameIntroSeen&&!debugTutorialSession;
  firstStepsPending=!!newWorld&&!debugTutorialSession&&!window.WildFirstSteps?.done?.();
- window.WildFirstSteps?.reset?.();scoreTimer=0;spawnTimer=0;lastPackSpawnAt=-WILDLIFE.packCooldown;lastPopulatedRegion=-1;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";worldEventJournal=newWorld?[]:loadWorldChronicle().worldEventJournal;trophySurveyClock=0;discoveredSites=newWorld?[]:[...new Set([...loadWorldChronicle().discoveredSites,...loadWorldChronicle().earnedDiscoveries])].filter(id=>EXPLORE_SITES.some(site=>site.id===id));earnedDiscoveries=[];eastTrailMask=0;eastTrailSupplyYears=Array(8).fill(-99);eastWaterMask=0;eastWaterSupplyYears=Array(4).fill(-99);eastTrailClock=0;eastTrailHazardNoticeAt=-100;debugWeatherOverride=null;weather=tokyoWeatherAt(elapsed);weatherTimer=85-(elapsed%85);nextWeather=null;thunderFlash=0;thunderTimer=10;lightningStrike=null;lightningHistory=newWorld?[]:loadWorldChronicle().lightningHistory;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];weaponScraps=[];weaponScrapSerial=0;weaponScrapClock=0;weaponGuardianClock=0;strongRolls={};strongTrophies={};strongRegionCurrent=-1;resetControls();guideCache=null;huntTarget=null;
+ window.WildFirstSteps?.reset?.();scoreTimer=0;spawnTimer=0;lastPackSpawnAt=-WILDLIFE.packCooldown;lastPopulatedRegion=-1;ecology=initialEcology();ecologyClock=0;ecologyNews="生態系は変化し続けている";worldEventJournal=newWorld?[]:loadWorldChronicle().worldEventJournal;trophySurveyClock=0;discoveredSites=newWorld?[]:[...new Set([...loadWorldChronicle().discoveredSites,...loadWorldChronicle().earnedDiscoveries])].filter(id=>EXPLORE_SITES.some(site=>site.id===id));earnedDiscoveries=[];eastTrailMask=0;eastTrailSupplyYears=Array(8).fill(-99);eastWaterMask=0;eastWaterSupplyYears=Array(4).fill(-99);eastTrailClock=0;eastTrailHazardNoticeAt=-100;debugWeatherOverride=null;weather=tokyoWeatherAt(elapsed);weatherTimer=85-(elapsed%85);nextWeather=null;thunderFlash=0;thunderTimer=10;lightningStrike=null;window.WildStormCover?.restore([]);lightningHistory=newWorld?[]:loadWorldChronicle().lightningHistory;windDirection=rnd(0,TWO);shake=0;flash=0;particles=[];popups=[];mobs=[];carcasses=[];weaponScraps=[];weaponScrapSerial=0;weaponScrapClock=0;weaponGuardianClock=0;strongRolls={};strongTrophies={};strongRegionCurrent=-1;resetControls();guideCache=null;huntTarget=null;
  objectiveBannerTime=0;$("objective-banner").classList.remove("visible");tutorialSeen.clear();for(const stage of tutorialLessonsSeenEver)tutorialSeen.add(stage);guideNeedsFrame=false;milestoneUntil=0;$("mission-milestone").classList.add("hidden");$("mission-milestone").classList.remove("show");$("app").classList.remove("tutorial-paused");$("tutorial-dialog").classList.add("hidden");$("den-inventory").classList.add("hidden");ambushTarget=null;huntSlowUntil=0;pounceStreaks.length=0;$("hunt-cinematic").classList.remove("show");
  const origin=restoringSavedWorld?(choice==="carp"?START_LOCATIONS.river:(START_LOCATIONS[$("start-region")?.value]||START_LOCATIONS.home)):
   randomizedStart(choice);
@@ -2112,7 +2138,7 @@ function currentSnapshot(){
   version:SAVE_SCHEMA,worldVersion:2,saveSessionId:SAVE_TAB_ID,savedAt:Date.now(),savedMode:mode==="upgrade"?"upgrade":"play",scoreRunId,
   player:{...P,base:undefined},camera:{x:cam.x,y:cam.y,yaw:cameraYaw,zoom:cameraZoom},
   elapsed,day,worldYearsElapsed:Math.floor(elapsed/120),worldChronicleElapsed:Math.max(elapsed,loadWorldChronicle().elapsed),kills,meals,hiddenHold,tutorialHuntBase,tutorialStashBase,expedition,freeStep,freeTarget,questVersion:questReady?1:0,mission,missionComplete,totalScore,eastTrailMask,eastTrailSupplyYears:[...eastTrailSupplyYears],eastWaterMask,eastWaterSupplyYears:[...eastWaterSupplyYears],
-  weather,weatherTimer,nextWeather,thunderTimer,windDirection,lightningStrike,lightningHistory,scoreTimer,spawnTimer,packLastSpawnAt:lastPackSpawnAt,denLevel,denStash,denStores:{...denStores},territoryClaims:[...territoryClaims],territoryLastSupply:[...territoryLastSupply],
+  weather,weatherTimer,nextWeather,thunderTimer,windDirection,treeFires:window.WildStormCover?.snapshot(),lightningStrike,lightningHistory,scoreTimer,spawnTimer,packLastSpawnAt:lastPackSpawnAt,denLevel,denStash,denStores:{...denStores},territoryClaims:[...territoryClaims],territoryLastSupply:[...territoryLastSupply],
   tutorialSeen:[...tutorialSeen],mobs,carcasses,weaponScraps:weaponScraps.slice(0,18),weaponScrapSerial,plants,debris,birdFlocks,discoveredSites,earnedDiscoveries,ecology,ecologyClock,ecologyNews,worldEventJournal:worldEventJournal.slice(-40),strongRolls,strongTrophies
  };
 }
@@ -2332,6 +2358,7 @@ function restoreSnapshot(snapshot){
  for(const stage of TUTORIAL_STAGES)if(stage<mission||(!debugTutorialSession&&tutorialLessonsSeenEver.has(stage)))tutorialSeen.add(stage);
  if(mission>=7)tutorialSeen.add(7);
  totalScore=snapshot.totalScore||0;weather=["CLEAR","CLOUDY","RAIN","THUNDER","FOG","WIND","SNOW"].includes(snapshot.weather)?snapshot.weather:"CLEAR";
+ window.WildStormCover?.restore(snapshot.treeFires);
  lightningStrike=snapshot.lightningStrike&&Number.isFinite(snapshot.lightningStrike.x)&&Number.isFinite(snapshot.lightningStrike.y)&&Number.isFinite(snapshot.lightningStrike.countdown)?
  {x:clamp(snapshot.lightningStrike.x,24,WORLD.w-24),y:clamp(snapshot.lightningStrike.y,24,WORLD.h-24),kind:String(snapshot.lightningStrike.kind||"ground"),countdown:clamp(snapshot.lightningStrike.countdown,0,2),afterglow:clamp(snapshot.lightningStrike.afterglow||0,0,1)}:null;
  lightningHistory=Array.isArray(snapshot.lightningHistory)?snapshot.lightningHistory.filter(e=>e&&Number.isFinite(e.year)&&Number.isFinite(e.x)&&Number.isFinite(e.y)).slice(-24):[];
@@ -4094,9 +4121,18 @@ function visibleShrub(p){
 function inVisibleShrubCover(o){
  return !!o&&(o.groundZ||0)<18&&plants.some(p=>visibleShrub(p)&&Math.hypot(p.x-o.x,p.y-o.y)<p.r*.75);
 }
+let lastCoverAt=-1,lastCoverActor=null,lastCoverX=0,lastCoverY=0,lastCoverZ=0,lastNaturalCover=false;
+function naturalCover(o){
+ const z=o.flying?Infinity:Math.max(o.jumpHeight||0,o.groundZ||0);
+ if(o!==lastCoverActor||elapsed!==lastCoverAt||o.x!==lastCoverX||o.y!==lastCoverY||z!==lastCoverZ){
+  lastCoverActor=o;lastCoverAt=elapsed;lastCoverX=o.x;lastCoverY=o.y;lastCoverZ=z;
+  lastNaturalCover=window.WildStormCover?.cover(o,window.WildDisaster?.standingTrees?.()||[])||false;
+ }
+ return lastNaturalCover;
+}
 function inCover(o){
  if((o?.groundZ||0)>18)return o===P&&!!denAtActor(o);
- return inVisibleShrubCover(o)||(!visibleShrubCover()&&visibleWinterCover(o));
+ return (o===P&&naturalCover(o))||inVisibleShrubCover(o)||(!visibleShrubCover()&&visibleWinterCover(o));
 }
 function ensureTrainingCoverNear(actor=P){
  if(!actor)return null;
@@ -6323,8 +6359,17 @@ function concealedPrey(){
  if(gap>=pounceTravel(target)+37||!unawareOfPlayer(target)||!routeClear(P,target,P.r))return null;
  return target;
 }
+function tryPounceDodge(){
+ if(mode!=="play"||!P||isControlBlocked()||P.hp<=0||P.stun>0||P.flying||P.jumpTime>0||P.pounceTime>0||P.fallTime>0||P.pendingStrike||P.dash>0||P.sp<12)return false;
+ const angle=window.WildDodgeCounter?.sidestep?.(P,elapsed,getAxes());
+ if(!Number.isFinite(angle))return false;
+ P.sp-=12;P.dash=.36;P.pounceDir=angle;P.pounceDuration=.18;P.pounceTime=.18;
+ P.pounceRemaining=64;P.evadingPounce=true;P.chargeStrike=false;P.hidden=false;
+ playEffect("wing",{volume:.14});return true;
+}
 function dash(){
  if(mode!=="play"||!P||isControlBlocked())return false;
+ if(tryPounceDodge())return true;
  if(P.jumpTime>0&&AERIAL_POUNCE_PROFILES[P.type])return leapPounce();
  if(P.jumpTime>0||P.pounceTime>0||P.fallTime>0||P.pendingStrike||P.dash>0)return false;
  if(P.type==="penguin"){
@@ -6347,6 +6392,7 @@ function dash(){
  const target=combatAim(.78,345);
  const angle=target?Math.atan2(target.y-P.y,target.x-P.x):P.dir;
  const travel=pounceTravel(target);
+ P.evadingPounce=false;
  ambushTarget=target&&unawareOfPlayer(target)?target:null;
  downwindAmbushTarget=ambushTarget&&isDownwindStalk(ambushTarget)?ambushTarget:null;
  P.dir=angle;P.sp-=cost;P.dash=P.type==="cat"?.65:P.type==="wolf"?1.3:.88;P.chargeStrike=P.type==="wolf";
@@ -8402,7 +8448,7 @@ function update(dt){
     label:districts[region]+"：異星偵察機の攻撃で"+(animals[m.type]?.name||m.type)+"が死亡"});
    worldEventJournal=worldEventJournal.slice(-40);
   },
-   isPlayerConcealed:()=>!!(P.hidden||insideShelter(P)||
+   isPlayerConcealed:()=>!!(P.hidden||naturalCover(P)||insideShelter(P)||
      (inCover(P)&&Math.hypot(Number(P.vx)||0,Number(P.vy)||0)<(Number(P.speed)||150)*.50)),
   onPlayerAbductionStart:()=>{
    // Cancel queued combat and airborne moves so the beam owns the full animation.
@@ -8604,7 +8650,7 @@ function update(dt){
      aerialPounceState.delete(P);
     }
    }else if(P.pounceTime>0){
-   boarDashActive=P.type==="boar";
+   boarDashActive=P.type==="boar"&&!P.evadingPounce;
    const step=Math.min(P.pounceRemaining,P.pounceRemaining/Math.max(P.pounceTime,dt)*dt);
    const ox=P.x,oy=P.y;
    move(P,Math.cos(P.pounceDir)*step,Math.sin(P.pounceDir)*step);
@@ -8626,7 +8672,7 @@ function update(dt){
    P.jumpHeight=(P.groundZ||0)+Math.sin(Math.PI*clamp(progress,0,1))*(P.type==="cat"?11:P.type==="wolf"?8:10);
    pounceStreaks.push({x:P.x,y:P.y,z:P.jumpHeight,life:.17});
    if(pounceStreaks.length>11)pounceStreaks.shift();
-   if(P.pounceTime===0){landOnSurface();if(P.pendingStrike&&P.fallTime===0)resolveAttack();}
+   if(P.pounceTime===0){P.evadingPounce=false;landOnSurface();if(P.pendingStrike&&P.fallTime===0)resolveAttack();}
   }else if(P.dashTime>0){
    boarDashActive=P.type==="boar";
    P.vx=0;P.vy=0;move(P,P.dx*P.speed*(P.type==="cat"?4.35:P.type==="wolf"?3.05:3.8)*dt,P.dy*P.speed*(P.type==="cat"?4.35:P.type==="wolf"?3.05:3.8)*dt);
@@ -11361,6 +11407,7 @@ function keyDown(e){
  if(mode==="inventory"){if(k==="escape")closeDenInventory();return}
  if(mode==="guide"){if(k==="enter"||k===" "||k==="escape")closeTutorial();return}
  if(k==="shift"||k==="k"){
+  if(!alreadyHeld&&tryPounceDodge())return;
   // Either key order works: SHIFT+L leaps instead of a ground dash.
   if(P&&AERIAL_POUNCE_PROFILES[P.type]&&mode==="play"&&P.jumpTime<=0){
    const token=++keyboardDashToken;
@@ -12180,6 +12227,7 @@ for(const [id,action] of [["action-touch","context"],["dash-touch","dash"],["jum
   if(action==="jump"){act("jump");return}
   if(action==="instinct"){act("instinct");return}
   if(action==="attack"){heldActions.touchAttack=true;act("attack");return}
+  if(action==="dash"&&tryPounceDodge()){longFired=true;pounceTouchConsumed=true;return;}
   if(action==="dash"&&P&&P.jumpTime>0&&AERIAL_POUNCE_PROFILES[P.type]){
    if(leapPounce()){longFired=true;pounceTouchConsumed=true;return;}
   }
