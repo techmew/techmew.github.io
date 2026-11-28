@@ -7,7 +7,7 @@
 const canvas=document.getElementById("scene3d");
 if(!canvas){window.Wild3D={available:false};return;}
 let gl;
-try {gl=canvas.getContext("webgl",{alpha:false,depth:true,stencil:true,antialias:false,premultipliedAlpha:false});}catch(_){}
+try {gl=canvas.getContext("webgl",{alpha:false,depth:true,stencil:true,antialias:true,premultipliedAlpha:false});}catch(_){}
 if(!gl){canvas.style.display="none";window.Wild3D={available:false};return;}
 const vertex=String.raw`
 attribute vec3 aPosition;
@@ -22,8 +22,8 @@ uniform float uLandscape;
 uniform vec3 uTint;
 varying vec2 vWorldXY;
 varying vec3 vColor;
-varying float vShade;
 varying float vGrassDetail;
+varying mediump vec2 vTile;
 void main(){
  vec2 d=aPosition.xy-uCenter;
  float sx=uSize.x*0.5+uView.x*d.x+uView.z*d.y;
@@ -33,34 +33,35 @@ void main(){
  vec3 n=normalize(aNormal);
  vec3 sun=normalize(vec3(-0.55,-0.7,1.2));
  float bright=max(0.0,dot(n,sun));
- // Five face tones retain the silhouette when the world is enlarged on mobile.
- float band=floor(bright*4.0+.5)*.25;
- vShade=.44+.68*band;
-
- vec3 skylight=mix(vec3(.67,.81,1.12),vec3(1.18,1.065,.86),band);
- vColor=mix(vec3(dot(aColor,vec3(.25,.57,.18))),aColor,1.19)*skylight*uTint*(1.08-uNight*.91);
- vGrassDetail=uLandscape*step(.86,n.z)*step(aColor.r*1.08,aColor.g)*step(aColor.b*1.1,aColor.g);
+ float wrap=.5+.5*dot(n,sun);
+ vec3 sky=mix(vec3(.47,.55,.64),vec3(.74,.82,.90),n.z*.5+.5);
+ vec3 key=vec3(1.0,.84,.66)*bright*.62;
+ float edge=1.0-abs(dot(n,normalize(vec3(.30,.68,.67))));
+ float rim=edge*edge*edge*wrap;
+ vColor=(aColor*(sky+key)+vec3(.14,.11,.075)*rim)*uTint*(1.08-uNight*.91);
+ vGrassDetail=uLandscape*step(.88,n.z)*(1.0+step(aColor.r*1.06,aColor.g)*step(aColor.b*1.08,aColor.g));
+ vTile=aPosition.xy/216.0;
  vWorldXY=aPosition.xy;
 }
 `;
 const fragment=String.raw`
 precision mediump float;
 uniform float uAlpha;
+uniform sampler2D uSurface;
 uniform vec4 uNightVision; // player x/y, heading radians, range
 uniform float uNightVisionStrength;
 varying vec3 vColor;
-varying float vShade;
 varying float vGrassDetail;
+varying mediump vec2 vTile;
 varying vec2 vWorldXY;
 void main(){
- vec3 shaded=vColor*vShade;
+ vec3 shaded=vColor;
  if(vGrassDetail>.5){
-  // Two offset clusters of stepped grass blades anchored to the terrain.
-  vec2 tile=mod(floor(vWorldXY*.25),vec2(19.0,23.0));
-  vec2 blade=tile-vec2(4.0,6.0);
-  if(tile.y>12.0)blade=tile-vec2(15.0,17.0);
-  if((blade.y==0.0 && abs(blade.x)<1.5) || (blade.y==1.0 && blade.x==1.0))shaded*=.79;
-  if(blade.y==-1.0 && abs(blade.x)<1.5)shaded*=1.16;
+  vec3 material=texture2D(uSurface,vTile).rgb-.5;
+  float meadow=step(1.5,vGrassDetail);
+  shaded*=1.0+mix(material.b*.19,material.r*.48+material.g*.26,meadow);
+  shaded+=vec3(.035,.023,-.017)*material.r*meadow;
+
  }
  if(uNightVisionStrength>0.001){
   vec2 delta=vWorldXY-uNightVision.xy;
@@ -73,18 +74,47 @@ void main(){
   float acuity=max(edge*reach,peripheral)*uNightVisionStrength;
   shaded=shaded*(1.0+acuity*1.72)+vec3(.085,.105,.094)*acuity;
  }
- // Round to a limited palette on the world layer only. Keep night vision readable.
- gl_FragColor=vec4(floor(clamp(shaded,0.0,1.0)*31.0+.5)/31.0,uAlpha);
+ gl_FragColor=vec4(shaded,uAlpha);
 }
 `;
 function shader(type,src){const v=gl.createShader(type);gl.shaderSource(v,src);gl.compileShader(v);if(!gl.getShaderParameter(v,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(v));return v;}
 let program,buffer,attrPos,attrNormal,attrColor,ucenter,usize,uview,uzoom,unight,utint,ualpha,unightVision,unightVisionStrength,uLandscape;
+let surfaceTexture;
+function buildSurfaceTexture(){
+ const size=128,bytes=new Uint8Array(size*size*4);
+ let seed=7149;
+ const random=()=>((seed=(Math.imul(seed,1664525)+1013904223)>>>0)/4294967296);
+ for(let y=0;y<size;y++)for(let x=0;x<size;x++){
+  const i=(y*size+x)*4,ax=x*Math.PI/64,ay=y*Math.PI/64;
+  // Seamless patches of moss and earth, plus aggregate for paved surfaces.
+  bytes[i]=127+34*Math.sin(ax+Math.sin(ay))+24*Math.cos(ay*2-ax)+15*Math.sin(3*ax+2*ay);
+  bytes[i+1]=119+random()*18;
+  bytes[i+2]=95+random()*67;
+  bytes[i+3]=255;
+ }
+ for(let tuft=0;tuft<350;tuft++){
+  const x=Math.floor(random()*size),y=Math.floor(random()*size);
+  for(let j=0;j<4;j++){
+   const row=((y-j)&127)*size;
+   bytes[(row+((x+(j>>1))&127))*4+1]=168+j*13;
+   bytes[(row+((x-1-(j>>1))&127))*4+1]=82+j*7;
+  }
+ }
+ const tex=gl.createTexture();
+ gl.bindTexture(gl.TEXTURE_2D,tex);
+ gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,size,size,0,gl.RGBA,gl.UNSIGNED_BYTE,bytes);
+ gl.generateMipmap(gl.TEXTURE_2D);
+ gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR);
+ gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+ return tex;
+}
 function initializeGPU(){
  program=gl.createProgram();
  gl.attachShader(program,shader(gl.VERTEX_SHADER,vertex));
  gl.attachShader(program,shader(gl.FRAGMENT_SHADER,fragment));
  gl.linkProgram(program);
  if(!gl.getProgramParameter(program,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(program));
+ surfaceTexture=buildSurfaceTexture();
  buffer=gl.createBuffer();
  attrPos=gl.getAttribLocation(program,"aPosition");
  attrNormal=gl.getAttribLocation(program,"aNormal");
@@ -151,29 +181,44 @@ function pyramid(x,y,z,rx,ry,h,col){z+=animalLift;
 }
 // A sphere grid is shared by every limb with the same tessellation.
 const sphereGrids=new Map();
+function smoothTriangle(points,normals,c,a,b,d){
+ reserveTriangle();
+ let n=normals[a];writeVertex(points[a],n[0],n[1],n[2],c);
+ n=normals[b];writeVertex(points[b],n[0],n[1],n[2],c);
+ n=normals[d];writeVertex(points[d],n[0],n[1],n[2],c);
+}
 function ellipsoid(x,y,z,rx,ry,rz,col,heading=0,segments=9,rings=5){z+=animalLift;
  const key=segments*256+rings;
  let grid=sphereGrids.get(key);
  if(!grid){
-  grid={unit:[],world:[]};
+  grid={unit:[],world:[],normals:[]};
   for(let j=0;j<=rings;j++)for(let i=0;i<=segments;i++){
    const phi=-Math.PI/2+j*Math.PI/rings,theta=i*TAU/segments;
    const radial=(j===0||j===rings)?0:Math.cos(phi);
    grid.unit.push([radial*Math.cos(theta),radial*Math.sin(theta),Math.sin(phi)]);
-   grid.world.push([0,0,0]);
+   grid.world.push([0,0,0]);grid.normals.push([0,0,0]);
   }
   sphereGrids.set(key,grid);
  }
  const c=color(col),cos=Math.cos(heading),sin=Math.sin(heading),points=grid.world;
+ const ix=1/Math.max(.001,rx),iy=1/Math.max(.001,ry),iz=1/Math.max(.001,rz);
  for(let i=0;i<points.length;i++){
   const unit=grid.unit[i],v=points[i],lx=rx*unit[0],ly=ry*unit[1];
   v[0]=x+lx*cos-ly*sin;v[1]=y+lx*sin+ly*cos;v[2]=z+rz*unit[2];
-  if(animalCollapseTransform)collapseVertex(v,v);
+  const norm=grid.normals[i],nx=unit[0]*ix,ny=unit[1]*iy;
+  norm[0]=nx*cos-ny*sin;norm[1]=nx*sin+ny*cos;norm[2]=unit[2]*iz;
+  if(animalCollapseTransform){
+   collapseVertex(v,v);
+   const t=animalCollapseTransform;
+   const side=-norm[0]*t.sin+norm[1]*t.cos,height=norm[2]/(t.heightScale||1);
+   const shift=side*t.ct+height*t.st-side;
+   norm[0]-=shift*t.sin;norm[1]+=shift*t.cos;norm[2]=height*t.ct-side*t.st;
+  }
  }
  for(let j=0;j<rings;j++)for(let i=0;i<segments;i++){
   const a=j*(segments+1)+i,b=a+segments+1;
-  if(j>0)triangle(points[a],points[a+1],points[b+1],c);
-  if(j<rings-1)triangle(points[a],points[b+1],points[b],c);
+  if(j>0)smoothTriangle(points,grid.normals,c,a,a+1,b+1);
+  if(j<rings-1)smoothTriangle(points,grid.normals,c,a,b+1,b);
  }
 }
 
@@ -1843,7 +1888,7 @@ function animal(m,player,clock){
  for(const s of [-1,1])for(const k of [-1,1]){
   const front=k>0,lead=cat?(s<0?1:.60):fox?.9:large?.53:.65;
   const dx=k*r*.57+(front?(foreDrive(s,attackReach*lead)-attackPrep*.21)*r:(rushPose===4?-attackReach*r*(cat?.75:fox?.48:.28):0))+(k===s?1:-1)*gait*r*(cat?.34:fox?.34:wolf?.27:.22)+(chargePose&&front?-r*.15:0);
-  const dy=s*r*(.45+crouch*.24)+(front&&cat?attackReach*s*r*.08:0);
+  const dy=s*r*((cat?.25:.45)+crouch*.24)+(front&&cat?attackReach*s*r*.08:0);
   const bob=Math.max(0,gait*(k===s?1:-1))*r*.29*moving+(player&&m.jumpTime>0?r*.18:0)+(front&&kickPose>0?(s<0?1:.35)*r*.48*kickPose:0);
   const pawLift=front?foreDrive(s,attackReach)*r*(cat?.34:fox?.20:.13):(rushPose===4?attackReach*r*.27:0);
   const legHeight=(fox?r*.51:cat?r*.45:rabbit?(front?r*.35:r*.46):r*.38)*(resting?.55:1)*(1-collapse*.68)*(1-crouch*.72);
@@ -1882,7 +1927,7 @@ function animal(m,player,clock){
    const earLength=rabbit?r*1.08:rat?r*.22:wolf?r*.59:fox?r*.52:type==="dog"?r*.25:r*.38;
    const earWidth=rabbit?r*.14:rat?r*.22:r*.20;
    if(type==="dog")ellipsoid(fx(neck-r*.22,side*r*.54),fy(neck-r*.22,side*r*.54),h+r*.66,r*.20,r*.14,r*.26,base,dir,7,4);
-   else pyramid(fx(neck-r*.18,side*r*.40),fy(neck-r*.18,side*r*.40),h+r*.79,earWidth,r*.13,earLength,torso);
+   else pyramid(fx(neck-r*.18,side*r*(cat?.23:.40)),fy(neck-r*.18,side*r*(cat?.23:.40)),h+r*.79,earWidth,r*.13,earLength,torso);
    if(rabbit)pyramid(fx(neck-r*.16,side*r*.40),fy(neck-r*.16,side*r*.40),h+r*.82,r*.075,r*.06,earLength*.82,"#dfaa9c");
   }
  }
@@ -1911,10 +1956,27 @@ function animal(m,player,clock){
   for(const side of [-1,1])ellipsoid(fx(neck-r*.16,side*r*.51),fy(neck-r*.16,side*r*.51),h+r*.57,r*.25,r*.19,r*.36,torso,dir,7,4);
  }
  if(cat){
-  // A bent segmented tail is visibly different from the fox's dense brush.
-  for(let i=0;i<4;i++){
-   const dx=-r*(1.06+i*.33),dy=Math.sin(clock*(crouch?1.2:2)+i*.7)*r*.25,z=h+r*(.43+i*(.16-crouch));
-   ellipsoid(fx(dx,dy),fy(dx,dy),z,r*.21,r*.105,r*.11,torso,dir,6,4);
+  // Shared rings keep the curved tail continuous throughout its swing.
+  let lastRing;
+  for(let i=0;i<=7;i++){
+   const t=i/7,dx=-r*(.83+t*1.04),dy=Math.sin(clock*(crouch?1.2:2)+t*1.7)*r*t*.25;
+   const z=animalLift+h+r*(.30+t*(.72-crouch*.4)),radius=r*(i===7?.014:.145-t*.068);
+   const ring=[];
+   for(let j=0;j<6;j++){
+    const angle=j*TAU/6,lat=dy+Math.cos(angle)*radius,height=Math.sin(angle)*radius;
+    ring.push(collapseVertex([fx(dx+.46*height,lat),fy(dx+.46*height,lat),z+height]));
+   }
+   if(lastRing)for(let j=0;j<6;j++){
+    const k=(j+1)%6;quad(lastRing[k],lastRing[j],ring[j],ring[k],color(i>5?"#637068":torso));
+   }
+   lastRing=ring;
+  }
+  ellipsoid(fx(neck+r*.63,0),fy(neck+r*.63,0),h+r*.45,r*.095,r*.115,r*.071,"#b27672",dir,7,3);
+  for(const side of [-1,1]){
+   const inside=(dx,dy,dz)=>collapseVertex([fx(neck+dx*r,side*dy*r),fy(neck+dx*r,side*dy*r),animalLift+h+dz*r]);
+   triangle(inside(-.04,.18,.87),inside(-.13,.27,1.09),inside(-.09,.36,.86),color("#c69590"));
+   for(let k=0;k<3;k++)triangle(inside(.45,.15,.40+k*.032),inside(.43,.17,.42+k*.032),
+    inside(.43-k*.10,.68+k*.04,.38+k*.085),color("#dedbcb"));
   }
  }else if(fox){
   const sway=Math.sin(clock*3.1+phase*.13)*r*.22*(.45+.55*moving);
@@ -1931,7 +1993,28 @@ function animal(m,player,clock){
   ellipsoid(fx(neck+r*.43,0),fy(neck+r*.43,0),h+r*(.14-attackReach*.06),r*.32,r*.24,r*.10,belly,dir,8,4);
  }
  // Sparse coat patches follow torso articulation without per-hair GPU overload.
- if(cat||fox||wolf||type==="dog"){
+ if(cat){
+  // Taper each tabby stripe along the curved flank, from spine to belly.
+  const center=r*(attackReach*.16-attackPrep*.16)+bodyDrive;
+  const midZ=h+r*(.28-attackPrep*.11+attackReach*.09)+bodyBob+animalLift;
+  for(const side of [-1,1])for(let k=0;k<4;k++){
+   const spineX=-.75+k*.36;
+   let lastLeft,lastRight;
+   for(let j=0;j<=4;j++){
+    const t=j*.25,angle=.19+t*(1.10+.12*(k%2));
+    const stripeX=spineX+.13*t*t,width=.063*(1-t)+.007;
+    const point=offset=>{
+     const dx=stripeX+offset,section=Math.sqrt(1-dx*dx);
+     const dy=side*r*.412*section*Math.sin(angle),localX=center+dx*r*1.04;
+     return collapseVertex([fx(localX,dy),fy(localX,dy),midZ+r*.447*section*Math.cos(angle)]);
+    };
+    const left=point(-width),right=point(width);
+    if(j)quad(lastLeft,lastRight,right,left,color("#526357"));
+    lastLeft=left;lastRight=right;
+   }
+  }
+ }
+ if(fox||wolf||type==="dog"){
   for(const side of [-1,1])for(let k=0;k<3;k++){
    const localX=r*(-.53+k*.45)+bodyDrive*.55;
    const localY=side*r*(fox?.29:wolf?.45:.36);
@@ -2536,6 +2619,18 @@ function terrain(w,roadsX,roadsY,isVisible,buildings=[],cityWater=[],cityBridges
 
 }
 let failed=false,frames=0;
+let renderQuality=1,previousFrame=0,intervalTotal=0,intervalCount=0;
+function updateRenderQuality(now){
+ const interval=now-previousFrame;
+ previousFrame=now;
+ if(interval<=0||interval>160){intervalTotal=0;intervalCount=0;return;}
+ intervalTotal+=interval;intervalCount++;
+ if(intervalCount<60)return;
+ const mean=intervalTotal/intervalCount;
+ if(mean>42)renderQuality=Math.max(.70,renderQuality-.1);
+ else if(mean<22)renderQuality=Math.min(1,renderQuality+.05);
+ intervalTotal=0;intervalCount=0;
+}
 canvas.addEventListener("webglcontextlost",e=>{e.preventDefault();failed=true;window.Wild3D.available=false;canvas.style.display="none";});
 canvas.addEventListener("webglcontextrestored",()=>{
  try{
@@ -2552,7 +2647,8 @@ function render(o){
  if(failed)return false;
  try{
   const {vw,vh,dpr,cam,VIEW,buildings,plants,carcasses,mobs,P,elapsed,weather,WORLD,species}=o;
-  const worldScale=Math.min(dpr,.80,320/Math.min(vw,vh),740/Math.max(vw,vh));
+  updateRenderQuality(globalThis.performance?.now()??Date.now());
+  const worldScale=renderQuality*Math.min(dpr,1.35,Math.sqrt(900000/(vw*vh)));
   const width=Math.max(1,Math.round(vw*worldScale)),height=Math.max(1,Math.round(vh*worldScale));
   if(canvas.width!==width||canvas.height!==height){canvas.width=width;canvas.height=height;}
   gl.viewport(0,0,width,height);
@@ -3091,6 +3187,7 @@ function render(o){
     gl.enableVertexAttribArray(a);gl.vertexAttribPointer(a,3,gl.FLOAT,false,36,offset);
    }
   };
+  gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,surfaceTexture);
   gl.uniform1f(uLandscape,1);
   bindAttributes(staticBuffer);
   if(staticCount)gl.drawArrays(gl.TRIANGLES,0,staticCount);
@@ -3191,6 +3288,7 @@ function bestiaryRender(m,target,yaw=0,zoom=1,tilt=0){
   for(const [attr,offset] of [[attrPos,0],[attrNormal,12],[attrColor,24]]){
    if(attr<0)continue;gl.enableVertexAttribArray(attr);gl.vertexAttribPointer(attr,3,gl.FLOAT,false,36,offset);
   }
+  gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,surfaceTexture);
   gl.drawArrays(gl.TRIANGLES,0,vertices.length/9);
   const pixels=new Uint8Array(w*h*4);gl.readPixels(0,0,w,h,gl.RGBA,gl.UNSIGNED_BYTE,pixels);
   const ctx=target.getContext("2d"),out=ctx.createImageData(w,h);

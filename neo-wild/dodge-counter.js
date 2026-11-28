@@ -73,9 +73,25 @@
   c.lineTo(length,0);c.lineTo(length*.14,-width*.31);c.lineTo(0,-width);
   c.lineTo(-length*.12,-width*.33);c.closePath();c.fill();
  }
+ const impactLights=new Map();
+ function impactLight(ctx,cool,w,h){
+  if(typeof document==="undefined")return;
+  let light=impactLights.get(cool);
+  if(!light){
+   light=document.createElement("canvas");light.width=light.height=96;
+   const brush=light.getContext("2d"),halo=brush.createRadialGradient(48,48,0,48,48,48);
+   halo.addColorStop(0,cool?"#edffff":"#ffffde");
+   halo.addColorStop(.13,cool?"#a4ebff":"#ffe694");
+   halo.addColorStop(.43,cool?"rgba(38,139,255,.56)":"rgba(255,128,38,.58)");
+   halo.addColorStop(1,cool?"rgba(24,55,238,0)":"rgba(216,48,20,0)");
+   brush.fillStyle=halo;brush.fillRect(0,0,96,96);impactLights.set(cool,light);
+  }
+  ctx.save();ctx.globalCompositeOperation="lighter";ctx.drawImage(light,-w,-h,w*2,h*2);ctx.restore();
+ }
  function finisher(c,u,size){
   const open=1-(1-Math.min(1,u*4))**2;
   c.save();c.scale(size,size);c.globalAlpha=Math.min(1,(1-u)*2);
+  impactLight(c,false,82*(1-u)+9,45*(1-u)+5);
   c.rotate(-.42);prism(c,(40+88*open),12*(1-u)+2,"#883559");
   prism(c,42+95*open,7*(1-u)+1,"#ffb527");prism(c,46+99*open,2.8*(1-u)+.8,"#ffffcf");
   c.rotate(1.12);prism(c,18+44*open,4*(1-u)+1,"#fff7ac");c.restore();
@@ -116,6 +132,7 @@
    const start=project(focus.x,focus.y,6),end=project(actor.x,actor.y,6);
    const angle=Math.atan2(end.y-start.y,end.x-start.x),length=Math.min(65,Math.hypot(end.x-start.x,end.y-start.y));
    ctx.save();ctx.translate(end.x,end.y);ctx.rotate(angle);ctx.globalAlpha=.8*(1-focus.age/.44);
+   impactLight(ctx,true,48,22);
    ctx.fillStyle="#6666ff";ctx.beginPath();
    for(let i=-1;i<=1;i++){
     const back=-length-15-Math.abs(i)*7;
