@@ -7,7 +7,7 @@
 const canvas=document.getElementById("scene3d");
 if(!canvas){window.Wild3D={available:false};return;}
 let gl;
-try {gl=canvas.getContext("webgl",{alpha:false,depth:true,stencil:true,antialias:true,premultipliedAlpha:false});}catch(_){}
+try {gl=canvas.getContext("webgl",{alpha:false,depth:true,stencil:true,antialias:false,premultipliedAlpha:false});}catch(_){}
 if(!gl){canvas.style.display="none";window.Wild3D={available:false};return;}
 const vertex=String.raw`
 attribute vec3 aPosition;
@@ -18,10 +18,12 @@ uniform vec2 uSize;
 uniform vec4 uView;
 uniform float uZoom;
 uniform float uNight;
+uniform float uLandscape;
 uniform vec3 uTint;
 varying vec2 vWorldXY;
 varying vec3 vColor;
 varying float vShade;
+varying float vGrassDetail;
 void main(){
  vec2 d=aPosition.xy-uCenter;
  float sx=uSize.x*0.5+uView.x*d.x+uView.z*d.y;
@@ -31,9 +33,13 @@ void main(){
  vec3 n=normalize(aNormal);
  vec3 sun=normalize(vec3(-0.55,-0.7,1.2));
  float bright=max(0.0,dot(n,sun));
- vShade=0.34+0.65*bright;
- vec3 skylight=mix(vec3(.86,.95,1.10),vec3(1.10,1.035,.94),bright);
- vColor=aColor*skylight*uTint*(1.08-uNight*.91);
+ // Five face tones retain the silhouette when the world is enlarged on mobile.
+ float band=floor(bright*4.0+.5)*.25;
+ vShade=.44+.68*band;
+
+ vec3 skylight=mix(vec3(.67,.81,1.12),vec3(1.18,1.065,.86),band);
+ vColor=mix(vec3(dot(aColor,vec3(.25,.57,.18))),aColor,1.19)*skylight*uTint*(1.08-uNight*.91);
+ vGrassDetail=uLandscape*step(.86,n.z)*step(aColor.r*1.08,aColor.g)*step(aColor.b*1.1,aColor.g);
  vWorldXY=aPosition.xy;
 }
 `;
@@ -44,9 +50,18 @@ uniform vec4 uNightVision; // player x/y, heading radians, range
 uniform float uNightVisionStrength;
 varying vec3 vColor;
 varying float vShade;
+varying float vGrassDetail;
 varying vec2 vWorldXY;
 void main(){
  vec3 shaded=vColor*vShade;
+ if(vGrassDetail>.5){
+  // Two offset clusters of stepped grass blades anchored to the terrain.
+  vec2 tile=mod(floor(vWorldXY*.25),vec2(19.0,23.0));
+  vec2 blade=tile-vec2(4.0,6.0);
+  if(tile.y>12.0)blade=tile-vec2(15.0,17.0);
+  if((blade.y==0.0 && abs(blade.x)<1.5) || (blade.y==1.0 && blade.x==1.0))shaded*=.79;
+  if(blade.y==-1.0 && abs(blade.x)<1.5)shaded*=1.16;
+ }
  if(uNightVisionStrength>0.001){
   vec2 delta=vWorldXY-uNightVision.xy;
   float distanceToPlayer=length(delta);
@@ -58,11 +73,12 @@ void main(){
   float acuity=max(edge*reach,peripheral)*uNightVisionStrength;
   shaded=shaded*(1.0+acuity*1.72)+vec3(.085,.105,.094)*acuity;
  }
- gl_FragColor=vec4(shaded,uAlpha);
+ // Round to a limited palette on the world layer only. Keep night vision readable.
+ gl_FragColor=vec4(floor(clamp(shaded,0.0,1.0)*31.0+.5)/31.0,uAlpha);
 }
 `;
 function shader(type,src){const v=gl.createShader(type);gl.shaderSource(v,src);gl.compileShader(v);if(!gl.getShaderParameter(v,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(v));return v;}
-let program,buffer,attrPos,attrNormal,attrColor,ucenter,usize,uview,uzoom,unight,utint,ualpha,unightVision,unightVisionStrength;
+let program,buffer,attrPos,attrNormal,attrColor,ucenter,usize,uview,uzoom,unight,utint,ualpha,unightVision,unightVisionStrength,uLandscape;
 function initializeGPU(){
  program=gl.createProgram();
  gl.attachShader(program,shader(gl.VERTEX_SHADER,vertex));
@@ -78,6 +94,7 @@ function initializeGPU(){
  uview=gl.getUniformLocation(program,"uView");
   uzoom=gl.getUniformLocation(program,"uZoom");
  unight=gl.getUniformLocation(program,"uNight");utint=gl.getUniformLocation(program,"uTint");ualpha=gl.getUniformLocation(program,"uAlpha");
+ uLandscape=gl.getUniformLocation(program,"uLandscape");
  unightVision=gl.getUniformLocation(program,"uNightVision");unightVisionStrength=gl.getUniformLocation(program,"uNightVisionStrength");
  gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.disable(gl.CULL_FACE);
 }
@@ -119,14 +136,14 @@ function box(x,y,z,w,h,height,col,roofCol=col){
 }
 let animalLift=0,animalCollapseTransform=null;
 // Only the dying player's mesh rolls onto its side; the roof-level shadow remains fixed.
-function collapseVertex(vertex){
+function collapseVertex(vertex,out){
  const t=animalCollapseTransform;
  if(!t)return vertex;
  const [x,y,z]=vertex;
- const side=-(x-t.x)*t.sin+(y-t.y)*t.cos,height=z-t.pivot;
+ const side=-(x-t.x)*t.sin+(y-t.y)*t.cos,height=(z-t.pivot)*(t.heightScale??1);
  const rolledSide=side*t.ct+height*t.st,rolledHeight=height*t.ct-side*t.st;
  const shift=rolledSide-side;
- return [x-shift*t.sin,y+shift*t.cos,Math.max(t.ground+.65,t.pivot+rolledHeight)];
+ out=out||[0,0,0];out[0]=x-shift*t.sin;out[1]=y+shift*t.cos;out[2]=Math.max(t.ground+.65,t.pivot+rolledHeight);return out;
 }
 function pyramid(x,y,z,rx,ry,h,col){z+=animalLift;
  const base=[[x-rx,y-ry,z],[x+rx,y-ry,z],[x+rx,y+ry,z],[x-rx,y+ry,z]],top=[x,y,z+h],c=color(col);
@@ -151,7 +168,7 @@ function ellipsoid(x,y,z,rx,ry,rz,col,heading=0,segments=9,rings=5){z+=animalLif
  for(let i=0;i<points.length;i++){
   const unit=grid.unit[i],v=points[i],lx=rx*unit[0],ly=ry*unit[1];
   v[0]=x+lx*cos-ly*sin;v[1]=y+lx*sin+ly*cos;v[2]=z+rz*unit[2];
-  if(animalCollapseTransform)points[i]=collapseVertex(v);
+  if(animalCollapseTransform)collapseVertex(v,v);
  }
  for(let j=0;j<rings;j++)for(let i=0;i<segments;i++){
   const a=j*(segments+1)+i,b=a+segments+1;
@@ -1798,6 +1815,14 @@ function animal(m,player,clock){
  if(player)animalLift+=specialPose*r*(m.specialKind==="roar"?.18:m.specialKind==="slam"?.21:["penguin","crocodile","rhino"].includes(type)?.04:.58)+swingPose*r*.19;
  const easedCollapse=collapse*collapse*(3-2*collapse),tilt=easedCollapse*1.23;
  animalCollapseTransform=player&&collapse>0?{x:m.x,y:m.y,cos,sin,pivot:contactZ+r*.18,ground:contactZ,ct:Math.cos(tilt),st:Math.sin(tilt)}:null;
+ if(!collapse){
+  const pose=window.WildDodgeCounter?.bodyPose?.(m,player,clock);
+  if(pose){
+   const axis=pose.angle-Math.PI/2;
+   animalCollapseTransform={x,y,cos:Math.cos(axis),sin:Math.sin(axis),pivot:animalLift+r*.16,
+    ground:contactZ,ct:Math.cos(pose.lean),st:Math.sin(pose.lean),heightScale:pose.height};
+  }
+ }
  if(drawPlayableBird3D(m,clock)){animalLift=0;animalCollapseTransform=null;return;}
  if(drawAquaticPlayable3D(m,clock)){animalLift=0;animalCollapseTransform=null;return;}
  if(drawForestPlayable3D(m,clock)){animalLift=0;animalCollapseTransform=null;return;}
@@ -2527,7 +2552,8 @@ function render(o){
  if(failed)return false;
  try{
   const {vw,vh,dpr,cam,VIEW,buildings,plants,carcasses,mobs,P,elapsed,weather,WORLD,species}=o;
-  const width=Math.max(1,Math.round(vw*dpr)),height=Math.max(1,Math.round(vh*dpr));
+  const worldScale=Math.min(dpr,.80,320/Math.min(vw,vh),740/Math.max(vw,vh));
+  const width=Math.max(1,Math.round(vw*worldScale)),height=Math.max(1,Math.round(vh*worldScale));
   if(canvas.width!==width||canvas.height!==height){canvas.width=width;canvas.height=height;}
   gl.viewport(0,0,width,height);
   // Explicit dawn/noon/sunset/night profile is shared with the 2D world.
@@ -3065,8 +3091,10 @@ function render(o){
     gl.enableVertexAttribArray(a);gl.vertexAttribPointer(a,3,gl.FLOAT,false,36,offset);
    }
   };
+  gl.uniform1f(uLandscape,1);
   bindAttributes(staticBuffer);
   if(staticCount)gl.drawArrays(gl.TRIANGLES,0,staticCount);
+  gl.uniform1f(uLandscape,0);
   bindAttributes(snowBuffer);
   if(snowCount)gl.drawArrays(gl.TRIANGLES,0,snowCount);
   bindAttributes(buffer);
@@ -3157,6 +3185,7 @@ function bestiaryRender(m,target,yaw=0,zoom=1,tilt=0){
   gl.uniform4f(uview,.97*factor,.23*factor*elevation,-.35*factor,.76*factor*elevation);
   gl.uniform1f(uzoom,factor*elevation);gl.uniform1f(unight,0);
   gl.uniform3f(utint,1.1,1.1,1.1);gl.uniform1f(ualpha,1);
+  gl.uniform1f(uLandscape,0);
   gl.uniform4f(unightVision,0,0,0,1);gl.uniform1f(unightVisionStrength,0);
   gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,vertices,gl.DYNAMIC_DRAW);
   for(const [attr,offset] of [[attrPos,0],[attrNormal,12],[attrColor,24]]){

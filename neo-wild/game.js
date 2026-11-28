@@ -4430,6 +4430,10 @@ function drawCombatFX(){
    const origin=pt(0,0,r*.42),ahead=pt(r,0,r*.42);
    if(origin&&ahead&&!guard){
     const style=combatMotion(fx.type,fx.step||1,fx.kind!=="melee");
+    if(fx.step===5||fx.kind==="special"){
+     ctx.save();ctx.translate(origin.x,origin.y);ctx.rotate(Math.atan2(ahead.y-origin.y,ahead.x-origin.x));
+     window.WildDodgeCounter?.finisher?.(ctx,u,Math.min(.85,Math.max(.48,r*zoom/38)));ctx.restore();
+    }
     drawContactBurst(ctx,origin,Math.atan2(ahead.y-origin.y,ahead.x-origin.x),
      Math.min(42,Math.max(12,r*zoom)),u,style,water?"#91eaff":snow?"#dfedff":"#ffb362");
    }
@@ -4458,13 +4462,13 @@ function drawCombatFX(){
   const reach=r*(heavy?1.9:1.15)*(u<.25?.67+u*1.1:1);
   const tipF=baseF+reach,tipSide=side+left*r*(heavy?.21:.11);
   const muzzleHeight=r*.82,footHeight=r*.08,pawHeight=r*.22;
-  if((heavy||normal&&fx.step>=3)&&u<.82){
+  if((heavy||normal)&&u<.82){
    const backwards=fx.motion==="hind"||fx.motion==="tail";
    const root=pt(backwards?-r*.45:r*.45,0,r*.42),tip=pt((backwards?-1:1)*r*2,0,r*.42);
    if(root&&tip){
     ctx.save();ctx.translate(root.x,root.y);ctx.rotate(Math.atan2(tip.y-root.y,tip.x-root.x));
     const length=Math.min(88,Math.max(21,Math.hypot(tip.x-root.x,tip.y-root.y)))*(.75+u);
-    const size=heavy||fx.step===5?length:length*.67;
+    const size=heavy||fx.step===5?length:fx.step>=3?length*.75:length*.52;
     ctx.scale(size,left*size);ctx.globalAlpha=.8*(1-u);ctx.fillStyle=heavy?"#ff8e28":"#52dce7";
     if(["body","hoof","hind","fist","foot","stomp"].includes(fx.motion)){
      const spread=.22+u;
@@ -8695,7 +8699,7 @@ function update(dt){
    P.jumpHeight=(P.groundZ||0)+Math.sin(Math.PI*clamp(progress,0,1))*(P.type==="cat"?11:P.type==="wolf"?8:10);
    pounceStreaks.push({x:P.x,y:P.y,z:P.jumpHeight,life:.17});
    if(pounceStreaks.length>11)pounceStreaks.shift();
-   if(P.pounceTime===0){P.evadingPounce=false;landOnSurface();if(P.pendingStrike&&P.fallTime===0)resolveAttack();}
+   if(P.pounceTime===0){if(P.evadingPounce)P.dodgeLandedAt=elapsed;P.evadingPounce=false;landOnSurface();if(P.pendingStrike&&P.fallTime===0)resolveAttack();}
   }else if(P.dashTime>0){
    boarDashActive=P.type==="boar";
    P.vx=0;P.vy=0;move(P,P.dx*P.speed*(P.type==="cat"?4.35:P.type==="wolf"?3.05:3.8)*dt,P.dy*P.speed*(P.type==="cat"?4.35:P.type==="wolf"?3.05:3.8)*dt);
@@ -10506,6 +10510,10 @@ function drawCreature(o,isPlayer){
  }
  if(!isPlayer&&o.type==="giantEagle")lift2D(Math.max(10,Number(o.airHeight)||125)); // Real sideways leap also clears the ground in Canvas2D.
  // Stealth alpha was already applied before shadow/body drawing.
+ const actionPose=window.WildDodgeCounter?.bodyPose?.(o,isPlayer,elapsed);
+ if(actionPose){
+  ctx.rotate(actionPose.angle);ctx.transform(1,0,actionPose.lean*.40,actionPose.height,0,0);ctx.rotate(-actionPose.angle);
+ }
  ctx.rotate(o.dir||0);
  if(!isPlayer&&o.resting){ctx.scale(1.07,.68);ctx.translate(0,r*.15);}
  const bound=t==="fox"?Math.abs(Math.sin(gait*1.08))*.19:t==="cat"?Math.abs(Math.sin(gait*1.46))*.13:t==="wolf"?Math.abs(Math.sin(gait*.62))*.105:Math.abs(Math.sin(gait*.9))*.09;
