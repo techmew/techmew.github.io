@@ -83,5 +83,13 @@
    ctx.restore();
   }
  }
- window.WildStormCover={index,cover,target,ignite,tick,draw,restore,snapshot:()=>fires.map(f=>({...f}))};
+ function soundAt(actor){
+  let trees=0,fire=0;
+  nearby(actor,180,p=>{
+   if(p.tree)trees=Math.max(trees,1-Math.hypot(actor.x-p.x,actor.y-p.y)/180);
+  });
+  for(const f of fires)fire=Math.max(fire,(1-Math.hypot(actor.x-f.x,actor.y-f.y)/220)*Math.min(1,f.life/3));
+  return {trees,fire};
+ }
+ window.WildStormCover={soundAt,index,cover,target,ignite,tick,draw,restore,snapshot:()=>fires.map(f=>({...f}))};
 })();

@@ -39,7 +39,7 @@
      Math.abs((actor.groundZ||0)-(enemy.groundZ||0))>=22||blocked(enemy,actor))return false;
   if(now>=t.crossedAt&&now-t.crossedAt<=.16){
    focus={actor,age:0,x:t.x,y:t.y};
-   t.perfect=true;
+   t.perfect=true;global.WildAudio?.play?.("perfect",{volume:.32});
   }
   t.until=now+.85;
   return true;

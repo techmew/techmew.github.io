@@ -298,7 +298,8 @@ function updateLightning(dt){
  if(e.countdown>0){
   e.countdown-=dt;if(e.countdown>0)return;
   e.afterglow=.7;thunderFlash=Math.max(thunderFlash,.9);shake=Math.max(shake,3.2);
-  playEffect("thunder",{volume:.8});
+  const near=clamp(1-dist(P,e)/720,.18,1);
+  playEffect("thunder",{volume:.13+.48*near,rate:.78+.22*near});
   if(e.kind==="tree"&&Math.random()<.75){window.WildStormCover?.ignite(e.x,e.y);notify("落雷で木が燃えた！");}
   const radius=65;
   if(P&&P.hp>0&&Math.hypot(P.x-e.x,P.y-e.y)<radius&&!insideShelter(P)){
@@ -4850,7 +4851,7 @@ function resolveSpeciesSpecial(){
   combatFX[combatFX.length-1].time=-.13;
  }else emitCombatFX("special",type,spec.kind,P.x,P.y,P.dir,1.18,0,P.r);
  shake=Math.max(shake,spec.kind==="slam"||spec.kind==="roar"?9:5);
- playEffect(spec.kind==="slam"?"thunder":"impact",{volume:.30});
+ playEffect(spec.kind==="slam"?"quake":"impact",{volume:.30});
  if(primary&&["lunge","roll"].includes(spec.kind)){
   const d=dist(P,primary),a=Math.atan2(primary.y-P.y,primary.x-P.x);
   const travel=Math.max(0,Math.min(type==="cheetah"?115:type==="rhino"?153:type==="penguin"?122:type==="lion"?105:83,d-P.r-primary.r-14));
@@ -6365,7 +6366,7 @@ function tryPounceDodge(){
  if(!Number.isFinite(angle))return false;
  P.sp-=12;P.dash=.36;P.pounceDir=angle;P.pounceDuration=.18;P.pounceTime=.18;
  P.pounceRemaining=64;P.evadingPounce=true;P.chargeStrike=false;P.hidden=false;
- playEffect("wing",{volume:.14});return true;
+ playEffect("evade",{volume:.17});return true;
 }
 function dash(){
  if(mode!=="play"||!P||isControlBlocked())return false;
@@ -8368,6 +8369,24 @@ function recordDisasterEncounters(){
   try{localStorage.setItem(DISASTER_TROPHY_KEY,JSON.stringify(Object.fromEntries(Object.entries(disasterTrophyLedger).slice(-160))))}catch(_){}
  }
 }
+function updateWorldSound(){
+ const area=regionAt(P.x,P.y),land=window.WildStormCover?.soundAt?.(P)||{trees:0,fire:0};
+ const ufo=window.WildUFO?.active;
+ let danger=false,nearest=null,range=320;
+ for(const m of mobs){
+  if(m.hp<=0||m.companion)continue;
+  const distance=dist(P,m);
+  if(!species[m.type]?.prey&&distance<(m.strongBoss?515:290))danger=true;
+  if(distance<range){range=distance;nearest=m;}
+ }
+ let craftRange=ufo?dist(P,ufo):Infinity;
+ for(const wing of ufo?.wingmen||[])if(Number.isFinite(wing.x)&&Number.isFinite(wing.y)&&!(wing.disabled>0))craftRange=Math.min(craftRange,dist(P,wing));
+ window.WildAudio.update({weather,area,mode:"play",danger,indoors:insideShelter(P),
+  trees:Math.max(land.trees,area===5?.65:0),fire:Math.max(land.fire,window.WildDisaster?.fireIntensity?.(P.x,P.y,elapsed/120)||0),
+  wildlife:nearest?{type:nearest.type,level:.22+.40*(1-range/320)}:null,
+  ufoNear:clamp(1-craftRange/950,0,1),ufoStage:ufo?.stage,ufoLock:!!ufo?.playerBeamCount,
+  quake:(window.WildDisaster?.quakeShake?.(elapsed)?.strength||0)>0,...waterSoundAt(P.x,P.y)});
+}
 let voicePreloadedFor=null;
 let specialistSightingClock=0;
 function update(dt){
@@ -8453,6 +8472,7 @@ function update(dt){
    isPlayerConcealed:()=>!!(P.hidden||naturalCover(P)||insideShelter(P)||
      (inCover(P)&&Math.hypot(Number(P.vx)||0,Number(P.vy)||0)<(Number(P.speed)||150)*.50)),
   onPlayerAbductionStart:()=>{
+   playEffect("beam",{volume:.30});
    // Cancel queued combat and airborne moves so the beam owns the full animation.
    resetControls();interruptRush();P.atk=0;P.windup=0;
    P.jumpTime=0;P.jumpRemaining=0;P.pounceTime=0;P.pounceRemaining=0;
@@ -8474,6 +8494,7 @@ function update(dt){
    }});
  window.WildApparitions?.tick?.(dt,{P,mobs,elapsed,worldYear:elapsed/120,mode,notify,lineBlocked,
   onPossession:()=>{
+   playEffect("ghost",{volume:.19});
    // Abort in-progress attacks, jumps, and dashes without changing save ownership or UI.
    resetControls();interruptRush();P.atk=0;P.windup=0;
    P.jumpTime=0;P.jumpRemaining=0;P.pounceTime=0;P.pounceRemaining=0;P.dashTime=0;P.fallTime=0;
@@ -8740,7 +8761,7 @@ function update(dt){
    const surface=wet?"water":road?"hard":"earth";
    footstepTimer=clamp((P.r*.85+34)/Math.max(1,contactSpeed),.18,.46);
    window.WildMovementTrail?.record(P,surface,contactSpeed,elapsed,Math.atan2(travelY,travelX),(x,y)=>MOUNTAIN?.height(x,y)||0,landed);
-   playEffect(wet?"stepWater":landed?"land":road?"stepHard":"step",{volume:landed?.063:sneaking?.022:.046,rate:clamp(1.25-P.r*.009,.72,1.2)});
+   playEffect(wet?"stepWater":landed?"land":weather==="SNOW"&&!roof?"stepSnow":road?"stepHard":"step",{volume:landed?.063:sneaking?.022:.046,rate:clamp(1.25-P.r*.009,.72,1.2)});
    if(wet&&P.type!=="carp"&&P.type!=="otter"&&contactSpeed>P.speed*1.1&&!sneaking)P.noiseBurst=Math.max(P.noiseBurst||0,.30);
   }
   P.noiseBurst=Math.max(0,P.noiseBurst-dt*1.6);
@@ -9272,7 +9293,7 @@ function update(dt){
        if(m.salvageCacheId)m.salvageOpeningUntil=elapsed+1.6;
        const evaded=m.stun<=0&&window.WildDodgeCounter?.miss(P,m,elapsed,lineBlocked);
        m.stun=Math.max(m.stun,.24);
-       if(evaded)playEffect("wing",{volume:.09,rate:1.3});else label(m.x,m.y-m.r-16,"空振りの隙！","#a6f5d8");}
+       if(evaded)playEffect("evade",{volume:.09,rate:1.3});else label(m.x,m.y-m.r-16,"空振りの隙！","#a6f5d8");}
      }
     }
    }
@@ -9312,7 +9333,7 @@ function update(dt){
      label(m.x,m.y-m.r-20,"激突！","#bdf6cc");
     }else if(m.chargeTime<=0){
      m.stun=Math.max(m.stun,.55);
-     if(!m.chargeHit&&window.WildDodgeCounter?.miss(P,m,elapsed,lineBlocked))playEffect("wing",{volume:.09,rate:1.3});
+     if(!m.chargeHit&&window.WildDodgeCounter?.miss(P,m,elapsed,lineBlocked))playEffect("evade",{volume:.09,rate:1.3});
      else label(m.x,m.y-m.r-20,"隙！","#bdf6cc");
     }
    }
@@ -9326,7 +9347,8 @@ function update(dt){
     m.attack=(STRONG_ATTACK_PROFILES[m.type]?.cooldown??(m.type==="boar"?1.32:m.type==="alpha"?1.42:.98))*(variant?.cooldown||1);
     m.dir=angle;
     if(!window.WildDodgeCounter?.begin(P,m,elapsed,ordinaryMeleeReach(m)))label(m.x,m.y-m.r-24,variant?.name||(STRONG_ATTACK_PROFILES[m.type]?.tell??(m.type==="boar"?"突進予兆！":m.type==="alpha"?"跳躍予兆！":"危険！")),"#ffb76d");
-    playEffect("snarl");
+    playEffect("warning",{volume:.16});
+    window.WildAudio?.playAnimal?.(m.type,{level:.92});
    }
  }
  // Flood rescue is resolved AFTER wildlife AI, so the escorted animal really follows
@@ -9372,8 +9394,7 @@ function update(dt){
  audioTick+=dt;
  if(audioTick>.35){
   audioTick=0;
-  window.WildAudio?.update({weather,area:regionAt(P.x,P.y),mode:"play",...waterSoundAt(P.x,P.y),
-   danger:mobs.some(m=>m.hp>0&&!m.companion&&!species[m.type].prey&&dist(P,m)<(m.strongBoss?515:290))});
+  if(soundEnabled&&window.WildAudio?.active)updateWorldSound();
  }
  window.WildFirstSteps?.tick?.(P,dt);
  uiTimer+=dt;if(uiTimer>(coarseDisplay ? .24 : .14)){uiTimer=0;syncHUD(hr);drawMini()}
@@ -11360,8 +11381,13 @@ function drawScene(){
  // Let the dying animal remain visible briefly before the world closes in.
  drawDeathVignette();
 }
+let lastAudioMode=null;
 function loop(t){
  try {
+ if(mode!==lastAudioMode){
+  lastAudioMode=mode;
+  if(mode!=="play")window.WildAudio?.update({mode,weather,area:0,danger:false});
+ }
  // Keep simulation capped, but let the 2.2s death animation track real time on slow phones.
  const frameSeconds=Math.max(0,(t-last)/1000||.016);
  let dt=Math.min(.035,frameSeconds);last=t;
