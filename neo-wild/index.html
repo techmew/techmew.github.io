@@ -6,7 +6,7 @@
 <meta name="description" content="人の消えた架空の日本の町で、野生として生き抜く。狩猟・空腹・縄張り・進化を楽しむサバイバルアクション。">
 <title>WILD RECLAIM | 廃都生存記</title>
 <link rel="stylesheet" href="./style.css?rev=9bb25a4e11a9-surface2">
-<link rel="stylesheet" href="./visual.css?rev=compact-hud-1">
+<link rel="stylesheet" href="./visual.css?rev=compact-hud-1-mixer">
 <link rel="stylesheet" href="./bestiary.css?rev=72a9c18ef666">
 <link rel="stylesheet" href="./i18n.css?rev=35b6d2398767">
 <link rel="stylesheet" href="./title-ui-restore.css?rev=p0-roster-gacha-20261122">
@@ -191,16 +191,20 @@
 </div><small>TIME IS FROZEN</small><h2>PAUSED</h2><p>廃都は、あなたが動くのを待っている。</p><div class="pause-bgm-settings" role="group" aria-labelledby="pause-bgm-label">
  <label id="pause-bgm-label" for="pause-bgm-select">BGMを選択</label>
  <select id="pause-bgm-select" aria-label="BGMを選択">
-  <option value="default">デフォルト｜環境連動</option>
-  <option value="rush">廃都の残響｜静かなピアノ</option>
-  <option value="wild">深緑の息吹｜自然と弦</option>
-  <option value="night">獣の足音｜緊迫の低音</option>
-  <option value="dawn">夜明けの地平｜広がる旋律</option>
+  <option value="carefree">明るい｜Carefree</option>
  </select>
- <div class="pause-bgm-volume">
-  <label for="pause-bgm-volume">BGM音量 <output id="pause-bgm-volume-value" for="pause-bgm-volume">55%</output></label>
-  <input id="pause-bgm-volume" type="range" min="0" max="100" step="5" value="55" aria-label="BGMの音量">
+ <div class="audio-mixer" role="group" aria-label="音量設定">
+  <label>全体<output for="mix-master">50%</output><input id="mix-master" data-audio-channel="master" type="range" min="0" max="100" step="1" value="50"></label>
+  <label>BGM<output for="mix-music">50%</output><input id="mix-music" data-audio-channel="music" type="range" min="0" max="100" step="1" value="50"></label>
+  <label>環境音・風・木々<output for="mix-ambience">50%</output><input id="mix-ambience" data-audio-channel="ambience" type="range" min="0" max="100" step="1" value="50"></label>
+  <label>雨・雷・災害<output for="mix-weather">50%</output><input id="mix-weather" data-audio-channel="weather" type="range" min="0" max="100" step="1" value="50"></label>
+  <label>アクション効果音<output for="mix-sfx">50%</output><input id="mix-sfx" data-audio-channel="sfx" type="range" min="0" max="100" step="1" value="50"></label>
+  <label>動物の声<output for="mix-voice">50%</output><input id="mix-voice" data-audio-channel="voice" type="range" min="0" max="100" step="1" value="50"></label>
+  <label>足音<output for="mix-steps">50%</output><input id="mix-steps" data-audio-channel="steps" type="range" min="0" max="100" step="1" value="50"></label>
+  <label>UFO<output for="mix-ufo">50%</output><input id="mix-ufo" data-audio-channel="ufo" type="range" min="0" max="100" step="1" value="50"></label>
+  <label>メニュー操作音<output for="mix-ui">50%</output><input id="mix-ui" data-audio-channel="ui" type="range" min="0" max="100" step="1" value="50"></label>
  </div>
+ <details class="music-credit"><summary>楽曲クレジット</summary><small>Carefree / Feather Waltz / Heroic Age / Bossa Antigua — <a href="https://incompetech.com/music/royalty-free/" target="_blank" rel="noopener">Kevin MacLeod</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>。ゲーム用に音量調整・再エンコード。</small></details>
  <small id="pause-bgm-status" role="status" aria-live="polite">ポーズ中に試聴できます。選択は保存されます。</small>
 </div><button id="resume-btn" class="big-btn">生存を再開する →</button><button id="checkpoint-save-btn" class="save-choice" type="button">チェックポイントを記録</button><p id="checkpoint-save-status" role="status" class="checkpoint-status"></p><button id="quit-btn" class="flat-btn">タイトルに戻る（自動保存）</button><button id="rotate-btn" type="button">縦画面に戻す</button><p id="rotate-help" role="status"></p></div></div>
 <div id="upgrade" class="overlay hidden"><div class="modal wide"><small>ADAPTATION AVAILABLE</small><h2>進化の時</h2><p>本能が変異する。ひとつ選べ。</p><div class="upgrades"><button data-upgrade="fang"><span>⚔</span><b>鋭利な牙</b><small>攻撃力 +25%</small></button><button data-upgrade="fleet"><span>➤</span><b>野生の脚</b><small>移動速度 +15%</small></button><button data-upgrade="life"><span>♥</span><b>強靭な肉体</b><small>最大生命 +30 / 回復</small></button></div></div></div>
@@ -252,7 +256,7 @@
  });
 })();
 </script>
-<script src="./audio.js?rev=terrain-step-1-audio2" defer></script>
+<script src="./audio.js?rev=terrain-step-1-mixer" defer></script>
 <script src="./mountain.js?rev=strike-contact-20261123-storm1" defer></script>
 <script src="./east-expedition.js?rev=city-20261124" defer></script>
 <script src="./movement-trail.js?rev=terrain-step-1" defer></script>
@@ -268,7 +272,7 @@
 <script src="./trophy-records.js?rev=365eb8e1f970" defer></script> <script src="./squad-core.js?rev=a61bc3c46f5d" defer></script>
 <script src="./boss-roster.js?rev=c9ab5d311eb1" defer></script>
 <script src="./world-end.js?rev=survival-20261123" defer></script>
-<script src="./i18n-phrases.js?rev=compact-hud-1" defer></script>
+<script src="./i18n-phrases.js?rev=compact-hud-1-mixer" defer></script>
 <script src="./i18n.js?rev=trail-frame-20261123" defer></script>
 <script src="./squad-gacha-ui.js?rev=p0-roster-gacha-20261122" defer></script>
 <script src="./death-share.js?rev=33ba6425ed9d" defer></script>
@@ -277,7 +281,7 @@
 <script src="./first-steps.js?rev=field-practice-2" defer></script>
 <script src="./storm-cover.js?rev=1-audio2" defer></script>
 <script src="./dodge-counter.js?rev=counter-flare-3-storm1-audio2-surface2" defer></script>
-<script src="./game.js?rev=debug-end-snow-lod-20261127-audio2-pixel1" defer></script>
+<script src="./game.js?rev=debug-end-snow-lod-20261127-audio2-pixel1-mixer" defer></script>
 <script src="./world-history.js?rev=3c285da9bcd8" defer></script>
 <script src="./save-backup.js?rev=51e57500c1ce" defer></script>
 <script src="./trophy-view.js?rev=d6fa96931ff5" defer></script>

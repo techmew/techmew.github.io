@@ -84,7 +84,7 @@ function synthAnimalVoice(type,intensity){
   source=context.createBufferSource();source.buffer=loopSources.wind.buffer;
   source.playbackRate.value=.8+rand()*.4;
  }
- source.connect(filter);filter.connect(gain);gain.connect(sfxBus);
+ source.connect(filter);filter.connect(gain);gain.connect(routes.voice);
  source.start(start);source.stop(start+length+.015);
  source.onended=()=>{try{source.disconnect();filter.disconnect();gain.disconnect()}catch(_){}};
 
@@ -110,7 +110,7 @@ function playAnimal(type,options={}){
   gain.gain.linearRampToValueAtTime(peak,current+Math.min(.012,duration*.2));
   gain.gain.setValueAtTime(peak,current+duration*.78);
   gain.gain.linearRampToValueAtTime(.0001,current+duration);
-  src.connect(gain);gain.connect(sfxBus);
+  src.connect(gain);gain.connect(routes.voice);
   src.start(0,0,Math.min(buffer.duration,isUltimate?2.0:1.10));
   src.onended=()=>{try{src.disconnect();gain.disconnect()}catch(_){}};
   return true;
@@ -118,8 +118,14 @@ function playAnimal(type,options={}){
 }
 
 
+const RECORDINGS={carefree:"Carefree",feather:"Feather Waltz",heroic:"Heroic Age",bossa:"Bossa Antigua"};
 const TRACKS=[
- {id:"default",name:"デフォルト｜環境連動"},
+ {id:"carefree",name:"明るい｜Carefree"},
+ {id:"feather",name:"静か｜Feather Waltz"},
+ {id:"heroic",name:"激しい・軽快な管弦楽｜Heroic Age"},
+ {id:"bossa",name:"ジャズ｜Bossa Antigua"},
+ {id:"silent",name:"無音｜BGMのみオフ"},
+ {id:"default",name:"従来のデフォルト｜環境連動"},
  {id:"rush",name:"廃都の残響｜静かなピアノ"},
  {id:"wild",name:"深緑の息吹｜自然と弦"},
  {id:"night",name:"獣の足音｜緊迫の低音"},
@@ -128,14 +134,37 @@ const TRACKS=[
 const TRACK_STORAGE_KEY="wild-reclaim-bgm-choice-v1";
 function loadMusicChoice(){
  try{
-  const id=localStorage.getItem(TRACK_STORAGE_KEY)||"default";
-  return TRACKS.some(track=>track.id===id)?id:"default";
- }catch(_){return "default"}
+  const id=localStorage.getItem(TRACK_STORAGE_KEY);
+  return TRACKS.some(track=>track.id===id)?id:"carefree";
+ }catch(_){return "carefree"}
 }
 let musicChoice=loadMusicChoice();
 const MUSIC_LEVEL_KEY="wild-reclaim-bgm-volume-v1";
-function loadMusicVolume(){try{const saved=localStorage.getItem(MUSIC_LEVEL_KEY);if(saved===null)return .55;const n=Number(saved);return Number.isFinite(n)&&n>=0&&n<=100?n/100:.55}catch(_){return .55}}
-let musicVolume=loadMusicVolume();
+const channels=["master","music","ambience","weather","sfx","voice","steps","ufo","ui"];
+const levels={},channelNodes={};
+function levelKey(channel){return channel==="music"?MUSIC_LEVEL_KEY:"wild-reclaim-volume-"+channel}
+for(const channel of channels){
+ let value=50;
+ try{
+  const saved=localStorage.getItem(levelKey(channel));
+  if(saved!==null&&saved.trim()!==""&&Number.isFinite(+saved)&&+saved>=0&&+saved<=100)value=+saved;
+ }catch(_){}
+ levels[channel]=value;channelNodes[channel]=[];
+}
+function mixerInput(channel,destination){
+ const node=context.createGain();node.gain.value=levels[channel]/100;
+ node.connect(destination);channelNodes[channel].push(node);return node;
+}
+function getVolume(channel){return levels[channel]}
+function setVolume(channel,value){
+ if(!channels.includes(channel)||!Number.isFinite(Number(value)))return getVolume(channel);
+ const level=Math.round(clamp(Number(value),0,100));levels[channel]=level;
+ try{localStorage.setItem(levelKey(channel),String(level))}catch(_){}
+ for(const node of channelNodes[channel])node.gain.setTargetAtTime(level/100,context.currentTime,.035);
+ return level;
+}
+const getMusicVolume=()=>getVolume("music"),setMusicVolume=value=>setVolume("music",value);
+let routes={},recording=null,recordingGain=null,recordingId="",recordingMode="",playAttempt=0;
 let context=null,master=null,musicBus=null,atmosBus=null,sfxBus=null,loopSources={},loopGains={},effectBuffers={};
 let enabled=true,started=false,scene={weather:"CLEAR",area:0,danger:false,mode:"menu"},lastAmbient=-1,deathFade=false;
 let lastCallAt=-100,lastThemeChange=-100,musicFocus=null;
@@ -147,10 +176,12 @@ function ensure(){
  const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;
  try{
   context=new C({latencyHint:"interactive"});
-  master=context.createGain();master.gain.value=enabled?.82:0;master.connect(context.destination);
-  musicBus=context.createGain();musicBus.gain.value=.73*musicVolume;musicFocus=context.createGain();musicBus.connect(musicFocus);musicFocus.connect(master);
+  master=context.createGain();master.gain.value=enabled?.82:0;master.connect(mixerInput("master",context.destination));
+  musicBus=context.createGain();musicBus.gain.value=.73;musicFocus=context.createGain();musicBus.connect(mixerInput("music",musicFocus));musicFocus.connect(master);
   atmosBus=context.createGain();atmosBus.gain.value=.23;atmosBus.connect(musicFocus);
   sfxBus=context.createGain();sfxBus.gain.value=.48;sfxBus.connect(master);
+  for(const id of ["sfx","weather","voice","steps","ufo","ui","ambience"])routes[id]=mixerInput(id,sfxBus);
+  for(const id of ["weather","ambience","ufo"])routes[id+"Bed"]=mixerInput(id,atmosBus);
   return context;
  }catch(_){context=null;return null}
 }
@@ -324,12 +355,12 @@ function startAtmos(){
   filter.type=kind;filter.frequency.value=hz;filter.Q.value=.64;
   rate.frequency.value=pulse;mod.gain.value=depth;swirl.gain.value=1-depth*.45;
   rate.connect(mod);mod.connect(swirl.gain);src.connect(filter);filter.connect(swirl);
-  swirl.connect(gain);gain.connect(atmosBus);gain.gain.value=0;
+  swirl.connect(gain);gain.connect(name==="rain"?routes.weatherBed:routes.ambienceBed);gain.gain.value=0;
   rate.start();src.start(0,rand()*1.9);loopGains[name]=gain;loopSources[name]=src;
  }
  const motor=context.createOscillator(),wobble=context.createOscillator(),depth=context.createGain(),gain=context.createGain();
  motor.type="triangle";motor.frequency.value=102;wobble.frequency.value=3.3;depth.gain.value=5;
- wobble.connect(depth);depth.connect(motor.frequency);motor.connect(gain);gain.connect(atmosBus);
+ wobble.connect(depth);depth.connect(motor.frequency);motor.connect(gain);gain.connect(routes.ufoBed);
  gain.gain.value=0;motor.start();wobble.start();loopGains.ufo=gain;loopSources.ufo=motor;
 }
 function sample(name){
@@ -397,18 +428,38 @@ function setMusicChoice(id){
  try{localStorage.setItem(TRACK_STORAGE_KEY,id)}catch(_){}
  lastThemeChange=-100;
  if(enabled)unlock();
- if(started&&id!=="default")ensureExtraTrack(id);
+ if(recordingMode==="blocked")recordingMode="";
  if(started&&enabled)update(scene);
  return true;
 }
-function setMusicVolume(value){
- const n=Number(value);if(!Number.isFinite(n))return getMusicVolume();
- musicVolume=clamp(n,0,100)/100;
- try{localStorage.setItem(MUSIC_LEVEL_KEY,String(Math.round(musicVolume*100)))}catch(_){}
- if(context&&musicBus&&!deathFade)musicBus.gain.setTargetAtTime(.73*musicVolume,context.currentTime,.12);
- return getMusicVolume();
+function stopRecording(){
+ if(!recordingId)return;
+ ++playAttempt;recording.pause();recording.removeAttribute("src");recording.load();
+ recordingId="";recordingMode="";
 }
-function getMusicVolume(){return Math.round(musicVolume*100)}
+function requestPlayback(){
+ const attempt=++playAttempt;
+ recording.play().catch(err=>{
+  if(attempt!==playAttempt||err.name==="AbortError")return;
+  recordingMode="blocked";
+  const status=document.getElementById("pause-bgm-status");
+  if(status)status.textContent="曲を再生できませんでした。曲を選び直して再試聴できます。";
+ });
+}
+function syncRecording(id,mode){
+ if(!recording){
+  recording=new Audio();recording.loop=true;recording.preload="none";
+  recordingGain=context.createGain();recordingGain.gain.value=0;
+  context.createMediaElementSource(recording).connect(recordingGain);recordingGain.connect(musicBus);
+ }
+ const changed=id!==recordingId;
+ if(changed){recordingId=id;recording.src="./music/"+id+".mp3";recordingMode="";}
+ if(mode===recordingMode||recordingMode==="blocked")return;
+ recordingMode=mode;
+ const quiet=mode==="guide"||mode==="dying"||mode==="over";
+ recordingGain.gain.setTargetAtTime(quiet?0:mode==="play"?.90:mode==="pause"?.78:.38,context.currentTime,.11);
+ if(quiet){++playAttempt;recording.pause();}else if(changed||recording.paused)requestPlayback();
+}
 function update(conditions){
  const previous=scene;scene=conditions||scene;
  if(!started||!context||!enabled)return;
@@ -431,10 +482,18 @@ function update(conditions){
   fire:(scene.fire||0)*.17,ufo:(scene.ufoNear||0)*.14
  };
  const theme=musicChoice!=="default"?musicChoice:danger||scene.ufoLock?"night":forest||canopy>.6?"wild":rain?"rush":"dawn";
- if(!composer||theme!==composer.id&&(musicChoice!=="default"||clock-lastThemeChange>5||theme==="night")){
-  ensureExtraTrack(theme);lastThemeChange=clock;
+ if(RECORDINGS[theme]){
+  stopComposer();syncRecording(theme,scene.mode||"play");
+ }else{
+  stopRecording();
+  if(theme==="silent")stopComposer();
+  else{
+   if(!composer||theme!==composer.id&&(musicChoice!=="default"||clock-lastThemeChange>5||theme==="night")){
+    ensureExtraTrack(theme);lastThemeChange=clock;
+   }
+   composerMix(scene.mode||"play");
+  }
  }
- composerMix(scene.mode||"play");
  loopSources.ufo.frequency.setTargetAtTime(scene.ufoLock?169:94,clock,.18);
  for(const [name,value] of Object.entries(targets))loopGains[name].gain.setTargetAtTime(paused?0:value,clock,name==="ufo"?.17:.6);
  if(!paused&&clock-lastAmbient>6){
@@ -463,12 +522,15 @@ function play(name,options={}){
   }[name]??.17;
   const asked=options.volume===undefined?.14:options.volume;
   gain.gain.value=step?Math.min(asked,.055):Math.min(asked,quietCap);
-  if(priority&&!deathFade){
+  const channel=step?"steps":name==="menu"?"ui":name==="thunder"||name==="quake"?"weather":
+   name==="warp"||name==="beam"?"ufo":name==="firePop"||name==="rustle"?"ambience":
+   name==="howl"||name==="snarl"?"voice":"sfx";
+  if(priority&&!deathFade&&levels[channel]>0){
    musicFocus.gain.cancelScheduledValues(now);
    musicFocus.gain.setTargetAtTime(.55,now,.025);
    musicFocus.gain.setTargetAtTime(1,now+.20,.22);
   }
-  source.connect(gain);gain.connect(sfxBus);source.start();activeEffects.add(source);
+  source.connect(gain);gain.connect(routes[channel]);source.start();activeEffects.add(source);
   source.onended=()=>{activeEffects.delete(source);try{source.disconnect();gain.disconnect()}catch(_){}};
  }catch(_){}
 }
@@ -497,17 +559,18 @@ function resetDeathFade(){
  musicBus?.gain.cancelScheduledValues(t);
  atmosBus?.gain.cancelScheduledValues(t);
  sfxBus?.gain.cancelScheduledValues(t);
- musicBus?.gain.setTargetAtTime(.73*musicVolume,t,.14);
+ musicBus?.gain.setTargetAtTime(.73,t,.14);
  atmosBus?.gain.setTargetAtTime(.23,t,.14);
  sfxBus?.gain.setTargetAtTime(.48,t,.14);
 }
 function setEnabled(on){
  enabled=!!on;
+ if(!enabled&&recordingId){++playAttempt;recording.pause();recordingMode="";}
  if(!enabled&&context&&master)master.gain.setTargetAtTime(0,context.currentTime,.1);
  if(enabled){unlock();if(context&&master)master.gain.setTargetAtTime(.82,context.currentTime,.18);update(scene)}
  return enabled;
 }
-window.WildAudio={unlock,update,play,playAnimal,preloadAnimal,setEnabled,setMusicChoice,getMusicChoice,setMusicVolume,getMusicVolume,
+window.WildAudio={unlock,update,play,playAnimal,preloadAnimal,setEnabled,setMusicChoice,getMusicChoice,setMusicVolume,getMusicVolume,setVolume,getVolume,
  tracks:TRACKS.map(t=>({...t})),fadeForDeath,resetDeathFade,get active(){return started},get enabled(){return enabled},
  get soundtrack(){return TRACKS.find(t=>t.id===(musicChoice==="default"?composer?.id:musicChoice))?.name||TRACKS[0].name}};
 })();

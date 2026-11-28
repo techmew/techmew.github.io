@@ -12116,28 +12116,22 @@ $("mission-close").addEventListener("click",()=>{
 const bgmPicker=$("pause-bgm-select"),bgmStatus=$("pause-bgm-status");
 if(bgmPicker&&window.WildAudio){
  const options=window.WildAudio.tracks||[];
- if(options.length===5){
+ if(options.length){
   bgmPicker.replaceChildren(...options.map(track=>{
    const option=document.createElement("option");
    option.value=track.id;option.textContent=track.name;return option;
   }));
  }
  bgmPicker.value=window.WildAudio.getMusicChoice?.()||"default";
- const volumeSlider=$("pause-bgm-volume"),volumeLabel=$("pause-bgm-volume-value");
- if(volumeSlider){
-  const current=window.WildAudio.getMusicVolume?.()??55;
-  volumeSlider.value=String(current);
-  if(volumeLabel)volumeLabel.textContent=current+"%";
-  volumeSlider.addEventListener("input",()=>{
-   const level=window.WildAudio.setMusicVolume?.(volumeSlider.value)??55;
-   if(volumeLabel)volumeLabel.textContent=level+"%";
-   if(bgmStatus)bgmStatus.textContent="BGM音量 "+level+"%（次回も保存）";
-  });
+ for(const slider of document.querySelectorAll("[data-audio-channel]")){
+  const id=slider.dataset.audioChannel,label=slider.parentElement.querySelector("output");
+  slider.value=String(window.WildAudio.getVolume(id));label.value=slider.value+"%";
+  slider.addEventListener("input",()=>{label.value=window.WildAudio.setVolume(id,slider.value)+"%";});
  }
  bgmPicker.addEventListener("change",()=>{
   const selected=window.WildAudio.setMusicChoice?.(bgmPicker.value);
   if(!selected){bgmPicker.value=window.WildAudio.getMusicChoice?.()||"default";return;}
-  if(bgmStatus)bgmStatus.textContent=soundEnabled?"選択した曲を再生中・次回も保持します":"選択を保存しました。右上の♪で音楽をONにできます。";
+  if(bgmStatus)bgmStatus.textContent=bgmPicker.value==="silent"?"BGMをオフにしました。":soundEnabled?"選択した曲を再生中・次回も保持します":"選択を保存しました。右上の♪で音楽をONにできます。";
  });
 }
 $("resume-btn").addEventListener("click",togglePause);

@@ -1844,3 +1844,12 @@
  #hud #district{display:inline}
  #hud #district,#hud #day-label{overflow-wrap:anywhere}
 }
+
+#pause .modal{max-height:94dvh;overflow-y:auto;overscroll-behavior:contain}
+#pause .audio-mixer{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px 14px}
+#pause .audio-mixer label{display:grid;grid-template-columns:1fr auto;align-items:center;gap:0 2px;letter-spacing:0;color:#e7eacf}
+#pause .audio-mixer label:first-child{grid-column:1/-1}
+#pause .audio-mixer output{font-variant-numeric:tabular-nums;color:#ffdf95}
+#pause .audio-mixer input{grid-column:1/-1;width:100%;margin:0;height:24px;accent-color:#e6c777}
+#pause .music-credit{font-size:11px;color:#c9dcca}
+#pause .music-credit a{color:#ffdf95}
